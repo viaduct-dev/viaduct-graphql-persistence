@@ -29,14 +29,14 @@ Make the plugin repository available to both plugin and dependency resolution:
 // settings.gradle.kts
 pluginManagement {
     repositories {
-        maven("https://your-repository.example/viaduct-persistence")
+        maven("https://viaduct-dev.github.io/viaduct-graphql-persistence/")
         gradlePluginPortal()
     }
 }
 
 dependencyResolutionManagement {
     repositories {
-        maven("https://your-repository.example/viaduct-persistence")
+        maven("https://viaduct-dev.github.io/viaduct-graphql-persistence/")
         mavenCentral()
     }
 }
