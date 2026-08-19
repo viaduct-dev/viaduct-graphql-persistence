@@ -510,7 +510,7 @@ Build and test all modules:
 Publish every artifact to an isolated local Maven repository:
 
 ```bash
-./gradlew publishAllPublicationsToIsolatedRepository \
+./gradlew publish \
   -PisolatedRepository=/tmp/viaduct-persistence-repository
 ```
 

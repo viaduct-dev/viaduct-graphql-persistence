@@ -42,8 +42,8 @@ import viaduct.apiannotations.InternalApi
 /**
  * Supplies provider-specific headers for each subtree request.
  *
- * The callback is evaluated for every request so credentials are never captured in a CRaC
- * checkpoint and applications can derive authorization from their execution context.
+ * The callback is evaluated for every request so applications can derive authorization from the
+ * current execution context instead of storing request credentials in the runtime client.
  */
 fun interface SubtreeRequestHeaders {
     suspend fun forContext(context: ExecutionContext): Map<String, String>
