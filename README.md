@@ -620,6 +620,26 @@ Publish every artifact to an isolated local Maven repository:
 Use that path in a consumer's `pluginManagement` and `dependencyResolutionManagement`
 repositories.
 
+### Release Signing
+
+Release publications are signed with an in-memory PGP key. Supply the credentials as Gradle
+properties:
+
+- `signingKeyId`: the signing key ID
+- `signingKey`: the ASCII-armored private key
+- `signingPassword`: the private key passphrase
+
+In GitHub Actions, expose them as `ORG_GRADLE_PROJECT_signingKeyId`,
+`ORG_GRADLE_PROJECT_signingKey`, and `ORG_GRADLE_PROJECT_signingPassword`. Snapshot publications
+do not require signing. Publishing a non-snapshot version to a Maven repository fails when signing
+credentials are missing.
+
+Pushing a `vX.Y.Z` tag, or manually running the **Build signed artifacts** workflow with a version,
+builds and tests every public module, verifies every Maven artifact has a detached signature, and
+uploads the signed Maven repository as a GitHub Actions artifact. Manual snapshot builds are
+supported for validation. A non-snapshot build fails if any generated POM references a snapshot
+dependency.
+
 ## Modules
 
 | Module | Responsibility |
@@ -636,3 +656,8 @@ repositories.
 
 Application schemas remain external compatibility consumers and are not copied into this
 repository.
+
+## License
+
+Viaduct GraphQL Persistence is licensed under the
+[Apache License, Version 2.0](LICENSE), matching Viaduct.
