@@ -3,7 +3,7 @@ plugins {
 }
 
 allprojects {
-    group = "dev.viaduct.persistence"
+    group = "dev.viaduct"
     version = "0.1.0-SNAPSHOT"
 }
 

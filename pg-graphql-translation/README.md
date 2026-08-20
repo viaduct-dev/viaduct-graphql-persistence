@@ -6,7 +6,7 @@ It is transport-neutral and does not depend on a Viaduct runtime or HTTP client.
 ```kotlin
 dependencies {
     implementation(
-        "dev.viaduct.persistence:pg-graphql-translation:0.1.0-SNAPSHOT"
+        "dev.viaduct:pg-graphql-translation:0.1.0-SNAPSHOT"
     )
 }
 ```

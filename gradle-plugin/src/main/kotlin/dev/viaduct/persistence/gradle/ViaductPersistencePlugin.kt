@@ -139,7 +139,7 @@ class ViaductPersistencePlugin : Plugin<Project> {
         }
         project.dependencies.add(
             tooling.name,
-            "dev.viaduct.persistence:liquibase-hibernate-integration:$VERSION",
+            "dev.viaduct:liquibase-hibernate-integration:$VERSION",
         )
         project.dependencies.add(tooling.name, "info.picocli:picocli:4.7.7")
         project.dependencies.add(tooling.name, "org.postgresql:postgresql:42.7.5")

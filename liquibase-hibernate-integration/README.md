@@ -11,7 +11,7 @@ Add the driver to the classpath:
 ```kotlin
 dependencies {
     implementation(
-        "dev.viaduct.persistence:liquibase-hibernate-integration:0.1.0-SNAPSHOT"
+        "dev.viaduct:liquibase-hibernate-integration:0.1.0-SNAPSHOT"
     )
 }
 ```

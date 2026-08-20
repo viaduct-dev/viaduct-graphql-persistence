@@ -21,6 +21,22 @@ that metadata with a database, and pg_graphql serves the resulting schema at run
 
 The current artifact version is `0.1.0-SNAPSHOT`.
 
+## Published Artifacts
+
+All libraries use the `dev.viaduct` Maven group:
+
+| Coordinate | Purpose |
+| --- | --- |
+| `dev.viaduct:runtime` | Viaduct subtree runtime and pg_graphql client |
+| `dev.viaduct:pg-graphql-translation` | Transport-neutral selection translation |
+| `dev.viaduct:schema-model-core` | Provider-neutral persistence model |
+| `dev.viaduct:hibernate-codegen` | Hibernate entity and mapping generation |
+| `dev.viaduct:postgresql-overlay` | PostgreSQL persistence overlay |
+| `dev.viaduct:pg-graphql-overlay` | pg_graphql naming and relationship overlay |
+| `dev.viaduct:liquibase-hibernate-integration` | Liquibase reference database |
+
+The Gradle plugin ID is `dev.viaduct.graphql-persistence`.
+
 ## Apply the Plugin
 
 Make the plugin repository available to both plugin and dependency resolution:
@@ -249,7 +265,7 @@ Add the runtime library:
 
 ```kotlin
 dependencies {
-    implementation("dev.viaduct.persistence:runtime:0.1.0-SNAPSHOT")
+    implementation("dev.viaduct:runtime:0.1.0-SNAPSHOT")
 }
 ```
 
@@ -431,7 +447,7 @@ Add the driver when using it outside the plugin tasks:
 ```kotlin
 dependencies {
     implementation(
-        "dev.viaduct.persistence:liquibase-hibernate-integration:0.1.0-SNAPSHOT"
+        "dev.viaduct:liquibase-hibernate-integration:0.1.0-SNAPSHOT"
     )
     implementation("org.liquibase:liquibase-core:5.0.3")
     implementation("org.liquibase.ext:liquibase-hibernate7:5.0.3")
@@ -493,7 +509,7 @@ PostgreSQL JDBC driver to their own test/tool configuration.
 ```kotlin
 dependencies {
     testImplementation(
-        "dev.viaduct.persistence:hibernate-codegen:0.1.0-SNAPSHOT"
+        "dev.viaduct:hibernate-codegen:0.1.0-SNAPSHOT"
     )
     testImplementation("org.postgresql:postgresql:42.7.5")
 }
