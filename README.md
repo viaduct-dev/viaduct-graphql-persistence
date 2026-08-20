@@ -109,10 +109,10 @@ Use object references for relationships. A scalar field such as `groupId` must n
 Relationships do not need to be bidirectional. The generated mappings preserve the authored
 relationship names used by Viaduct:
 
-- A to-one field becomes a foreign key.
-- A list with a matching to-one field on the target uses the target foreign key.
+- An object reference becomes a foreign key.
+- A list with a matching back-reference on the target uses the target foreign key.
 - A mutual list relationship uses one deterministic join table.
-- A unidirectional list without a matching to-one uses its own join table.
+- A unidirectional list without a matching back-reference uses its own join table.
 - Multiple unidirectional lists to the same target use separate join tables.
 - Join-table relationships are exposed through generated pg_graphql computed functions.
 
