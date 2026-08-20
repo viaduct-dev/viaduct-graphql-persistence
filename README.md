@@ -1,15 +1,141 @@
 # Viaduct GraphQL Persistence
 
-Viaduct GraphQL Persistence has two parts:
+## Overview
 
-- A Gradle plugin that derives a PostgreSQL and pg_graphql persistence model from an assembled
-  Viaduct GraphQL schema.
-- A runtime library that executes Viaduct subtree selections against pg_graphql and maps the
-  results back into generated Viaduct result types.
+Viaduct GraphQL Persistence lets a Viaduct application's GraphQL schema define its data model.
+Types, fields, and relationships are written once in GraphQL instead of being maintained
+separately in GraphQL, Kotlin, and database mapping code.
 
-GraphQL is the authored semantic source of truth. The generated Kotlin entities and Hibernate
-mapping are build artifacts. Hibernate supplies metadata at build time, Liquibase can compare
-that metadata with a database, and pg_graphql serves the resulting schema at runtime.
+The project has two parts:
+
+- The **Gradle plugin** reads the assembled GraphQL schema and generates the database model,
+  Kotlin persistence classes, and PostgreSQL integration files.
+- The **runtime library** sends Viaduct's selected fields to `pg_graphql` and converts the response
+  back into Viaduct result types.
+
+The normal workflow is:
+
+1. Describe the model in GraphQL.
+2. Generate and review the proposed database changes.
+3. Apply the approved changes through the application's migration system.
+4. Use the runtime library to load persisted GraphQL types.
+
+Schema-first does not mean that builds automatically modify a database. Generated SQL is review
+input; the application remains responsible for committing and applying migrations.
+
+## Getting Started
+
+### 1. Add the repository
+
+Make the plugin and libraries available to Gradle:
+
+```kotlin
+// settings.gradle.kts
+pluginManagement {
+    repositories {
+        maven("https://viaduct-dev.github.io/viaduct-graphql-persistence/")
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        maven("https://viaduct-dev.github.io/viaduct-graphql-persistence/")
+        mavenCentral()
+    }
+}
+```
+
+### 2. Apply the plugin and runtime
+
+Add the persistence plugin to the Viaduct application and choose a package for generated code:
+
+```kotlin
+// build.gradle.kts
+plugins {
+    kotlin("jvm")
+    id("com.airbnb.viaduct.application-gradle-plugin") version "<viaduct-version>"
+    id("dev.viaduct.graphql-persistence") version "0.1.0-SNAPSHOT"
+}
+
+dependencies {
+    implementation("dev.viaduct:runtime:0.1.0-SNAPSHOT")
+}
+
+viaductPersistence {
+    packageName.set("com.example.persistence.generated")
+}
+```
+
+### 3. Define the data model
+
+Write ordinary Viaduct GraphQL types. An object with an `id: ID` field is persistent by default,
+and object references describe relationships:
+
+```graphql
+type Group {
+  id: ID!
+  name: String!
+  members: [GroupMember!]!
+}
+
+type GroupMember {
+  id: ID!
+  group: Group!
+  displayName: String!
+}
+```
+
+Put types backed by another service, or types that should not become database tables, in files
+ending with `.notable.graphqls`.
+
+### 4. Generate the database model
+
+Run:
+
+```bash
+./gradlew buildViaductEffectiveModel
+```
+
+The generated review files are written under:
+
+```text
+build/generated/viaduct-effective-model/META-INF/
+```
+
+Start with `postgresql-migration.sql` for relational changes and
+`pg-graphql-metadata.sql` for the GraphQL-facing database metadata.
+
+### 5. Review and apply a migration
+
+Review the generated SQL, adapt it to the application's existing schema, and commit the approved
+changes to the application's normal migration system. For an existing database,
+`hibernateSchemaDiff` can compare the generated model with that database.
+
+The plugin never applies these changes automatically.
+
+### 6. Configure the runtime
+
+Create a `SubtreeClient` with the application's HTTP client, `pg_graphql` endpoint, and
+request-specific authentication headers:
+
+```kotlin
+val subtreeClient = SubtreeClient(
+    httpClient = httpClient,
+    endpoint = "$supabaseUrl/graphql/v1",
+    requestHeaders = SubtreeRequestHeaders { context ->
+        mapOf(
+            "Authorization" to "Bearer ${accessTokenFor(context)}",
+            "apikey" to supabaseAnonKey,
+        )
+    },
+)
+```
+
+Inject this client into Viaduct resolvers that load persistent types. See
+[Use pg_graphql as a Subtree Backend](#use-pg_graphql-as-a-subtree-backend) for resolver examples
+and [Create or Update a Database](#create-or-update-a-database) for the complete migration
+workflow.
 
 ## Requirements
 
@@ -36,45 +162,6 @@ All libraries use the `dev.viaduct` Maven group:
 | `dev.viaduct:liquibase-hibernate-integration` | Liquibase reference database |
 
 The Gradle plugin ID is `dev.viaduct.graphql-persistence`.
-
-## Apply the Plugin
-
-Make the plugin repository available to both plugin and dependency resolution:
-
-```kotlin
-// settings.gradle.kts
-pluginManagement {
-    repositories {
-        maven("https://viaduct-dev.github.io/viaduct-graphql-persistence/")
-        gradlePluginPortal()
-    }
-}
-
-dependencyResolutionManagement {
-    repositories {
-        maven("https://viaduct-dev.github.io/viaduct-graphql-persistence/")
-        mavenCentral()
-    }
-}
-```
-
-Apply the plugin to the Viaduct application project:
-
-```kotlin
-// build.gradle.kts
-plugins {
-    kotlin("jvm")
-    id("com.airbnb.viaduct.application-gradle-plugin") version "<viaduct-version>"
-    id("dev.viaduct.graphql-persistence") version "0.1.0-SNAPSHOT"
-}
-
-viaductPersistence {
-    packageName.set("com.example.persistence.generated")
-}
-```
-
-The plugin reads the assembled schema from `build/viaduct/centralSchema` by default. It wires
-generation into Kotlin compilation, KSP, KAPT, resource processing, and JAR assembly.
 
 ## GraphQL Conventions
 
