@@ -11,7 +11,7 @@ gpg --keyserver keyserver.ubuntu.com --send-keys 94878551E804BB0421FEE32BBBE7C5E
 
 Release identity:
 
-- UID: `Viaduct GraphQL Persistence Releases <rusty.phillips@gmail.com>`
+- Primary UID: `Viaduct GraphQL Persistence Releases <maven@ductworks.io>`
 - Fingerprint: `9487 8551 E804 BB04 21FE E32B BBE7 C5EF FB31 E7A8`
 - Gradle key ID: `FB31E7A8`
 - Expiration: August 19, 2028
