@@ -640,6 +640,22 @@ uploads the signed Maven repository as a GitHub Actions artifact. Manual snapsho
 supported for validation. A non-snapshot build fails if any generated POM references a snapshot
 dependency.
 
+### Maven Central Snapshots
+
+The **Publish Maven Central snapshot** workflow publishes versions ending in `-SNAPSHOT` to:
+
+```text
+https://central.sonatype.com/repository/maven-snapshots/
+```
+
+Configure these GitHub repository secrets with a Central Portal user token:
+
+- `MAVEN_CENTRAL_USERNAME`
+- `MAVEN_CENTRAL_PASSWORD`
+
+The token credentials are separate from the account's interactive username and password. Snapshot
+artifacts are not release artifacts and do not require PGP signing.
+
 ## Modules
 
 | Module | Responsibility |

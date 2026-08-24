@@ -81,6 +81,21 @@ subprojects {
                             .get()
                     )
                 }
+
+                if (
+                    providers.gradleProperty("publishCentralSnapshots")
+                        .map(String::toBoolean)
+                        .getOrElse(false)
+                ) {
+                    maven {
+                        name = "centralSnapshots"
+                        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+                        credentials {
+                            username = providers.gradleProperty("mavenCentralUsername").orNull
+                            password = providers.gradleProperty("mavenCentralPassword").orNull
+                        }
+                    }
+                }
             }
         }
     }
