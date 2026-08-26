@@ -47,15 +47,26 @@ class ViaductPersistencePluginTest {
             projectDirectory.resolve("schema").mkdirs()
             projectDirectory.resolve("schema/Model.graphqls").writeText(
                 """
+                directive @connection on OBJECT
+                directive @edge on OBJECT
+
                 type Group {
                   id: ID!
                   name: String!
                   labels: [String!]!
-                  members: [Person!]!
+                  members: PersonConnection!
                 }
 
                 type Person {
                   id: ID!
+                }
+
+                type PersonConnection @connection {
+                  edges: [PersonEdge!]!
+                }
+
+                type PersonEdge @edge {
+                  node: Person!
                 }
 
                 type Query {
@@ -85,6 +96,8 @@ class ViaductPersistencePluginTest {
                     "META-INF/pg-graphql-translation-schema.tsv"
             ).readText()
             assertTrue(!translationSchema.contains("collection\tQuery\t"))
+            assertContains(translationSchema, "connection\tPersonConnection\tPerson")
+            assertContains(translationSchema, "field\tGroup\tmembers\tPersonConnection")
         } finally {
             projectDirectory.deleteRecursively()
         }

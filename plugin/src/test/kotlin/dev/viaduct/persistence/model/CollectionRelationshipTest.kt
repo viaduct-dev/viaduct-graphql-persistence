@@ -79,6 +79,41 @@ class CollectionRelationshipTest {
     }
 
     @Test
+    fun `treats a connection field as a collection relationship`() {
+        val schema = ViaductSchemaFactory.fromTypeDefinitionRegistry(
+            """
+            directive @connection on OBJECT
+            directive @edge on OBJECT
+
+            type Group {
+              id: ID!
+              members: PersonConnection!
+            }
+
+            type Person {
+              id: ID!
+            }
+
+            type PersonConnection @connection {
+              edges: [PersonEdge!]!
+            }
+
+            type PersonEdge @edge {
+              node: Person!
+            }
+            """.trimIndent()
+        )
+
+        val model = PersistenceModelBuilder().build(schema, setOf("Group", "Person"))
+        val members = model.entities.single { it.graphqlName == "Group" }
+            .attributes.single { it.name == "members" } as PersistenceToManyAttribute
+
+        assertEquals("Person", members.targetTypeName)
+        assertEquals(PersistenceToManyStorage.TARGET_FOREIGN_KEY, members.storage)
+        assertEquals(null, members.inverseFieldName)
+    }
+
+    @Test
     fun `allows an existing unidirectional target foreign key by configuration`() {
         val schema = ViaductSchemaFactory.fromTypeDefinitionRegistry(
             """

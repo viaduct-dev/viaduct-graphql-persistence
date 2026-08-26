@@ -200,6 +200,18 @@ class PersistenceModelBuilder {
             return RelationshipTarget(baseType.name, field.type.isList)
         }
 
+        if (baseType.hasAppliedDirective("connection")) {
+            val edgeType = baseType.fields.singleOrNull { it.name == "edges" }
+                ?.type?.baseTypeDef as? ViaductSchema.Object
+            if (edgeType?.hasAppliedDirective("edge") == true) {
+                val nodeType = edgeType.fields.singleOrNull { it.name == "node" }
+                    ?.type?.baseTypeDef as? ViaductSchema.Object
+                if (nodeType != null && nodeType.name in includedObjects) {
+                    return RelationshipTarget(nodeType.name, collection = true)
+                }
+            }
+        }
+
         val nodesField = baseType.fields.singleOrNull { it.name == "nodes" } ?: return null
         val nodeType = nodesField.type.baseTypeDef as? ViaductSchema.Object ?: return null
         return nodeType.name

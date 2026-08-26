@@ -8,9 +8,13 @@ data class PgGraphqlFieldCoordinate(
 data class PgGraphqlTranslationSchema(
     val collectionElementTypes: Map<String, String>,
     val fieldTypes: Map<PgGraphqlFieldCoordinate, String>,
+    val connectionElementTypes: Map<String, String> = emptyMap(),
 ) {
     fun collectionElementType(typeName: String): String? =
-        collectionElementTypes[typeName]
+        collectionElementTypes[typeName] ?: connectionElementTypes[typeName]
+
+    fun isConnectionType(typeName: String): Boolean =
+        typeName in connectionElementTypes
 
     fun fieldType(parentType: String, fieldName: String): String? =
         fieldTypes[PgGraphqlFieldCoordinate(parentType, fieldName)]
@@ -20,6 +24,9 @@ data class PgGraphqlTranslationSchema(
             appendLine(FORMAT)
             collectionElementTypes.toSortedMap().forEach { (collection, element) ->
                 appendLine("collection\t$collection\t$element")
+            }
+            connectionElementTypes.toSortedMap().forEach { (connection, element) ->
+                appendLine("connection\t$connection\t$element")
             }
             fieldTypes.entries
                 .sortedWith(
@@ -45,6 +52,7 @@ data class PgGraphqlTranslationSchema(
                 "Unsupported pg_graphql translation schema format"
             }
             val collections = linkedMapOf<String, String>()
+            val connections = linkedMapOf<String, String>()
             val fields = linkedMapOf<PgGraphqlFieldCoordinate, String>()
             for (line in lines.drop(1)) {
                 val values = line.split('\t')
@@ -53,6 +61,10 @@ data class PgGraphqlTranslationSchema(
                         require(values.size == 3) { "Invalid collection shape: $line" }
                         collections[values[1]] = values[2]
                     }
+                    "connection" -> {
+                        require(values.size == 3) { "Invalid connection shape: $line" }
+                        connections[values[1]] = values[2]
+                    }
                     "field" -> {
                         require(values.size == 4) { "Invalid field shape: $line" }
                         fields[PgGraphqlFieldCoordinate(values[1], values[2])] = values[3]
@@ -60,7 +72,7 @@ data class PgGraphqlTranslationSchema(
                     else -> error("Unknown translation schema record: $line")
                 }
             }
-            return PgGraphqlTranslationSchema(collections, fields)
+            return PgGraphqlTranslationSchema(collections, fields, connections)
         }
     }
 }
