@@ -294,7 +294,7 @@ class PersistenceModelBuilder {
 
     private fun validateNoScalarRelationshipIds(
         source: ViaductSchema.Object,
-        relationships: Map<ViaductSchema.Field, RelationshipTarget?>,
+        relationships: Map<out ViaductSchema.Field, RelationshipTarget?>,
     ) {
         val fieldNames = source.fields.mapTo(linkedSetOf()) { it.name }
         val shadowedRelationships = relationships
