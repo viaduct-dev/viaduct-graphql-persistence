@@ -56,7 +56,7 @@ class CollectionRelationshipTest {
     }
 
     @Test
-    fun `uses a join table for a single unidirectional collection`() {
+    fun `uses a target foreign key for a single unidirectional collection`() {
         val schema = ViaductSchemaFactory.fromTypeDefinitionRegistry(
             """
             type Group {
@@ -74,8 +74,8 @@ class CollectionRelationshipTest {
         val members = model.entities.single { it.graphqlName == "Group" }
             .attributes.single { it.name == "members" } as PersistenceToManyAttribute
 
-        assertEquals(PersistenceToManyStorage.JOIN_TABLE_OWNER, members.storage)
-        assertEquals("GroupMembersAssociation", members.joinTableName)
+        assertEquals(PersistenceToManyStorage.TARGET_FOREIGN_KEY, members.storage)
+        assertEquals(null, members.joinTableName)
     }
 
     @Test

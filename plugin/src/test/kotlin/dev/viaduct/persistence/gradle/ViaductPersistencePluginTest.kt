@@ -78,8 +78,7 @@ class ViaductPersistencePluginTest {
             assertContains(effectiveModel, "array\tGroup\tlabels\tpublic\tgroups\tlabels")
             assertContains(
                 effectiveModel,
-                "computed-relationship\tGroup\tmembers\tpublic\tgroups\tid\tpublic\tpersons" +
-                    "\tid\tviaduct_internal\tgroup_members_associations",
+                "relationship\tGroup\tmembers\tpublic\tpersons\tgroup_id\tLOCAL",
             )
             val translationSchema = projectDirectory.resolve(
                 "build/generated/viaduct-persistence/resources/" +

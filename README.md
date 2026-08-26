@@ -193,8 +193,8 @@ relationship names used by Viaduct:
 
 - An object reference becomes a foreign key.
 - A list with a matching back-reference on the target uses the target foreign key.
+- A single unidirectional list to a target uses the target foreign key.
 - A mutual list relationship uses one deterministic join table.
-- A unidirectional list without a matching back-reference uses its own join table.
 - Multiple unidirectional lists to the same target use separate join tables.
 - Join-table relationships are exposed through generated pg_graphql computed functions.
 
@@ -204,15 +204,6 @@ relationships use distinct owner and target columns. Override the internal schem
 ```kotlin
 viaductPersistence {
     associationSchemaName.set("application_internal")
-}
-```
-
-If an existing database intentionally stores a unidirectional collection as a foreign key on the
-target table, configure that storage detail without changing GraphQL:
-
-```kotlin
-viaductPersistence {
-    unidirectionalTargetForeignKeyFields.add("Group.members")
 }
 ```
 

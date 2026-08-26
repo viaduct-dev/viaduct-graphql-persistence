@@ -278,6 +278,17 @@ class PersistenceModelBuilder {
                 storage = PersistenceToManyStorage.TARGET_FOREIGN_KEY,
             )
         }
+
+        // A single unidirectional collection has an unambiguous target-side
+        // foreign key. Join tables are still required when multiple
+        // collections from the same source point at the same target.
+        if (sourceCollections.size == 1) {
+            return CollectionMapping(
+                inverseFieldName = null,
+                storage = PersistenceToManyStorage.TARGET_FOREIGN_KEY,
+            )
+        }
+
         if (sourceCollections.size > 1) {
             return CollectionMapping(
                 inverseFieldName = null,
