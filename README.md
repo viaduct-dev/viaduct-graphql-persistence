@@ -59,7 +59,7 @@ plugins {
 }
 
 dependencies {
-    implementation("dev.viaduct:runtime:0.1.0-SNAPSHOT")
+    implementation("dev.viaduct.persistence:runtime:0.1.0-SNAPSHOT")
 }
 
 viaductPersistence {
@@ -149,17 +149,12 @@ The current artifact version is `0.1.0-SNAPSHOT`.
 
 ## Published Artifacts
 
-All libraries use the `dev.viaduct` Maven group:
+The two public libraries use the `dev.viaduct.persistence` Maven group:
 
 | Coordinate | Purpose |
 | --- | --- |
-| `dev.viaduct:runtime` | Viaduct subtree runtime and pg_graphql client |
-| `dev.viaduct:pg-graphql-translation` | Transport-neutral selection translation |
-| `dev.viaduct:schema-model-core` | Provider-neutral persistence model |
-| `dev.viaduct:hibernate-codegen` | Hibernate entity and mapping generation |
-| `dev.viaduct:postgresql-overlay` | PostgreSQL persistence overlay |
-| `dev.viaduct:pg-graphql-overlay` | pg_graphql naming and relationship overlay |
-| `dev.viaduct:liquibase-hibernate-integration` | Liquibase reference database |
+| `dev.viaduct.persistence:runtime` | Viaduct subtree runtime, pg_graphql translation, and client |
+| `dev.viaduct.persistence:plugin` | Gradle plugin, persistence model generation, overlays, and Liquibase integration |
 
 The Gradle plugin ID is `dev.viaduct.graphql-persistence`.
 
@@ -352,7 +347,7 @@ Add the runtime library:
 
 ```kotlin
 dependencies {
-    implementation("dev.viaduct:runtime:0.1.0-SNAPSHOT")
+    implementation("dev.viaduct.persistence:runtime:0.1.0-SNAPSHOT")
 }
 ```
 
@@ -396,10 +391,10 @@ application classpath. Translation rewrites only actual Viaduct collection field
 generated edge selections with an internal alias. Nested collections are restored recursively
 without changing domain fields named `nodes` or `edges`.
 
-The lower-level `pg-graphql-translation` artifact remains available to consumers that need custom
-transport. The runtime owns GraphQL request construction, upstream error handling, response-shape
-restoration, Viaduct GRT mapping, and node-reference hydration. The application still owns the
-`HttpClient` lifecycle, endpoint, and authentication policy.
+Translation is included in the runtime library. The runtime owns GraphQL request construction,
+upstream error handling, response-shape restoration, Viaduct GRT mapping, and node-reference
+hydration. The application still owns the `HttpClient` lifecycle, endpoint, and authentication
+policy.
 
 Every `@subtree` type is validated during generation. A transitively reachable `@resolver` field
 is rejected because pg_graphql cannot resolve that field from the database. Types or fields
@@ -518,8 +513,7 @@ replacement is supported but is not the recommended default.
 
 ## Liquibase Database Driver
 
-The `liquibase-hibernate-integration` module registers a Liquibase reference database with this
-URL form:
+The plugin library registers a Liquibase reference database with this URL form:
 
 ```text
 hibernate:viaduct:/absolute/path/to/viaduct-hibernate-reference.tsv
@@ -534,7 +528,7 @@ Add the driver when using it outside the plugin tasks:
 ```kotlin
 dependencies {
     implementation(
-        "dev.viaduct:liquibase-hibernate-integration:0.1.0-SNAPSHOT"
+        "dev.viaduct.persistence:plugin:0.1.0-SNAPSHOT"
     )
     implementation("org.liquibase:liquibase-core:5.0.3")
     implementation("org.liquibase.ext:liquibase-hibernate7:5.0.3")
@@ -584,19 +578,19 @@ liquibase \
   --changelog-file=build/schema-diff/review.sql
 ```
 
-The CLI classpath must contain `liquibase-hibernate-integration` and its transitive dependencies.
+The CLI classpath must contain `dev.viaduct.persistence:plugin` and its transitive dependencies.
 The manifest paths are absolute and build-specific; regenerate the effective model after moving
 or rebuilding the application.
 
 This driver is a Liquibase reference database, not a JDBC driver and not an application runtime
 ORM. Applications using pg_graphql do not need Hibernate in their production runtime. Tests or
-tools that explicitly boot the generated persistence unit should add `hibernate-codegen` and a
+tools that explicitly boot the generated persistence unit should add the plugin library and a
 PostgreSQL JDBC driver to their own test/tool configuration.
 
 ```kotlin
 dependencies {
     testImplementation(
-        "dev.viaduct:hibernate-codegen:0.1.0-SNAPSHOT"
+        "dev.viaduct.persistence:plugin:0.1.0-SNAPSHOT"
     )
     testImplementation("org.postgresql:postgresql:42.7.5")
 }
@@ -604,13 +598,13 @@ dependencies {
 
 ## Local Development
 
-Build and test all modules:
+Build and test both published projects:
 
 ```bash
 ./gradlew build
 ```
 
-Publish every artifact to an isolated local Maven repository:
+Publish both libraries to an isolated local Maven repository:
 
 ```bash
 ./gradlew publish \
@@ -660,15 +654,8 @@ artifacts are not release artifacts and do not require PGP signing.
 
 | Module | Responsibility |
 | --- | --- |
-| `schema-model-core` | Provider-neutral GraphQL persistence model and inclusion policy |
-| `hibernate-codegen` | Plain entity/JPA XML generation and effective Hibernate metadata |
-| `postgresql-overlay` | PostgreSQL generated-column, RLS, and array-integrity SQL |
-| `pg-graphql-overlay` | pg_graphql naming comments and relationship functions |
-| `pg-graphql-translation` | Transport-neutral operation and response-shape translation |
 | `runtime` | Subtree transport, Viaduct GRT mapping, and node-reference hydration |
-| `liquibase-hibernate-integration` | `hibernate:viaduct:` Liquibase reference database |
-| `gradle-plugin` | Generation, compilation, overlay, snapshot, and diff orchestration |
-| `test-fixtures` | Small synthetic fixtures used only by this repository |
+| `plugin` | Persistence model generation, overlays, Liquibase integration, and Gradle orchestration |
 
 Application schemas remain external compatibility consumers and are not copied into this
 repository.

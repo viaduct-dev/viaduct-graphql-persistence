@@ -5,7 +5,7 @@ plugins {
 val releaseVersion = providers.gradleProperty("releaseVersion").orElse("0.1.0-SNAPSHOT")
 
 allprojects {
-    group = "dev.viaduct"
+    group = "dev.viaduct.persistence"
     version = releaseVersion.get()
 }
 

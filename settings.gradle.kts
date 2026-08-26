@@ -25,13 +25,6 @@ dependencyResolutionManagement {
 rootProject.name = "viaduct-graphql-persistence"
 
 include(
-    ":schema-model-core",
-    ":hibernate-codegen",
-    ":postgresql-overlay",
-    ":pg-graphql-overlay",
-    ":pg-graphql-translation",
     ":runtime",
-    ":liquibase-hibernate-integration",
-    ":gradle-plugin",
-    ":test-fixtures",
+    ":plugin",
 )
