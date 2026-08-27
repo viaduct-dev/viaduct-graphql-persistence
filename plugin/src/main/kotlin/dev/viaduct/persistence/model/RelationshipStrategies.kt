@@ -20,8 +20,8 @@ internal class RelationshipTargetResolverChain(
         ConnectionRelationshipTargetResolver(),
         NodesCollectionRelationshipTargetResolver(),
     ),
-) {
-    fun resolve(
+) : RelationshipTargetResolver {
+    override fun resolve(
         field: ViaductSchema.Field,
         includedObjects: Map<String, ViaductSchema.Object>,
     ): PersistenceRelationshipTarget? =

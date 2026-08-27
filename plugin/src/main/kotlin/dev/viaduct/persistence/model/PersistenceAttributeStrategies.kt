@@ -13,9 +13,13 @@ internal data class PersistenceAttributeContext(
 )
 
 internal sealed interface PersistenceAttributeDecision {
-    data class Add(val attribute: PersistenceAttribute) : PersistenceAttributeDecision
+    val attribute: PersistenceAttribute?
 
-    data object Skip : PersistenceAttributeDecision
+    data class Add(override val attribute: PersistenceAttribute) : PersistenceAttributeDecision
+
+    data object Skip : PersistenceAttributeDecision {
+        override val attribute: PersistenceAttribute? = null
+    }
 }
 
 internal interface PersistenceAttributeStrategy {
