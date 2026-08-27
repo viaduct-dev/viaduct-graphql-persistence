@@ -39,15 +39,9 @@ internal class GeneratedTypeReflection {
             edgeType = edgeType,
             nodeField = nodeField,
             cursorField = field(edgeType, "cursor"),
-            pageInfoField = pageInfoField,
-            pageInfoSelectionFields = pageInfoField?.let { pageInfo ->
-                listOf(
-                    "hasNextPage",
-                    "hasPreviousPage",
-                    "startCursor",
-                    "endCursor",
-                ).filter { field(pageInfo.type, it) != null }
-            }.orEmpty(),
+            pageInfo = pageInfoField?.let {
+                PageInfoFieldFactory.create(it.type, this)
+            },
         )
     }
 
@@ -67,8 +61,7 @@ internal data class ConnectionShape(
     val edgeType: Type<*>,
     val nodeField: CompositeField<*, *>,
     val cursorField: CompositeField<*, *>?,
-    val pageInfoField: CompositeField<*, *>?,
-    val pageInfoSelectionFields: List<String>,
+    val pageInfo: PageInfoShape?,
 ) {
     fun upstreamSelection(fieldName: String): String {
         val edgeFields = buildList {
@@ -77,9 +70,7 @@ internal data class ConnectionShape(
         }
         val connectionFields = buildList {
             add("edges { ${edgeFields.joinToString(" ")} }")
-            if (pageInfoSelectionFields.isNotEmpty()) {
-                add("pageInfo { ${pageInfoSelectionFields.joinToString(" ")} }")
-            }
+            pageInfo?.selection()?.let { add("pageInfo { $it }") }
         }
         return "$fieldName { ${connectionFields.joinToString(" ")} }"
     }

@@ -1,4 +1,7 @@
-@file:OptIn(viaduct.apiannotations.ExperimentalApi::class)
+@file:OptIn(
+    viaduct.apiannotations.ExperimentalApi::class,
+    viaduct.apiannotations.InternalApi::class,
+)
 
 package dev.viaduct.persistence.runtime
 
@@ -7,8 +10,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.boolean
-import viaduct.api.context.ExecutionContext
 import viaduct.api.context.ResolverExecutionContext
 import viaduct.api.internal.InternalContext
 import viaduct.api.types.Query
@@ -47,19 +48,18 @@ internal class ConnectionReferenceBuilder(
         }
         connectionBuilder.set("edges", edgeValues)
 
-        shape.pageInfoField?.let { pageInfoField ->
+        shape.pageInfo?.let { pageInfoShape ->
             val pageInfo = response["pageInfo"]?.jsonObject
                 ?: error(
                     "Subtree response for '${reference.fieldName}' did not include 'pageInfo'"
                 )
             connectionBuilder.set(
                 "pageInfo",
-                buildPageInfo(pageInfoField.type, pageInfo, context),
+                pageInfoShape.build(pageInfo, context, typeReflection),
             )
         }
         return connectionBuilder.build()
-    }
-
+}
     private fun buildEdge(
         shape: ConnectionShape,
         edge: JsonObject,
@@ -80,7 +80,7 @@ internal class ConnectionReferenceBuilder(
         edgeBuilder.set("node", nodeValue)
 
         if (shape.cursorField != null) {
-            edgeBuilder.set("cursor", edge.optionalString("cursor"))
+            edgeBuilder.set("cursor", edge.optionalCursor("cursor"))
         }
         return try {
             edgeBuilder.build()
@@ -92,41 +92,10 @@ internal class ConnectionReferenceBuilder(
         }
     }
 
-    private fun buildPageInfo(
-        pageInfoType: viaduct.api.reflect.Type<*>,
-        pageInfo: JsonObject,
-        context: ExecutionContext,
-    ): Any {
-        val pageInfoBuilder = GeneratedBuilder.fromExecutionContext(
-            typeReflection.builderClass(pageInfoType),
-            context,
-        )
-        val pageInfoFields = typeReflection.fields(pageInfoType).map { it.name }.toSet()
-        if ("hasNextPage" in pageInfoFields) {
-            pageInfoBuilder.set("hasNextPage", pageInfo.requiredBoolean("hasNextPage"))
-        }
-        if ("hasPreviousPage" in pageInfoFields) {
-            pageInfoBuilder.set("hasPreviousPage", pageInfo.requiredBoolean("hasPreviousPage"))
-        }
-        if ("startCursor" in pageInfoFields) {
-            pageInfoBuilder.set("startCursor", pageInfo.optionalString("startCursor"))
-        }
-        if ("endCursor" in pageInfoFields) {
-            pageInfoBuilder.set("endCursor", pageInfo.optionalString("endCursor"))
-        }
-        return pageInfoBuilder.build()
-    }
-
-    private fun JsonObject.optionalString(fieldName: String): String? =
+    private fun JsonObject.optionalCursor(fieldName: String): String? =
         this[fieldName]
             ?.takeUnless { it is JsonNull }
             ?.jsonPrimitive
             ?.content
 
-    private fun JsonObject.requiredBoolean(fieldName: String): Boolean =
-        this[fieldName]
-            ?.takeUnless { it is JsonNull }
-            ?.jsonPrimitive
-            ?.boolean
-            ?: error("Subtree response pageInfo did not include '$fieldName'")
 }
