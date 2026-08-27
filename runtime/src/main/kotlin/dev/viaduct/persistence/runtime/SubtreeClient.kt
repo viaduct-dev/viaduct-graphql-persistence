@@ -20,7 +20,6 @@ import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -31,8 +30,6 @@ import viaduct.api.context.ExecutionContext
 import viaduct.api.context.ResolverExecutionContext
 import viaduct.api.mapping.GRTDomain
 import viaduct.api.mapping.JsonDomain
-import viaduct.api.reflect.CompositeField
-import viaduct.api.reflect.Type
 import viaduct.api.select.SelectionSet
 import viaduct.api.types.CompositeOutput
 import viaduct.api.types.NodeObject
@@ -67,6 +64,12 @@ class SubtreeClient(
     private val json = Json { ignoreUnknownKeys = true }
     private val translationSchema =
         translationSchema ?: loadTranslationSchema(classLoader)
+    private val typeReflection = GeneratedTypeReflection()
+    private val nodeReferencePlanner = NodeReferencePlanner(
+        translationSchema = this.translationSchema,
+        typeReflection = typeReflection,
+    )
+    private val nodeReferenceHydrator = NodeReferenceHydrator(typeReflection)
 
     suspend fun <T : CompositeOutput> fetch(
         ctx: ExecutionContext,
@@ -94,7 +97,7 @@ class SubtreeClient(
         ownedSelections: SelectionSet<T>,
         requestedSelections: SelectionSet<T>,
     ): T where T : CompositeOutput, T : NodeObject {
-        val referenceSelections = requestedNodeReferenceSelections(
+        val referenceSelections = nodeReferencePlanner.plan(
             requestedSelections,
             ownedSelections,
         )
@@ -125,7 +128,7 @@ class SubtreeClient(
             }
         }
         val base = baseJson.toGRT(ctx, ownedSelections)
-        return attachNodeReferences(base, restored, referenceSelections, ctx)
+        return nodeReferenceHydrator.attach(base, restored, referenceSelections, ctx)
     }
 
     suspend fun <T> fetchByUuid(
@@ -232,108 +235,6 @@ class SubtreeClient(
             ?: error("Subtree response for '${root.responseKey}' matched no rows")
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun <T> requestedNodeReferenceSelections(
-        requestedSelections: SelectionSet<T>,
-        ownedSelections: SelectionSet<T>,
-    ): List<NodeReferenceSelection> where T : CompositeOutput, T : NodeObject {
-        val fieldsClass = Class.forName("${ownedSelections.type.kcls.java.name}\$Fields")
-        val fieldsInstance = fieldsClass.getField("INSTANCE").get(null)
-        return fieldsClass.methods
-            .asSequence()
-            .filter {
-                it.parameterCount == 0 &&
-                    CompositeField::class.java.isAssignableFrom(it.returnType)
-            }
-            .mapNotNull { it.invoke(fieldsInstance) as? CompositeField<T, *> }
-            .filter { requestedSelections.contains(it) }
-            .mapNotNull { field ->
-                when {
-                    translationSchema.collectionElementType(field.type.name) != null ->
-                        NodeReferenceSelection(
-                            fieldName = field.name,
-                            targetType = field.type,
-                            isCollection = true,
-                            nodeType = collectionElementType(field.type),
-                        )
-                    NodeObject::class.java.isAssignableFrom(field.type.kcls.java) ->
-                        NodeReferenceSelection(
-                            fieldName = field.name,
-                            targetType = field.type,
-                            isCollection = false,
-                            nodeType = field.type,
-                        )
-                    else -> null
-                }
-            }
-            .distinctBy(NodeReferenceSelection::fieldName)
-            .toList()
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun collectionElementType(collectionType: Type<*>): Type<*> {
-        val elementTypeName = checkNotNull(
-            translationSchema.collectionElementType(collectionType.name)
-        )
-        val reflectionClass = Class.forName(
-            "${collectionType.kcls.java.packageName}.$elementTypeName\$Reflection"
-        )
-        return reflectionClass.getField("INSTANCE").get(null) as Type<*>
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun <T> attachNodeReferences(
-        base: T,
-        response: JsonObject,
-        references: List<NodeReferenceSelection>,
-        ctx: ResolverExecutionContext<out Query>,
-    ): T where T : CompositeOutput, T : NodeObject {
-        val builder = base::class.java.getMethod("toBuilder").invoke(base)
-        references.forEach { reference ->
-            val fieldValue = if (reference.isCollection) {
-                val nodes = response[reference.fieldName]
-                    ?.jsonObject
-                    ?.get("nodes")
-                    ?.jsonArray
-                    .orEmpty()
-                    .map { node ->
-                        nodeRef(
-                            ctx,
-                            reference.nodeType,
-                            node.jsonObject["uuidId"]!!.jsonPrimitive.content,
-                        )
-                    }
-                val collectionBuilderClass =
-                    Class.forName("${reference.targetType.kcls.java.name}\$Builder")
-                val collectionBuilder = collectionBuilderClass
-                    .getConstructor(ExecutionContext::class.java)
-                    .newInstance(ctx)
-                collectionBuilderClass.getMethod("nodes", List::class.java)
-                    .invoke(collectionBuilder, nodes)
-                collectionBuilderClass.getMethod("build").invoke(collectionBuilder)
-            } else {
-                val value = response[reference.responseAlias]
-                if (value == null || value is JsonNull) {
-                    null
-                } else {
-                    nodeRef(ctx, reference.nodeType, value.jsonPrimitive.content)
-                }
-            }
-            val setter = builder::class.java.methods.single {
-                it.name == reference.fieldName && it.parameterCount == 1
-            }
-            setter.invoke(builder, fieldValue)
-        }
-        return builder::class.java.getMethod("build").invoke(builder) as T
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun nodeRef(
-        ctx: ResolverExecutionContext<out Query>,
-        type: Type<*>,
-        internalId: String,
-    ): NodeObject = ctx.nodeRef(ctx.globalIDFor(type as Type<NodeObject>, internalId))
-
     private fun addNodeReferenceFragment(
         document: String,
         typeName: String,
@@ -365,23 +266,6 @@ class SubtreeClient(
         return AstPrinter.printAstCompact(
             Document.newDocument().definitions(definitions).build()
         )
-    }
-
-    private data class NodeReferenceSelection(
-        val fieldName: String,
-        val targetType: Type<*>,
-        val isCollection: Boolean,
-        val nodeType: Type<*>,
-    ) {
-        val responseAlias: String = "_viaduct_ref_$fieldName"
-        val responseKeys: Set<String> =
-            if (isCollection) setOf(fieldName) else setOf(responseAlias)
-        val upstreamSelection: String =
-            if (isCollection) {
-                "$fieldName { nodes { uuidId } }"
-            } else {
-                "$responseAlias: ${fieldName}Id"
-            }
     }
 
     private companion object {

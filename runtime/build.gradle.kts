@@ -17,6 +17,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testImplementation("io.ktor:ktor-client-cio:3.2.0")
     testImplementation("io.ktor:ktor-client-mock:3.2.0")
     testImplementation("io.mockk:mockk:1.13.16")
 }

@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlinx.serialization.json.Json
 
 class PgGraphqlTranslationTest {
@@ -139,5 +140,35 @@ class PgGraphqlTranslationTest {
                 "pageInfo{hasNextPage endCursor}}",
         )
         assertFalse(translated.contains("_viaduct_nodes"))
+    }
+
+    @Test
+    fun `rejects nodes selected on a standard connection`() {
+        val connectionSchema = PgGraphqlTranslationSchema(
+            collectionElementTypes = emptyMap(),
+            fieldTypes = mapOf(
+                PgGraphqlFieldCoordinate("Group", "members") to "PersonConnection",
+            ),
+        )
+        val error = assertFailsWith<IllegalArgumentException> {
+            PgGraphqlTranslation.translateSelectionDocument(
+                "fragment Main on Group { members { nodes { id } } }",
+                connectionSchema,
+            )
+        }
+
+        assertContains(error.message.orEmpty(), "use 'edges'")
+    }
+
+    @Test
+    fun `rejects the internal response alias in authored selections`() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            PgGraphqlTranslation.translateSelectionDocument(
+                "fragment Main on Group { _viaduct_nodes: name }",
+                schema,
+            )
+        }
+
+        assertContains(error.message.orEmpty(), "reserved alias")
     }
 }

@@ -28,6 +28,7 @@ object PgGraphqlTranslation {
         rewriteCollectionTypes: Boolean = true,
     ): String {
         val parsed = Parser().parseDocument(document)
+        validateInputDocument(parsed, schema)
         val definitions = parsed.definitions.map { definition ->
             if (definition !is FragmentDefinition) return@map definition
             val sourceType = requireNotNull(definition.typeCondition.name)
@@ -48,6 +49,11 @@ object PgGraphqlTranslation {
             }
         }
         val transformed = parsed.transform { it.definitions(definitions) }
+        validateTranslatedDocument(
+            source = parsed,
+            translated = transformed,
+            schema = schema,
+        )
         return AstPrinter.printAstCompact(transformed)
     }
 
@@ -172,4 +178,156 @@ object PgGraphqlTranslation {
             is FragmentSpread -> selection
             else -> selection
         }
+
+    /**
+     * Validate the authored Viaduct shape before translation. Standard Viaduct connections use
+     * `edges`, while pg_graphql uses the same `edges` shape. A `nodes` selection under a
+     * connection is therefore always a schema mismatch; legacy Viaduct collection types are the
+     * only place where `nodes` is translated.
+     */
+    private fun validateInputDocument(
+        document: Document,
+        schema: PgGraphqlTranslationSchema,
+    ) {
+        document.definitions
+            .filterIsInstance<FragmentDefinition>()
+            .forEach { definition ->
+                validateSelectionSet(
+                    selectionSet = definition.selectionSet,
+                    parentType = requireNotNull(definition.typeCondition.name),
+                    schema = schema,
+                    path = definition.name,
+                )
+            }
+    }
+
+    private fun validateSelectionSet(
+        selectionSet: SelectionSet,
+        parentType: String,
+        schema: PgGraphqlTranslationSchema,
+        path: String,
+    ) {
+        selectionSet.selections.forEach { selection ->
+            when (selection) {
+                is Field -> {
+                    require(selection.alias != NODES_RESPONSE_ALIAS) {
+                        "Selection '$path' uses reserved alias '$NODES_RESPONSE_ALIAS'"
+                    }
+                    val targetType = schema.fieldType(parentType, selection.name)
+                    val nested = selection.selectionSet
+                    if (targetType != null && isConnectionType(targetType)) {
+                        if (nested != null) {
+                            require(
+                                nested.selections.none {
+                                    it is Field && it.name == "nodes"
+                                },
+                            ) {
+                                "Selection '$path.${selection.name}' uses 'nodes' on a Viaduct " +
+                                    "connection; use 'edges', which pg_graphql supports"
+                            }
+                        }
+                    }
+                    if (targetType != null && nested != null) {
+                        validateSelectionSet(
+                            selectionSet = nested,
+                            parentType = targetType,
+                            schema = schema,
+                            path = "$path.${selection.name}",
+                        )
+                    }
+                }
+                is InlineFragment -> {
+                    val fragmentType = selection.typeCondition?.name ?: parentType
+                    validateSelectionSet(
+                        selectionSet = selection.selectionSet,
+                        parentType = fragmentType,
+                        schema = schema,
+                        path = path,
+                    )
+                }
+                is FragmentSpread -> Unit
+                else -> Unit
+            }
+        }
+    }
+
+    private fun validateTranslatedDocument(
+        source: Document,
+        translated: Document,
+        schema: PgGraphqlTranslationSchema,
+    ) {
+        val expectedRewrites = source.definitions
+            .filterIsInstance<FragmentDefinition>()
+            .sumOf { definition ->
+                countLegacyNodeSelections(
+                    selectionSet = definition.selectionSet,
+                    parentType = requireNotNull(definition.typeCondition.name),
+                    schema = schema,
+                )
+            }
+        val rewrittenSelections = translated.definitions
+            .filterIsInstance<FragmentDefinition>()
+            .sumOf(::countInternalNodeSelections)
+        require(expectedRewrites == rewrittenSelections) {
+            "pg_graphql translation rewrote $rewrittenSelections legacy collection selections, " +
+                "but expected $expectedRewrites"
+        }
+    }
+
+    private fun countLegacyNodeSelections(
+        selectionSet: SelectionSet,
+        parentType: String,
+        schema: PgGraphqlTranslationSchema,
+    ): Int = selectionSet.selections.sumOf { selection ->
+        when (selection) {
+            is Field -> {
+                val isLegacyNodes =
+                    schema.collectionElementType(parentType) != null &&
+                        selection.name == "nodes"
+                if (isLegacyNodes) {
+                    val elementType = requireNotNull(schema.collectionElementType(parentType))
+                    1 + (selection.selectionSet?.let {
+                        countLegacyNodeSelections(it, elementType, schema)
+                    } ?: 0)
+                } else {
+                    val targetType = schema.fieldType(parentType, selection.name)
+                    val nested = selection.selectionSet
+                    if (targetType != null && nested != null) {
+                        countLegacyNodeSelections(nested, targetType, schema)
+                    } else {
+                        0
+                    }
+                }
+            }
+            is InlineFragment -> {
+                val fragmentType = selection.typeCondition?.name ?: parentType
+                countLegacyNodeSelections(selection.selectionSet, fragmentType, schema)
+            }
+            else -> 0
+        }
+    }
+
+    private fun countInternalNodeSelections(selection: FragmentDefinition): Int =
+        countInternalNodeSelections(selection.selectionSet)
+
+    private fun countInternalNodeSelections(selectionSet: SelectionSet): Int =
+        selectionSet.selections.sumOf { selection ->
+            when (selection) {
+                is Field -> {
+                    val isInternalNodes =
+                        selection.alias == NODES_RESPONSE_ALIAS &&
+                            selection.name == "edges" &&
+                            selection.selectionSet?.selections?.any {
+                                it is Field && it.name == "node"
+                            } == true
+                    (if (isInternalNodes) 1 else 0) +
+                        (selection.selectionSet?.let(::countInternalNodeSelections) ?: 0)
+                }
+                is InlineFragment -> countInternalNodeSelections(selection.selectionSet)
+                else -> 0
+            }
+        }
+
+    private fun isConnectionType(typeName: String): Boolean =
+        typeName.endsWith("Connection")
 }
