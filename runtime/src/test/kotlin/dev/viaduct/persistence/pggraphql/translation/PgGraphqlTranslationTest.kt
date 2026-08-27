@@ -42,6 +42,34 @@ class PgGraphqlTranslationTest {
     }
 
     @Test
+    fun `restores nested node response shapes recursively`() {
+        val response = Json.parseToJsonElement(
+            """
+            {
+              "_viaduct_nodes": [
+                {
+                  "node": {
+                    "id": "1",
+                    "members": {
+                      "_viaduct_nodes": [{"node": {"id": "2"}}]
+                    }
+                  }
+                }
+              ],
+              "pageInfo": {"hasNextPage": false}
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """{"nodes":[{"id":"1","members":{"nodes":[{"id":"2"}]}}],"pageInfo":{"hasNextPage":false}}"""
+            ),
+            PgGraphqlTranslation.restoreViaductResponseShape(response),
+        )
+    }
+
+    @Test
     fun `rewrites nested collections using schema types`() {
         val translated = PgGraphqlTranslation.translateSelectionDocument(
             """

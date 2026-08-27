@@ -6,20 +6,14 @@ import graphql.language.FragmentDefinition
 import graphql.language.SelectionSet
 import graphql.language.TypeName
 import graphql.parser.Parser
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.put
 
 object PgGraphqlTranslation {
     private val selectionTransformer = SelectionTransformerChain()
     private val selectionValidator = SelectionValidatorChain()
     private val legacyNodeSelectionCounter = LegacyNodeSelectionCounter()
     private val internalNodeSelectionCounter = InternalNodeSelectionCounter()
+    private val responseShapeRestorer = ResponseShapeRestorer()
 
     fun translateSelectionDocument(
         document: String,
@@ -57,28 +51,7 @@ object PgGraphqlTranslation {
     }
 
     fun restoreViaductResponseShape(response: JsonElement): JsonElement =
-        when (response) {
-            is JsonObject -> buildJsonObject {
-                for ((key, value) in response) {
-                    if (key == VIADUCT_NODES_RESPONSE_ALIAS && value is JsonArray) {
-                        put("nodes", buildJsonArray {
-                            for (edge in value.jsonArray) {
-                                add(
-                                    (edge.jsonObject["node"] ?: edge)
-                                        .let(::restoreViaductResponseShape)
-                                )
-                            }
-                        })
-                    } else {
-                        put(key, restoreViaductResponseShape(value))
-                    }
-                }
-            }
-            is JsonArray -> buildJsonArray {
-                response.forEach { add(restoreViaductResponseShape(it)) }
-            }
-            else -> response
-        }
+        responseShapeRestorer.restore(response)
 
     fun buildRootQuery(
         field: String,
