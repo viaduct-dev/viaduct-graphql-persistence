@@ -188,14 +188,45 @@ foreign keys. `Group.members` uses the foreign key implied by `GroupMember.group
 Use object references for relationships. A scalar field such as `groupId` must not shadow a
 `group: Group` relationship.
 
+Relay-style connections use the same relationship rules as lists. A connection wrapper is not a
+persistent entity; the persistence model follows `edges.node` to identify the target collection:
+
+```graphql
+type Group {
+  id: ID!
+  members: PersonConnection!
+}
+
+type Person {
+  id: ID!
+}
+
+type PersonConnection @connection {
+  edges: [PersonEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PersonEdge @edge {
+  node: Person!
+}
+```
+
+`Group.members` is therefore modeled as a to-many relationship to `Person`; the connection and
+edge types do not produce separate entity tables. `pageInfo`, cursors, and connection arguments
+are API fields and do not change the persistence mapping. Connection selections already use
+pg_graphql's `edges { node }` shape, so the runtime passes them through without connection-specific
+translation metadata. Custom fields on an edge need separate persistence modeling if they must be
+stored.
+
 Relationships do not need to be bidirectional. The generated mappings preserve the authored
 relationship names used by Viaduct:
 
 - An object reference becomes a foreign key.
-- A list with a matching back-reference on the target uses the target foreign key.
-- A single unidirectional list to a target uses the target foreign key.
+- A list or connection with a matching back-reference on the target uses the target foreign key.
+- A single unidirectional list or connection to a target uses the target foreign key; no join table
+  is created.
 - A mutual list relationship uses one deterministic join table.
-- Multiple unidirectional lists to the same target use separate join tables.
+- Multiple unidirectional lists or connections to the same target use separate join tables.
 - Join-table relationships are exposed through generated pg_graphql computed functions.
 
 Join tables are created in the non-exposed `viaduct_internal` schema by default. Self-referential
