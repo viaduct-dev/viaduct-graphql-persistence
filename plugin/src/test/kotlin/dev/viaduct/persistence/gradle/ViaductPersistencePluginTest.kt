@@ -96,7 +96,7 @@ class ViaductPersistencePluginTest {
                     "META-INF/pg-graphql-translation-schema.tsv"
             ).readText()
             assertTrue(!translationSchema.contains("collection\tQuery\t"))
-            assertContains(translationSchema, "connection\tPersonConnection\tPerson")
+            assertTrue(!translationSchema.contains("connection\t"))
             assertContains(translationSchema, "field\tGroup\tmembers\tPersonConnection")
         } finally {
             projectDirectory.deleteRecursively()

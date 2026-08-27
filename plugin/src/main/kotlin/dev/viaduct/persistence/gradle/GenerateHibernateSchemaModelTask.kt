@@ -98,17 +98,6 @@ abstract class GenerateHibernateSchemaModelTask : DefaultTask() {
                 ?: return@mapNotNull null
             type.name to nodes.type.baseTypeDef.name
         }.toMap()
-        val connections = objects.mapNotNull { type ->
-            if (!type.hasAppliedDirective("connection")) return@mapNotNull null
-            val edgeType = type.fields.singleOrNull { it.name == "edges" }
-                ?.type?.baseTypeDef as? viaduct.graphql.schema.ViaductSchema.Object
-                ?: return@mapNotNull null
-            if (!edgeType.hasAppliedDirective("edge")) return@mapNotNull null
-            val nodeType = edgeType.fields.singleOrNull { it.name == "node" }
-                ?.type?.baseTypeDef as? viaduct.graphql.schema.ViaductSchema.Object
-                ?: return@mapNotNull null
-            type.name to nodeType.name
-        }.toMap()
         val fields = objects.flatMap { type ->
             type.fields.mapNotNull { field ->
                 val target = field.type.baseTypeDef
@@ -120,6 +109,6 @@ abstract class GenerateHibernateSchemaModelTask : DefaultTask() {
         val destination = outputDirectory.get().asFile
             .resolve("resources/${PgGraphqlTranslationSchema.RESOURCE}")
         destination.parentFile.mkdirs()
-        destination.writeText(PgGraphqlTranslationSchema(collections, fields, connections).encode())
+        destination.writeText(PgGraphqlTranslationSchema(collections, fields).encode())
     }
 }

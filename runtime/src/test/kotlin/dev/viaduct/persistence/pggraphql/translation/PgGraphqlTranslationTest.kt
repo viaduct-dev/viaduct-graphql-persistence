@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlinx.serialization.json.Json
 
 class PgGraphqlTranslationTest {
@@ -118,21 +117,27 @@ class PgGraphqlTranslationTest {
     }
 
     @Test
-    fun `round trips connection metadata`() {
-        val schema = PgGraphqlTranslationSchema(
-            collectionElementTypes = mapOf("GroupCollection" to "Group"),
-            fieldTypes = mapOf(
-                PgGraphqlFieldCoordinate("Group", "members") to "PersonConnection",
+    fun `passes standard connections through without connection metadata`() {
+        val translated = PgGraphqlTranslation.translateSelectionDocument(
+            """
+            fragment Main on Group {
+              members(first: 2, after: "cursor") {
+                edges { cursor node { id name } }
+                pageInfo { hasNextPage endCursor }
+              }
+            }
+            """.trimIndent(),
+            PgGraphqlTranslationSchema(
+                collectionElementTypes = emptyMap(),
+                fieldTypes = emptyMap(),
             ),
-            connectionElementTypes = mapOf("PersonConnection" to "Person"),
         )
 
-        val decoded = PgGraphqlTranslationSchema.decode(schema.encode())
-
-        assertEquals(schema, decoded)
-        assertEquals("Person", decoded.collectionElementType("PersonConnection"))
-        assertTrue(decoded.isConnectionType("PersonConnection"))
-        assertFalse(decoded.isConnectionType("GroupCollection"))
-        assertContains(schema.encode(), "connection\tPersonConnection\tPerson")
+        assertContains(
+            translated,
+            "members(first:2,after:\"cursor\"){edges{cursor node{id name}}" +
+                "pageInfo{hasNextPage endCursor}}",
+        )
+        assertFalse(translated.contains("_viaduct_nodes"))
     }
 }

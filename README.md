@@ -378,9 +378,10 @@ references must be attached, and `fetchUuidIds` for collection resolvers that re
 references.
 
 The plugin packages `META-INF/pg-graphql-translation-schema.tsv`, which the runtime loads from the
-application classpath. Translation rewrites only actual Viaduct collection fields and marks
-generated edge selections with an internal alias. Nested collections are restored recursively
-without changing domain fields named `nodes` or `edges`.
+application classpath for legacy Viaduct collection fields. Relay-style Viaduct connections already
+use the same `edges { node }` shape as pg_graphql and pass through unchanged. Translation rewrites
+only actual Viaduct collection fields and marks generated edge selections with an internal alias.
+Nested collections are restored recursively without changing domain fields named `nodes` or `edges`.
 
 Translation is included in the runtime library. The runtime owns GraphQL request construction,
 upstream error handling, response-shape restoration, Viaduct GRT mapping, and node-reference
