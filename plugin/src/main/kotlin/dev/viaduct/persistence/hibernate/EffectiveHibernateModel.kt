@@ -2,7 +2,6 @@ package dev.viaduct.persistence.hibernate
 
 import dev.viaduct.persistence.model.*
 
-import java.io.File
 import org.hibernate.MappingException
 import org.hibernate.boot.Metadata
 import org.hibernate.mapping.ManyToOne
@@ -64,6 +63,11 @@ enum class GraphqlNameKind {
     LOCAL,
 }
 
+private data class RelationshipProjection(
+    val relationships: List<EffectiveHibernateRelationship>,
+    val computedRelationships: List<EffectiveHibernateComputedRelationship>,
+)
+
 object EffectiveHibernateModelBuilder {
     fun build(
         metadata: Metadata,
@@ -72,119 +76,25 @@ object EffectiveHibernateModelBuilder {
     ): EffectiveHibernateModel {
         val bindingsByClassName = metadata.entityBindings.associateBy { it.className }
         val effectiveEntities = semanticModel.entities.map { entity ->
-            val className = "$packageName.${entityClassName(entity.graphqlName)}"
-            val binding = requireNotNull(bindingsByClassName[className]) {
-                "Hibernate metadata does not contain generated entity $className"
-            }
-            validateSemanticProjection(binding, entity, packageName, metadata)
-            val table = binding.table
-            EffectiveHibernateEntity(
-                graphqlName = entity.graphqlName,
-                schemaName = table.schema ?: "public",
-                tableName = table.name,
-                generatedGlobalId = entity.generatedGlobalId,
-                internalIdColumnName = entity.takeIf(PersistenceEntity::generatedGlobalId)
-                    ?.let { binding.getProperty("internalId").singleColumnName() },
-                globalIdColumnName = entity.takeIf(PersistenceEntity::generatedGlobalId)
-                    ?.let { binding.getProperty("id").singleColumnName() },
-            )
+            buildEntity(entity, bindingsByClassName, packageName, metadata)
         }
-
-        val computedRelationships = mutableListOf<EffectiveHibernateComputedRelationship>()
-        val relationships = semanticModel.entities.flatMap { entity ->
-            val className = "$packageName.${entityClassName(entity.graphqlName)}"
-            val binding = bindingsByClassName.getValue(className)
-            entity.attributes.mapNotNull { attribute ->
-                when (attribute) {
-                    is PersistenceToOneAttribute -> {
-                        val property = binding.getProperty(attribute.name)
-                        EffectiveHibernateRelationship(
-                            ownerTypeName = entity.graphqlName,
-                            fieldName = attribute.name,
-                            schemaName = property.value.table.schema ?: "public",
-                            tableName = property.value.table.name,
-                            columnName = property.singleColumnName(),
-                            graphqlNameKind = GraphqlNameKind.FOREIGN,
-                        )
-                    }
-                    is PersistenceToManyAttribute -> {
-                        val collection = requireNotNull(
-                            metadata.getCollectionBinding("$className.${attribute.name}")
-                        ) {
-                            "Hibernate metadata does not contain collection $className.${attribute.name}"
-                        }
-                        if (attribute.storage == PersistenceToManyStorage.TARGET_FOREIGN_KEY) {
-                            EffectiveHibernateRelationship(
-                                ownerTypeName = entity.graphqlName,
-                                fieldName = attribute.name,
-                                schemaName = collection.collectionTable.schema ?: "public",
-                                tableName = collection.collectionTable.name,
-                                columnName = collection.key.singleColumnName(
-                                    "$className.${attribute.name}"
-                                ),
-                                graphqlNameKind = GraphqlNameKind.LOCAL,
-                            )
-                        } else {
-                            val targetClassName =
-                                "$packageName.${entityClassName(attribute.targetTypeName)}"
-                            val targetBinding = bindingsByClassName.getValue(targetClassName)
-                            val element = collection.element as? ManyToOne
-                                ?: error(
-                                    "Hibernate mapping for ${entity.graphqlName}.${attribute.name} " +
-                                        "must use a many-to-many join table"
-                                )
-                            computedRelationships += EffectiveHibernateComputedRelationship(
-                                ownerTypeName = entity.graphqlName,
-                                fieldName = attribute.name,
-                                ownerSchemaName = binding.table.schema ?: "public",
-                                ownerTableName = binding.table.name,
-                                ownerIdColumnName = binding.identifier.singleColumnName(className),
-                                targetSchemaName = targetBinding.table.schema ?: "public",
-                                targetTableName = targetBinding.table.name,
-                                targetIdColumnName =
-                                    targetBinding.identifier.singleColumnName(targetClassName),
-                                joinSchemaName = collection.collectionTable.schema ?: "public",
-                                joinTableName = collection.collectionTable.name,
-                                joinOwnerColumnName =
-                                    collection.key.singleColumnName("$className.${attribute.name}"),
-                                joinTargetColumnName =
-                                    element.singleColumnName("$className.${attribute.name}"),
-                            )
-                            null
-                        }
-                    }
-                    is PersistenceBasicAttribute -> null
-                }
-            }
-        }
-
-        val arrays = semanticModel.entities.flatMap { entity ->
-            val className = "$packageName.${entityClassName(entity.graphqlName)}"
-            val binding = bindingsByClassName.getValue(className)
-            entity.attributes.filterIsInstance<PersistenceBasicAttribute>()
-                .filter(PersistenceBasicAttribute::collection)
-                .map { attribute ->
-                    val property = binding.getProperty(attribute.name)
-                    EffectiveHibernateArray(
-                        ownerTypeName = entity.graphqlName,
-                        fieldName = attribute.name,
-                        schemaName = property.value.table.schema ?: "public",
-                        tableName = property.value.table.name,
-                        columnName = property.singleColumnName(),
-                        elementNullable = attribute.elementNullable,
-                    )
-                }
-        }
+        val relationshipProjection = buildRelationships(
+            semanticModel = semanticModel,
+            bindingsByClassName = bindingsByClassName,
+            packageName = packageName,
+            metadata = metadata,
+        )
+        val arrays = buildArrays(semanticModel, bindingsByClassName, packageName)
 
         return EffectiveHibernateModel(
             entities = effectiveEntities.sortedBy(EffectiveHibernateEntity::graphqlName),
-            relationships = relationships.sortedWith(
+            relationships = relationshipProjection.relationships.sortedWith(
                 compareBy(
                     EffectiveHibernateRelationship::ownerTypeName,
                     EffectiveHibernateRelationship::fieldName,
                 )
             ),
-            computedRelationships = computedRelationships.sortedWith(
+            computedRelationships = relationshipProjection.computedRelationships.sortedWith(
                 compareBy(
                     EffectiveHibernateComputedRelationship::ownerTypeName,
                     EffectiveHibernateComputedRelationship::fieldName,
@@ -197,6 +107,156 @@ object EffectiveHibernateModelBuilder {
                 )
             ),
         )
+    }
+
+    private fun buildEntity(
+        entity: PersistenceEntity,
+        bindingsByClassName: Map<String, PersistentClass>,
+        packageName: String,
+        metadata: Metadata,
+    ): EffectiveHibernateEntity {
+        val className = "$packageName.${entityClassName(entity.graphqlName)}"
+        val binding = requireNotNull(bindingsByClassName[className]) {
+            "Hibernate metadata does not contain generated entity $className"
+        }
+        validateSemanticProjection(binding, entity, packageName, metadata)
+        val table = binding.table
+        return EffectiveHibernateEntity(
+            graphqlName = entity.graphqlName,
+            schemaName = table.schema ?: "public",
+            tableName = table.name,
+            generatedGlobalId = entity.generatedGlobalId,
+            internalIdColumnName = entity.takeIf(PersistenceEntity::generatedGlobalId)
+                ?.let { binding.getProperty("internalId").singleColumnName() },
+            globalIdColumnName = entity.takeIf(PersistenceEntity::generatedGlobalId)
+                ?.let { binding.getProperty("id").singleColumnName() },
+        )
+    }
+
+    private fun buildRelationships(
+        semanticModel: PersistenceModel,
+        bindingsByClassName: Map<String, PersistentClass>,
+        packageName: String,
+        metadata: Metadata,
+    ): RelationshipProjection {
+        val computedRelationships = mutableListOf<EffectiveHibernateComputedRelationship>()
+        val relationships = semanticModel.entities.flatMap { entity ->
+            val className = "$packageName.${entityClassName(entity.graphqlName)}"
+            val binding = bindingsByClassName.getValue(className)
+            entity.attributes.mapNotNull { attribute ->
+                relationshipFor(
+                    entity = entity,
+                    attribute = attribute,
+                    binding = binding,
+                    bindingsByClassName = bindingsByClassName,
+                    packageName = packageName,
+                    metadata = metadata,
+                    computedRelationships = computedRelationships,
+                )
+            }
+        }
+        return RelationshipProjection(relationships, computedRelationships)
+    }
+
+    private fun relationshipFor(
+        entity: PersistenceEntity,
+        attribute: PersistenceAttribute,
+        binding: PersistentClass,
+        bindingsByClassName: Map<String, PersistentClass>,
+        packageName: String,
+        metadata: Metadata,
+        computedRelationships: MutableList<EffectiveHibernateComputedRelationship>,
+    ): EffectiveHibernateRelationship? = when (attribute) {
+        is PersistenceToOneAttribute -> {
+            val property = binding.getProperty(attribute.name)
+            EffectiveHibernateRelationship(
+                ownerTypeName = entity.graphqlName,
+                fieldName = attribute.name,
+                schemaName = property.value.table.schema ?: "public",
+                tableName = property.value.table.name,
+                columnName = property.singleColumnName(),
+                graphqlNameKind = GraphqlNameKind.FOREIGN,
+            )
+        }
+        is PersistenceToManyAttribute -> toManyRelationship(
+            entity = entity,
+            attribute = attribute,
+            binding = binding,
+            bindingsByClassName = bindingsByClassName,
+            packageName = packageName,
+            metadata = metadata,
+            computedRelationships = computedRelationships,
+        )
+        is PersistenceBasicAttribute -> null
+    }
+
+    private fun toManyRelationship(
+        entity: PersistenceEntity,
+        attribute: PersistenceToManyAttribute,
+        binding: PersistentClass,
+        bindingsByClassName: Map<String, PersistentClass>,
+        packageName: String,
+        metadata: Metadata,
+        computedRelationships: MutableList<EffectiveHibernateComputedRelationship>,
+    ): EffectiveHibernateRelationship? {
+        val className = "$packageName.${entityClassName(entity.graphqlName)}"
+        val collection = requireNotNull(metadata.getCollectionBinding("$className.${attribute.name}")) {
+            "Hibernate metadata does not contain collection $className.${attribute.name}"
+        }
+        if (attribute.storage == PersistenceToManyStorage.TARGET_FOREIGN_KEY) {
+            return EffectiveHibernateRelationship(
+                ownerTypeName = entity.graphqlName,
+                fieldName = attribute.name,
+                schemaName = collection.collectionTable.schema ?: "public",
+                tableName = collection.collectionTable.name,
+                columnName = collection.key.singleColumnName("$className.${attribute.name}"),
+                graphqlNameKind = GraphqlNameKind.LOCAL,
+            )
+        }
+        val targetClassName = "$packageName.${entityClassName(attribute.targetTypeName)}"
+        val targetBinding = bindingsByClassName.getValue(targetClassName)
+        val element = collection.element as? ManyToOne
+            ?: error(
+                "Hibernate mapping for ${entity.graphqlName}.${attribute.name} " +
+                    "must use a many-to-many join table"
+            )
+        computedRelationships += EffectiveHibernateComputedRelationship(
+            ownerTypeName = entity.graphqlName,
+            fieldName = attribute.name,
+            ownerSchemaName = binding.table.schema ?: "public",
+            ownerTableName = binding.table.name,
+            ownerIdColumnName = binding.identifier.singleColumnName(className),
+            targetSchemaName = targetBinding.table.schema ?: "public",
+            targetTableName = targetBinding.table.name,
+            targetIdColumnName = targetBinding.identifier.singleColumnName(targetClassName),
+            joinSchemaName = collection.collectionTable.schema ?: "public",
+            joinTableName = collection.collectionTable.name,
+            joinOwnerColumnName = collection.key.singleColumnName("$className.${attribute.name}"),
+            joinTargetColumnName = element.singleColumnName("$className.${attribute.name}"),
+        )
+        return null
+    }
+
+    private fun buildArrays(
+        semanticModel: PersistenceModel,
+        bindingsByClassName: Map<String, PersistentClass>,
+        packageName: String,
+    ): List<EffectiveHibernateArray> = semanticModel.entities.flatMap { entity ->
+        val className = "$packageName.${entityClassName(entity.graphqlName)}"
+        val binding = bindingsByClassName.getValue(className)
+        entity.attributes.filterIsInstance<PersistenceBasicAttribute>()
+            .filter(PersistenceBasicAttribute::collection)
+            .map { attribute ->
+                val property = binding.getProperty(attribute.name)
+                EffectiveHibernateArray(
+                    ownerTypeName = entity.graphqlName,
+                    fieldName = attribute.name,
+                    schemaName = property.value.table.schema ?: "public",
+                    tableName = property.value.table.name,
+                    columnName = property.singleColumnName(),
+                    elementNullable = attribute.elementNullable,
+                )
+            }
     }
 
     private fun validateSemanticProjection(
@@ -261,91 +321,6 @@ object EffectiveHibernateModelBuilder {
             }
         }
     }
-}
-
-object EffectiveHibernateModelWriter {
-    fun write(
-        model: EffectiveHibernateModel,
-        outputDirectory: File,
-        metadataFingerprint: String,
-    ) {
-        val metadataDirectory = outputDirectory.resolve("META-INF").apply(File::mkdirs)
-        metadataDirectory.resolve("viaduct-effective-model.tsv").writeText(renderModel(model))
-        metadataDirectory.resolve("hibernate-metadata-fingerprint.tsv")
-            .writeText(metadataFingerprint)
-        metadataDirectory.resolve("persistent-tables.txt").writeText(
-            (
-                model.entities.map(EffectiveHibernateEntity::tableName) +
-                    model.computedRelationships.map(
-                        EffectiveHibernateComputedRelationship::joinTableName
-                    )
-            ).distinct().sorted().joinToString(separator = "\n", postfix = "\n")
-        )
-    }
-
-    fun renderModel(model: EffectiveHibernateModel): String =
-        buildString {
-            appendLine("viaduct-effective-hibernate-model-v1")
-            for (entity in model.entities) {
-                appendLine(
-                    listOf(
-                        "entity",
-                        entity.graphqlName,
-                        entity.schemaName,
-                        entity.tableName,
-                        entity.generatedGlobalId,
-                        entity.internalIdColumnName.orEmpty(),
-                        entity.globalIdColumnName.orEmpty(),
-                    ).joinToString("\t")
-                )
-            }
-            for (relationship in model.relationships) {
-                appendLine(
-                    listOf(
-                        "relationship",
-                        relationship.ownerTypeName,
-                        relationship.fieldName,
-                        relationship.schemaName,
-                        relationship.tableName,
-                        relationship.columnName,
-                        relationship.graphqlNameKind.name,
-                    ).joinToString("\t")
-                )
-            }
-            for (relationship in model.computedRelationships) {
-                appendLine(
-                    listOf(
-                        "computed-relationship",
-                        relationship.ownerTypeName,
-                        relationship.fieldName,
-                        relationship.ownerSchemaName,
-                        relationship.ownerTableName,
-                        relationship.ownerIdColumnName,
-                        relationship.targetSchemaName,
-                        relationship.targetTableName,
-                        relationship.targetIdColumnName,
-                        relationship.joinSchemaName,
-                        relationship.joinTableName,
-                        relationship.joinOwnerColumnName,
-                        relationship.joinTargetColumnName,
-                    ).joinToString("\t")
-                )
-            }
-            for (array in model.arrays) {
-                appendLine(
-                    listOf(
-                        "array",
-                        array.ownerTypeName,
-                        array.fieldName,
-                        array.schemaName,
-                        array.tableName,
-                        array.columnName,
-                        array.elementNullable,
-                    ).joinToString("\t")
-                )
-            }
-        }
-
 }
 
 private fun org.hibernate.mapping.Property.singleColumnName(): String =

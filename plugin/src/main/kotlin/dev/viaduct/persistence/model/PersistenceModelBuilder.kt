@@ -4,7 +4,7 @@ import viaduct.graphql.schema.ViaductSchema
 
 class PersistenceModelBuilder {
     private val modelValidator = PersistenceModelValidator()
-    private val entityAttributeFactory = PersistenceEntityAttributeFactory()
+    private val entityAttributeFactory = PersistenceEntityAttributeFactory(modelValidator)
 
     fun build(
         schema: ViaductSchema,
@@ -12,26 +12,24 @@ class PersistenceModelBuilder {
         unidirectionalTargetForeignKeyFields: Set<String> = emptySet(),
     ): PersistenceModel {
         val includedObjects = resolveIncludedObjects(schema, includedTypeNames)
-        modelValidator.validateTargetForeignKeyFields(
+        val modelContext = PersistenceModelContext(
             includedObjects = includedObjects,
-            targetForeignKeyFields = unidirectionalTargetForeignKeyFields,
+            unidirectionalTargetForeignKeyFields = unidirectionalTargetForeignKeyFields,
         )
-        val generatedEnums = linkedMapOf<String, PersistenceEnum>()
+        modelValidator.validateTargetForeignKeyFields(modelContext)
         val entities = includedObjects.values
             .sortedBy { it.name }
             .map { type ->
                 entityAttributeFactory.build(
                     type = type,
                     generatedGlobalId = generatesGlobalId(type),
-                    includedObjects = includedObjects,
-                    generatedEnums = generatedEnums,
-                    unidirectionalTargetForeignKeyFields = unidirectionalTargetForeignKeyFields,
+                    modelContext = modelContext,
                 )
             }
 
         return PersistenceModel(
             entities = entities,
-            enums = generatedEnums.values.sortedBy { it.graphqlName },
+            enums = modelContext.generatedEnums.values.sortedBy { it.graphqlName },
         )
     }
 

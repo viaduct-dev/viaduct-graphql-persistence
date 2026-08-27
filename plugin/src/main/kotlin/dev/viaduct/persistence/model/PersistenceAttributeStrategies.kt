@@ -6,10 +6,7 @@ internal data class PersistenceAttributeContext(
     val source: ViaductSchema.Object,
     val field: ViaductSchema.Field,
     val relationship: PersistenceRelationshipTarget?,
-    val includedObjects: Map<String, ViaductSchema.Object>,
-    val generatedEnums: MutableMap<String, PersistenceEnum>,
-    val collectionMapping: (ViaductSchema.Object, ViaductSchema.Field, ViaductSchema.Object) ->
-        PersistenceCollectionMapping,
+    val modelContext: PersistenceModelContext,
 )
 
 internal sealed interface PersistenceAttributeDecision {
@@ -32,8 +29,8 @@ internal class ToManyAttributeStrategy : PersistenceAttributeStrategy {
     ): PersistenceAttributeDecision? {
         val relationship = context.relationship ?: return null
         if (!relationship.collection) return null
-        val target = context.includedObjects.getValue(relationship.targetName)
-        val mapping = context.collectionMapping(context.source, context.field, target)
+        val target = context.modelContext.includedObjects.getValue(relationship.targetName)
+        val mapping = context.modelContext.collectionMapping(context.source, context.field, target)
         return PersistenceAttributeDecision.Add(
             PersistenceToManyAttribute(
                 name = context.field.name,
@@ -104,7 +101,7 @@ internal class BasicAttributeStrategy : PersistenceAttributeStrategy {
         }
         val enumTypeName = if (baseType is ViaductSchema.Enum) {
             baseType.name.also {
-                context.generatedEnums.putIfAbsent(
+                context.modelContext.generatedEnums.putIfAbsent(
                     baseType.name,
                     PersistenceEnum(
                         graphqlName = baseType.name,

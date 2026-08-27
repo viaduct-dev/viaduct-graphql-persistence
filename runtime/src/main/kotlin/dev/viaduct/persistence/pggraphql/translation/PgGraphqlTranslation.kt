@@ -78,20 +78,12 @@ object PgGraphqlTranslation {
         parentType: String,
         schema: PgGraphqlTranslationSchema,
         rewriteCollectionTypes: Boolean,
-    ): SelectionSet {
-        val context = SelectionTransformContext(
-            parentType = parentType,
-            schema = schema,
-            rewriteCollectionTypes = rewriteCollectionTypes,
-            transformSelectionSet = { nested, nestedType ->
-                transformSelectionSet(nested, nestedType, schema, rewriteCollectionTypes)
-            },
-        )
-        val transformed = selectionSet.selections.map { selection ->
-            selectionTransformer.transform(selection, context)
-        }
-        return selectionSet.transform { it.selections(transformed) }
-    }
+    ): SelectionSet = selectionTransformer.transform(
+        selectionSet = selectionSet,
+        parentType = parentType,
+        schema = schema,
+        rewriteCollectionTypes = rewriteCollectionTypes,
+    )
 
     /**
      * Validate the authored Viaduct shape before translation. Standard Viaduct connections use
@@ -106,39 +98,13 @@ object PgGraphqlTranslation {
         document.definitions
             .filterIsInstance<FragmentDefinition>()
             .forEach { definition ->
-                validateSelectionSet(
+                selectionValidator.validate(
                     selectionSet = definition.selectionSet,
                     parentType = requireNotNull(definition.typeCondition.name),
                     schema = schema,
                     path = definition.name,
                 )
             }
-    }
-
-    private fun validateSelectionSet(
-        selectionSet: SelectionSet,
-        parentType: String,
-        schema: PgGraphqlTranslationSchema,
-        path: String,
-    ) {
-        selectionSet.selections.forEach { selection ->
-            selectionValidator.validate(
-                selection,
-                SelectionValidationContext(
-                    parentType = parentType,
-                    schema = schema,
-                    path = path,
-                    validateSelectionSet = { nested, nestedParentType, nestedPath ->
-                        validateSelectionSet(
-                            nested,
-                            nestedParentType,
-                            schema,
-                            nestedPath,
-                        )
-                    },
-                ),
-            )
-        }
     }
 
     private fun validateTranslatedDocument(

@@ -7,59 +7,24 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 
 internal class ResponseShapeRestorer {
-    private val elementRestorers: List<ResponseElementRestorer> = listOf(
-        JsonObjectResponseElementRestorer(),
-        JsonArrayResponseElementRestorer(),
-        PassthroughResponseElementRestorer(),
-    )
-
-    fun restore(response: JsonElement): JsonElement =
-        elementRestorers.first { it.supports(response) }.restore(response, ::restore)
-}
-
-private interface ResponseElementRestorer {
-    fun supports(response: JsonElement): Boolean
-
-    fun restore(response: JsonElement, restore: (JsonElement) -> JsonElement): JsonElement
-}
-
-private class JsonObjectResponseElementRestorer(
     private val fieldRestorers: List<ResponseFieldRestorer> = listOf(
         ViaductNodesFieldRestorer(),
         NestedResponseFieldRestorer(),
-    ),
-) : ResponseElementRestorer {
-    override fun supports(response: JsonElement): Boolean = response is JsonObject
+    )
 
-    override fun restore(
-        response: JsonElement,
-        restore: (JsonElement) -> JsonElement,
-    ): JsonElement {
-        val restoredFields = response.jsonObject.entries.associate { (key, value) ->
+    fun restore(response: JsonElement): JsonElement = when (response) {
+        is JsonObject -> restoreObject(response)
+        is JsonArray -> JsonArray(response.map(::restore))
+        else -> response
+    }
+
+    private fun restoreObject(response: JsonObject): JsonObject = JsonObject(
+        response.entries.associate { (key, value) ->
             val restorer = fieldRestorers.first { it.supports(key, value) }
-            val restored = restorer.restore(key, value, restore)
+            val restored = restorer.restore(key, value, ::restore)
             restored.key to restored.value
         }
-        return JsonObject(restoredFields)
-    }
-}
-
-private class JsonArrayResponseElementRestorer : ResponseElementRestorer {
-    override fun supports(response: JsonElement): Boolean = response is JsonArray
-
-    override fun restore(
-        response: JsonElement,
-        restore: (JsonElement) -> JsonElement,
-    ): JsonElement = JsonArray(response.jsonArray.map(restore))
-}
-
-private class PassthroughResponseElementRestorer : ResponseElementRestorer {
-    override fun supports(response: JsonElement): Boolean = true
-
-    override fun restore(
-        response: JsonElement,
-        restore: (JsonElement) -> JsonElement,
-    ): JsonElement = response
+    )
 }
 
 private data class RestoredResponseField(

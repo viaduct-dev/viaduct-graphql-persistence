@@ -2,16 +2,12 @@ package dev.viaduct.persistence.model
 
 import viaduct.graphql.schema.ViaductSchema
 
-internal class PersistenceModelValidator(
-    private val relationshipTargetResolver: RelationshipTargetResolver =
-        RelationshipTargetResolverChain(),
-) {
+internal class PersistenceModelValidator {
     fun validateTargetForeignKeyFields(
-        includedObjects: Map<String, ViaductSchema.Object>,
-        targetForeignKeyFields: Set<String>,
+        context: PersistenceModelContext,
     ) {
-        targetForeignKeyFields.forEach { coordinate ->
-            validateTargetForeignKeyField(coordinate, includedObjects)
+        context.unidirectionalTargetForeignKeyFields.forEach { coordinate ->
+            validateTargetForeignKeyField(coordinate, context)
         }
     }
 
@@ -34,14 +30,14 @@ internal class PersistenceModelValidator(
 
     private fun validateTargetForeignKeyField(
         coordinate: String,
-        includedObjects: Map<String, ViaductSchema.Object>,
+        context: PersistenceModelContext,
     ) {
         val (typeName, fieldName) = parseCoordinate(coordinate)
-        val source = includedObjects[typeName]
+        val source = context.includedObjects[typeName]
             ?: error("Target-foreign-key field '$coordinate' has no persistent source type")
         val field = source.fields.singleOrNull { it.name == fieldName }
             ?: error("Target-foreign-key field '$coordinate' does not exist")
-        require(relationshipTarget(field, includedObjects)?.collection == true) {
+        require(context.relationships(source).getValue(field)?.collection == true) {
             "Target-foreign-key field '$coordinate' must be a persistent collection"
         }
     }
@@ -54,8 +50,4 @@ internal class PersistenceModelValidator(
         return parts[0] to parts[1]
     }
 
-    private fun relationshipTarget(
-        field: ViaductSchema.Field,
-        includedObjects: Map<String, ViaductSchema.Object>,
-    ): PersistenceRelationshipTarget? = relationshipTargetResolver.resolve(field, includedObjects)
 }
