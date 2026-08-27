@@ -1,7 +1,7 @@
 # Release Signing Key
 
-The public key used to verify release artifacts is stored at
-`signing/viaduct-graphql-persistence-release.asc`.
+Release signing material is managed outside source control. The armored key file is intentionally
+ignored and must never be committed.
 
 Maven Central does not store this key directly. Publish it to a supported public keyserver:
 
