@@ -9,14 +9,15 @@ internal object PgGraphqlConstraintRenderer {
     fun render(model: EffectiveHibernateModel): String {
         val namesByConstraint = linkedMapOf<ConstraintColumn, MutableMap<String, String>>()
         model.relationships.forEach { relationship ->
-            val names = namesByConstraint.getOrPut(
-                ConstraintColumn(
-                    relationship.schemaName,
-                    relationship.tableName,
-                    relationship.columnName,
-                ),
-                ::linkedMapOf,
-            )
+            val names =
+                namesByConstraint.getOrPut(
+                    ConstraintColumn(
+                        relationship.schemaName,
+                        relationship.tableName,
+                        relationship.columnName,
+                    ),
+                    ::linkedMapOf,
+                )
             names[relationship.nameKey()] = relationship.fieldName
         }
         return buildString {
@@ -26,15 +27,17 @@ internal object PgGraphqlConstraintRenderer {
         }
     }
 
-    private fun EffectiveHibernateRelationship.nameKey(): String = when (graphqlNameKind) {
-        GraphqlNameKind.FOREIGN -> "foreign_name"
-        GraphqlNameKind.LOCAL -> "local_name"
-    }
+    private fun EffectiveHibernateRelationship.nameKey(): String =
+        when (graphqlNameKind) {
+            GraphqlNameKind.FOREIGN -> "foreign_name"
+            GraphqlNameKind.LOCAL -> "local_name"
+        }
 
     private fun graphqlConstraintComment(
         constraint: ConstraintColumn,
         names: Map<String, String>,
-    ): String = """
+    ): String =
+        """
         DO ${'$'}pg_graphql${'$'}
         DECLARE
           constraint_name text;
@@ -60,7 +63,7 @@ internal object PgGraphqlConstraintRenderer {
           );
         END
         ${'$'}pg_graphql${'$'};
-    """.trimIndent()
+        """.trimIndent()
 
     private data class ConstraintColumn(
         val schemaName: String,

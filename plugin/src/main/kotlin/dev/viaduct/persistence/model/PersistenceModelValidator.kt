@@ -3,9 +3,7 @@ package dev.viaduct.persistence.model
 import viaduct.graphql.schema.ViaductSchema
 
 internal class PersistenceModelValidator {
-    fun validateTargetForeignKeyFields(
-        context: PersistenceModelContext,
-    ) {
+    fun validateTargetForeignKeyFields(context: PersistenceModelContext) {
         context.unidirectionalTargetForeignKeyFields.forEach { coordinate ->
             validateTargetForeignKeyField(coordinate, context)
         }
@@ -15,11 +13,12 @@ internal class PersistenceModelValidator {
         source: ViaductSchema.Object,
         relationships: Map<out ViaductSchema.Field, PersistenceRelationshipTarget?>,
     ) {
-        val fieldNames = source.fields.mapTo(linkedSetOf()) { it.name }
-        val shadowedRelationships = relationships
-            .filterValues { it != null && !it.collection }
-            .keys
-            .filter { "${it.name}Id" in fieldNames }
+        val fieldNames = source.fields.map { it.name }.toSet()
+        val shadowedRelationships =
+            relationships
+                .filterValues { it != null && !it.collection }
+                .keys
+                .filter { "${it.name}Id" in fieldNames }
         require(shadowedRelationships.isEmpty()) {
             "Persistent type ${source.name} represents the same relationship as both an object " +
                 "and a scalar ID: " +
@@ -33,10 +32,12 @@ internal class PersistenceModelValidator {
         context: PersistenceModelContext,
     ) {
         val (typeName, fieldName) = parseCoordinate(coordinate)
-        val source = context.includedObjects[typeName]
-            ?: error("Target-foreign-key field '$coordinate' has no persistent source type")
-        val field = source.fields.singleOrNull { it.name == fieldName }
-            ?: error("Target-foreign-key field '$coordinate' does not exist")
+        val source =
+            context.includedObjects[typeName]
+                ?: error("Target-foreign-key field '$coordinate' has no persistent source type")
+        val field =
+            source.fields.singleOrNull { it.name == fieldName }
+                ?: error("Target-foreign-key field '$coordinate' does not exist")
         require(context.relationships(source).getValue(field)?.collection == true) {
             "Target-foreign-key field '$coordinate' must be a persistent collection"
         }
@@ -49,5 +50,4 @@ internal class PersistenceModelValidator {
         }
         return parts[0] to parts[1]
     }
-
 }

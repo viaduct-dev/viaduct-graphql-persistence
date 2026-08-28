@@ -11,30 +11,32 @@ internal class EffectiveModelRegistrar(
     private val layout: PersistenceBuildLayout,
 ) {
     fun register(): TaskProvider<BuildEffectiveHibernateModelTask> {
-        val effective = project.tasks.register(
-            "buildViaductEffectiveModel",
-            BuildEffectiveHibernateModelTask::class.java,
-        ) {
-            it.group = "build"
-            it.description =
-                "Build effective Hibernate metadata and database overlay artifacts."
-            it.dependsOn("classes")
-            it.semanticModelFile.set(
-                layout.generatedRoot.map {
-                    it.file("resources/META-INF/viaduct-persistence-model.tsv")
-                }
-            )
-            it.mappingFile.set(layout.generatedRoot.map { it.file("resources/META-INF/orm.xml") })
-            it.modelClasspath.from(layout.mainSourceSet.runtimeClasspath)
-            it.packageName.set(extension.packageName)
-            it.implicitNamingStrategyClassName.set(extension.implicitNamingStrategyClassName)
-            it.physicalNamingStrategyClassName.set(extension.physicalNamingStrategyClassName)
-            it.metadataCustomizerClassNames.set(extension.metadataCustomizerClassNames)
-            it.outputDirectory.set(layout.effectiveRoot)
-        }
+        val effective =
+            project.tasks.register(
+                "buildViaductEffectiveModel",
+                BuildEffectiveHibernateModelTask::class.java,
+            ) {
+                it.group = "build"
+                it.description =
+                    "Build effective Hibernate metadata and database overlay artifacts."
+                it.dependsOn("classes")
+                it.semanticModelFile.set(
+                    layout.generatedRoot.map {
+                        it.file("resources/META-INF/viaduct-persistence-model.tsv")
+                    },
+                )
+                it.mappingFile.set(layout.generatedRoot.map { it.file("resources/META-INF/orm.xml") })
+                it.modelClasspath.from(layout.mainSourceSet.runtimeClasspath)
+                it.packageName.set(extension.packageName)
+                it.implicitNamingStrategyClassName.set(extension.implicitNamingStrategyClassName)
+                it.physicalNamingStrategyClassName.set(extension.physicalNamingStrategyClassName)
+                it.metadataCustomizerClassNames.set(extension.metadataCustomizerClassNames)
+                it.outputDirectory.set(layout.effectiveRoot)
+            }
         project.tasks.named("jar", Jar::class.java).configure {
             it.dependsOn(effective)
-            it.from(layout.effectiveRoot) { spec -> spec.into("") }
+            val copiedTask = it.from(layout.effectiveRoot) { spec -> spec.into("") }
+            it.logger.debug("Attached effective metadata to ${copiedTask.name}")
         }
         return effective
     }

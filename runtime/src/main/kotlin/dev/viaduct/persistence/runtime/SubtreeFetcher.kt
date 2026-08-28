@@ -42,12 +42,13 @@ internal class SubtreeFetcher(
         val references = nodeReferencePlanner.plan(requestedSelections, ownedSelections)
         if (references.isEmpty()) return fetch(context, subtree, ownedSelections)
 
-        val response = fetchJson(
-            context = context,
-            root = subtree.root,
-            selections = ownedSelections,
-            referenceSelections = references.map(NodeReferenceSelection::upstreamSelection),
-        )
+        val response =
+            fetchJson(
+                context = context,
+                root = subtree.root,
+                selections = ownedSelections,
+                referenceSelections = references.map(NodeReferenceSelection::upstreamSelection),
+            )
         return nodeReferenceHydrator.hydrate(
             base = response,
             selections = ownedSelections,
@@ -63,9 +64,11 @@ internal class SubtreeFetcher(
         referenceSelections: List<String> = emptyList(),
     ): kotlinx.serialization.json.JsonObject {
         val query = queryPlanner.plan(root, selections, referenceSelections)
-        val data = PgGraphqlTranslation.restoreViaductResponseShape(
-            transport.execute(context, query),
-        ).jsonObject
+        val data =
+            PgGraphqlTranslation
+                .restoreViaductResponseShape(
+                    transport.execute(context, query),
+                ).jsonObject
         return if (root.singleViaFilteredCollection) {
             SubtreeResponseReader.firstNode(data, root.responseKey)
         } else {

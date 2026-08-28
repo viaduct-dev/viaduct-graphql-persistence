@@ -27,17 +27,18 @@ internal class NodeReferenceHydrator(
         references: List<NodeReferenceSelection>,
         context: ResolverExecutionContext<out Query>,
     ): T where T : CompositeOutput, T : NodeObject {
-        val ownedJson = if (selections.isEmpty()) {
-            buildJsonObject { put("__typename", selections.type.name) }
-        } else {
-            buildJsonObject {
-                base.forEach { (key, value) ->
-                    if (key != "uuidId" && references.none { it.responseKeys.contains(key) }) {
-                        put(key, value)
+        val ownedJson =
+            if (selections.isEmpty()) {
+                buildJsonObject { put("__typename", selections.type.name) }
+            } else {
+                buildJsonObject {
+                    base.forEach { (key, value) ->
+                        if (key != "uuidId" && references.none { it.responseKeys.contains(key) }) {
+                            put(key, value)
+                        }
                     }
                 }
             }
-        }
         val owned = ownedJson.toGRT(context, selections)
         return attach(owned, base, references, context)
     }
@@ -67,15 +68,17 @@ private class NodeReferenceValueBuilder(
         reference: NodeReferenceSelection,
         response: JsonObject,
         context: ResolverExecutionContext<out Query>,
-    ): Any? = when (reference.kind) {
-        NodeReferenceKind.CONNECTION -> connectionBuilder.build(
-            reference,
-            requiredObject(response, reference.fieldName, "connection"),
-            context,
-        )
-        NodeReferenceKind.LEGACY_COLLECTION -> buildLegacyCollection(reference, response, context)
-        NodeReferenceKind.TO_ONE -> buildToOne(reference, response, context)
-    }
+    ): Any? =
+        when (reference.kind) {
+            NodeReferenceKind.CONNECTION ->
+                connectionBuilder.build(
+                    reference,
+                    requiredObject(response, reference.fieldName, "connection"),
+                    context,
+                )
+            NodeReferenceKind.LEGACY_COLLECTION -> buildLegacyCollection(reference, response, context)
+            NodeReferenceKind.TO_ONE -> buildToOne(reference, response, context)
+        }
 
     private fun buildToOne(
         reference: NodeReferenceSelection,
@@ -93,19 +96,22 @@ private class NodeReferenceValueBuilder(
         context: ResolverExecutionContext<out Query>,
     ): Any {
         val collection = requiredObject(response, reference.fieldName, "collection")
-        val nodes = collection["nodes"]?.jsonArray
-            ?: error(
-                "Subtree response for '${reference.fieldName}' did not include 'nodes'"
-            )
-        val nodeValues = nodes.mapIndexed { index, node ->
-            val nodeObject = node.jsonObject
-            val internalId = nodeObject["uuidId"]?.jsonPrimitive?.content
+        val nodes =
+            collection["nodes"]?.jsonArray
                 ?: error(
-                    "Subtree response for '${reference.fieldName}' had an item " +
-                        "at index $index with no 'uuidId'"
+                    "Subtree response for '${reference.fieldName}' did not include 'nodes'",
                 )
-            nodeResolver.resolve(context, reference.nodeType, internalId)
-        }
+        val nodeValues =
+            nodes.mapIndexed { index, node ->
+                val nodeObject = node.jsonObject
+                val internalId =
+                    nodeObject["uuidId"]?.jsonPrimitive?.content
+                        ?: error(
+                            "Subtree response for '${reference.fieldName}' had an item " +
+                                "at index $index with no 'uuidId'",
+                        )
+                nodeResolver.resolve(context, reference.nodeType, internalId)
+            }
         return GeneratedBuilder
             .fromExecutionContext(typeReflection.builderClass(reference.targetType), context)
             .set("nodes", nodeValues)
@@ -116,8 +122,9 @@ private class NodeReferenceValueBuilder(
         response: JsonObject,
         fieldName: String,
         kind: String,
-    ): JsonObject = response[fieldName]?.jsonObject
-        ?: error(
-            "Subtree response did not include $kind '$fieldName' while hydrating node references"
-        )
+    ): JsonObject =
+        response[fieldName]?.jsonObject
+            ?: error(
+                "Subtree response did not include $kind '$fieldName' while hydrating node references",
+            )
 }

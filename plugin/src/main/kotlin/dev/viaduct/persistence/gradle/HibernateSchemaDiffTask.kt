@@ -1,8 +1,8 @@
 package dev.viaduct.persistence.gradle
 
+import dev.viaduct.persistence.io.ensureParentDirectory
 import dev.viaduct.persistence.liquibase.LiquibaseDatabaseSession
 import dev.viaduct.persistence.liquibase.ViaductHibernateDatabase
-import java.io.OutputStream
 import liquibase.command.CommandScope
 import liquibase.command.core.DiffChangelogCommandStep
 import liquibase.command.core.helpers.DbUrlConnectionArgumentsCommandStep
@@ -16,6 +16,7 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import java.io.OutputStream
 
 /** Writes an unfiltered Liquibase SQL diff against the configured consumer database. */
 abstract class HibernateSchemaDiffTask : DefaultTask() {
@@ -44,41 +45,44 @@ abstract class HibernateSchemaDiffTask : DefaultTask() {
     @TaskAction
     fun diff() {
         val destination = diffFile.get().asFile
-        destination.parentFile.mkdirs()
-        destination.delete()
-        val tablePattern = persistentTablesFile.get().asFile
-            .readLines()
-            .filter(String::isNotBlank)
-            .joinToString("|")
-
-        LiquibaseDatabaseSession.open(
-            ViaductHibernateDatabase.referenceUrl(referenceManifest.get().asFile),
-        ).use { reference ->
-            LiquibaseDatabaseSession.open(
-                targetUrl.get(),
-                targetUsername.get(),
-                targetPassword.get(),
-            ).use { target ->
-                CommandScope("diffChangelog")
-                    .addArgumentValue(
-                        ReferenceDbUrlConnectionCommandStep.REFERENCE_DATABASE_ARG,
-                        reference.database,
-                    )
-                    .addArgumentValue(
-                        DbUrlConnectionArgumentsCommandStep.DATABASE_ARG,
-                        target.database,
-                    )
-                    .addArgumentValue(
-                        DiffOutputControlCommandStep.INCLUDE_OBJECTS,
-                        "table:($tablePattern)",
-                    )
-                    .addArgumentValue(
-                        DiffChangelogCommandStep.CHANGELOG_FILE_ARG,
-                        destination.absolutePath,
-                    )
-                    .setOutput(OutputStream.nullOutputStream())
-                    .execute()
-            }
+        destination.ensureParentDirectory()
+        check(!destination.exists() || destination.delete()) {
+            "Could not replace schema diff ${destination.absolutePath}"
         }
+        val tablePattern =
+            persistentTablesFile
+                .get()
+                .asFile
+                .readLines()
+                .filter(String::isNotBlank)
+                .joinToString("|")
+
+        LiquibaseDatabaseSession
+            .open(
+                ViaductHibernateDatabase.referenceUrl(referenceManifest.get().asFile),
+            ).use { reference ->
+                LiquibaseDatabaseSession
+                    .open(
+                        targetUrl.get(),
+                        targetUsername.get(),
+                        targetPassword.get(),
+                    ).use { target ->
+                        CommandScope("diffChangelog")
+                            .addArgumentValue(
+                                ReferenceDbUrlConnectionCommandStep.REFERENCE_DATABASE_ARG,
+                                reference.database,
+                            ).addArgumentValue(
+                                DbUrlConnectionArgumentsCommandStep.DATABASE_ARG,
+                                target.database,
+                            ).addArgumentValue(
+                                DiffOutputControlCommandStep.INCLUDE_OBJECTS,
+                                "table:($tablePattern)",
+                            ).addArgumentValue(
+                                DiffChangelogCommandStep.CHANGELOG_FILE_ARG,
+                                destination.absolutePath,
+                            ).setOutput(OutputStream.nullOutputStream())
+                            .execute()
+                    }
+            }
     }
 }

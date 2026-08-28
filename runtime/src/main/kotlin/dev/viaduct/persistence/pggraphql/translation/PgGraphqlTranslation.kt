@@ -11,15 +11,15 @@ object PgGraphqlTranslation {
         schema: PgGraphqlTranslationSchema,
         rewriteCollectionTypes: Boolean = true,
         allowInternalResponseAlias: Boolean = false,
-    ): String = documentTranslator.translate(
-        document,
-        schema,
-        rewriteCollectionTypes,
-        allowInternalResponseAlias,
-    )
+    ): String =
+        documentTranslator.translate(
+            document,
+            schema,
+            rewriteCollectionTypes,
+            allowInternalResponseAlias,
+        )
 
-    fun restoreViaductResponseShape(response: JsonElement): JsonElement =
-        responseShapeRestorer.restore(response)
+    fun restoreViaductResponseShape(response: JsonElement): JsonElement = responseShapeRestorer.restore(response)
 
     fun buildRootQuery(
         field: String,
@@ -27,11 +27,12 @@ object PgGraphqlTranslation {
         variableDefinitions: String,
         fragmentDocument: String,
         singleViaFilteredCollection: Boolean,
-    ): String = RootQueryBuilder.build(
-        field,
-        arguments,
-        variableDefinitions,
-        fragmentDocument,
-        singleViaFilteredCollection,
-    )
+    ): String =
+        RootQueryBuilder.build(
+            field,
+            arguments,
+            variableDefinitions,
+            fragmentDocument,
+            singleViaFilteredCollection,
+        )
 }

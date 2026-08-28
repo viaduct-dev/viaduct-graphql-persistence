@@ -19,27 +19,40 @@ internal data class EdgeShape(
 
     fun build(
         edge: JsonObject,
-        index: Int,
-        connectionTypeName: String,
-        context: ResolverExecutionContext<out Query>,
-        typeReflection: GeneratedTypeReflection,
-        nodeResolver: NodeReferenceResolver,
+        context: EdgeBuildContext,
     ): Any {
-        val builder = GeneratedBuilder.fromExecutionContext(
-            typeReflection.builderClass(type),
-            context,
-        )
-        fields.forEach { it.write(builder, edge, context, nodeResolver) }
+        val builder =
+            GeneratedBuilder.fromExecutionContext(
+                context.typeReflection.builderClass(type),
+                context.executionContext,
+            )
+        fields.forEach {
+            it.write(
+                builder,
+                edge,
+                context.executionContext,
+                context.nodeResolver,
+            )
+        }
         return try {
             builder.build()
         } catch (error: ReflectiveOperationException) {
             throw IllegalStateException(
-                "Could not build connection edge at index $index for '$connectionTypeName'",
+                "Could not build connection edge at index ${context.index} " +
+                    "for '${context.connectionTypeName}'",
                 error,
             )
         }
     }
 }
+
+internal data class EdgeBuildContext(
+    val index: Int,
+    val connectionTypeName: String,
+    val executionContext: ResolverExecutionContext<out Query>,
+    val typeReflection: GeneratedTypeReflection,
+    val nodeResolver: NodeReferenceResolver,
+)
 
 internal interface EdgeResponseField {
     val field: Field<*>

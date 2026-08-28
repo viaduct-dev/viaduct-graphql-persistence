@@ -46,29 +46,34 @@ internal object GlobalIdMigrationRenderer {
               END IF;
             END
             ${'$'}viaduct_global_id${'$'};
-        """.trimIndent()
+            """.trimIndent()
     }
 
-    private fun globalIdByteaExpression(graphqlName: String, internalIdColumn: String): String {
-        val prefixHex = "$graphqlName:"
-            .encodeToByteArray()
-            .joinToString(separator = "") { byte ->
-                byte.toUByte().toString(radix = 16).padStart(2, '0')
-            }
+    private fun globalIdByteaExpression(
+        graphqlName: String,
+        internalIdColumn: String,
+    ): String {
+        val prefixHex =
+            "$graphqlName:"
+                .encodeToByteArray()
+                .joinToString(separator = "") { byte ->
+                    byte.toUByte().toString(radix = 16).padStart(2, '0')
+                }
         val uuidCharacters = "0123456789abcdef-"
         val placeholders = "GHIJKLMNOPQRSTUVW"
-        val translatedUuid = """
+        val translatedUuid =
+            """
             translate(
               ${quoteIdentifier(internalIdColumn)}::text,
               '$uuidCharacters',
               '$placeholders'
             )
-        """.trimIndent()
-        val uuidHex = uuidCharacters.zip(placeholders).fold(translatedUuid) {
-                expression, (character, placeholder) ->
-            val characterHex = character.code.toString(radix = 16).padStart(2, '0')
-            "replace($expression, '$placeholder', '$characterHex')"
-        }
+            """.trimIndent()
+        val uuidHex =
+            uuidCharacters.zip(placeholders).fold(translatedUuid) { expression, (character, placeholder) ->
+                val characterHex = character.code.toString(radix = 16).padStart(2, '0')
+                "replace($expression, '$placeholder', '$characterHex')"
+            }
         return "decode(${quoteLiteral(prefixHex)} || $uuidHex, 'hex')"
     }
 }

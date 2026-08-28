@@ -1,7 +1,7 @@
 package dev.viaduct.persistence.hibernate
 
-import dev.viaduct.persistence.model.*
-
+import dev.viaduct.persistence.model.toSnakeCase
+import dev.viaduct.persistence.model.toTableName
 import org.hibernate.boot.model.naming.Identifier
 import org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl
 import org.hibernate.boot.model.naming.PhysicalNamingStrategy
@@ -33,10 +33,14 @@ open class ViaductPhysicalNamingStrategy : PhysicalNamingStrategy {
     override fun toPhysicalColumnName(
         logicalName: Identifier,
         jdbcEnvironment: JdbcEnvironment,
-    ): Identifier = logicalName.transform { name ->
-        if (name == "internalId") "_uuid_id" else toSnakeCase(name)
-    }
+    ): Identifier =
+        logicalName.transform { name ->
+            if (name == "internalId") "_uuid_id" else toSnakeCase(name)
+        }
 }
 
 private fun Identifier.transform(transformer: (String) -> String): Identifier =
-    Identifier.toIdentifier(transformer(text), isQuoted)
+    Identifier.toIdentifier(
+        transformer(text),
+        isQuoted,
+    )

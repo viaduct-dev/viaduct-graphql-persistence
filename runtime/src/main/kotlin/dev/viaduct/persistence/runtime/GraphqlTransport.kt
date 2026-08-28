@@ -6,7 +6,8 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
-import io.ktor.http.contentType
+import io.ktor.http.content.TextContent
+import io.ktor.util.reflect.typeInfo
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -32,18 +33,23 @@ internal class PgGraphqlTransport(
         context: viaduct.api.context.ExecutionContext,
         query: GraphqlQuery,
     ): JsonObject {
-        val response = httpClient.post(endpoint) {
-            requestHeaders.forContext(context).forEach { (name, value) ->
-                header(name, value)
-            }
-            contentType(ContentType.Application.Json)
-            setBody(
-                json.encodeToString(
-                    GraphqlRequest.serializer(),
-                    GraphqlRequest(query.text, query.variables),
+        val response =
+            httpClient.post(endpoint) {
+                requestHeaders.forContext(context).forEach { (name, value) ->
+                    header(name, value)
+                }
+                setBody(
+                    TextContent(
+                        text =
+                            json.encodeToString(
+                                GraphqlRequest.serializer(),
+                                GraphqlRequest(query.text, query.variables),
+                            ),
+                        contentType = ContentType.Application.Json,
+                    ),
+                    typeInfo<TextContent>(),
                 )
-            )
-        }
+            }
         val envelope = json.parseToJsonElement(response.bodyAsText()).jsonObject
         envelope["errors"]?.let { error("Subtree fetch failed: $it") }
         return envelope["data"]?.jsonObject?.get(query.responseKey)?.jsonObject

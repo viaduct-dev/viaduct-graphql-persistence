@@ -1,15 +1,19 @@
 package dev.viaduct.persistence.model
 
-private val ACRONYM_NORMALIZATIONS = listOf(
-    Regex("GitHub") to "Github",
-    Regex("GraphQL") to "Graphql",
-)
+private val ACRONYM_NORMALIZATIONS =
+    listOf(
+        Regex("GitHub") to "Github",
+        Regex("GraphQL") to "Graphql",
+    )
 
-private val INVARIANT_PLURAL_NOUNS = setOf(
-    "news",
-    "series",
-    "species",
-)
+private val INVARIANT_PLURAL_NOUNS =
+    setOf(
+        "news",
+        "series",
+        "species",
+    )
+
+private val VOWEL_Y_ENDINGS = setOf("ay", "ey", "iy", "oy", "uy")
 
 fun toSnakeCase(name: String): String {
     var normalized = name
@@ -31,11 +35,14 @@ fun toTableName(typeName: String): String {
             snake.dropLast("identity".length) + "identities"
         snake.endsWith("icy") ->
             snake.dropLast(1) + "ies"
-        snake.endsWith("y") && !snake.endsWith("ay") && !snake.endsWith("ey") &&
-            !snake.endsWith("iy") && !snake.endsWith("oy") && !snake.endsWith("uy") ->
+        endsWithConsonantY(snake) ->
             snake.dropLast(1) + "ies"
-        snake.endsWith("s") || snake.endsWith("x") || snake.endsWith("z") ->
+        needsEsSuffix(snake) ->
             snake + "es"
         else -> snake + "s"
     }
 }
+
+private fun endsWithConsonantY(name: String): Boolean = name.endsWith("y") && VOWEL_Y_ENDINGS.none(name::endsWith)
+
+private fun needsEsSuffix(name: String): Boolean = name.endsWith("s") || name.endsWith("x") || name.endsWith("z")

@@ -1,5 +1,6 @@
 package dev.viaduct.persistence.gradle
 
+import dev.viaduct.persistence.io.ensureParentDirectory
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
@@ -21,14 +22,16 @@ abstract class ConservativeLiquibaseDiffTask : DefaultTask() {
         val raw = rawDiffFile.get().asFile.readText()
         val changesetStart = Regex("(?m)(?=^-- changeset )")
         val firstChangeset = Regex("(?m)^-- changeset ").find(raw)?.range?.first
-        val header = firstChangeset?.let { raw.substring(0, it) }?.trimEnd()
-            ?: "-- liquibase formatted sql"
-        val blocks = firstChangeset
-            ?.let { changesetStart.split(raw.substring(it)) }
-            .orEmpty()
-            .map(String::trim)
-            .filter(String::isNotBlank)
-            .distinctBy(::normalizedSql)
+        val header =
+            firstChangeset?.let { raw.substring(0, it) }?.trimEnd()
+                ?: "-- liquibase formatted sql"
+        val blocks =
+            firstChangeset
+                ?.let { changesetStart.split(raw.substring(it)) }
+                .orEmpty()
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .distinctBy(::normalizedSql)
         val (destructive, conservative) = blocks.partition(::isDestructive)
 
         writeChangeLog(
@@ -51,7 +54,7 @@ abstract class ConservativeLiquibaseDiffTask : DefaultTask() {
         blocks: List<String>,
         emptyMessage: String,
     ) {
-        destination.parentFile.mkdirs()
+        destination.ensureParentDirectory()
         destination.writeText(
             buildString {
                 appendLine(header)
@@ -61,23 +64,24 @@ abstract class ConservativeLiquibaseDiffTask : DefaultTask() {
                 } else {
                     appendLine(blocks.joinToString("\n\n"))
                 }
-            }
+            },
         )
     }
 
-    private fun isDestructive(block: String): Boolean =
-        DESTRUCTIVE_SQL.containsMatchIn(block)
+    private fun isDestructive(block: String): Boolean = DESTRUCTIVE_SQL.containsMatchIn(block)
 
     private fun normalizedSql(block: String): String =
-        block.lineSequence()
+        block
+            .lineSequence()
             .filterNot { it.startsWith("-- changeset ") }
             .joinToString("\n")
             .replace(Regex("\\s+"), " ")
             .trim()
 
     private companion object {
-        val DESTRUCTIVE_SQL = Regex(
-            """(?is)\b(?:DROP|DELETE|TRUNCATE)\b|COMMENT\s+ON\s+.+?\s+IS\s+''"""
-        )
+        private val DESTRUCTIVE_SQL =
+            Regex(
+                """(?is)\b(?:DROP|DELETE|TRUNCATE)\b|COMMENT\s+ON\s+.+?\s+IS\s+''""",
+            )
     }
 }

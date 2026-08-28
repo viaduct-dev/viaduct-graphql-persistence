@@ -8,244 +8,288 @@ import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
 import io.mockk.every
 import io.mockk.mockk
-import kotlin.test.Test
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import viaduct.api.context.ExecutionContext
 import viaduct.api.reflect.CompositeField
 import viaduct.api.reflect.Field
 import viaduct.api.reflect.Type
+import viaduct.api.select.FieldCoordinate
 import viaduct.api.select.OutputSelectionFragment
 import viaduct.api.select.SelectionSet
-import viaduct.api.select.FieldCoordinate
 import viaduct.api.types.CompositeOutput
 import viaduct.api.types.GRT
 import viaduct.api.types.NodeObject
 import kotlin.reflect.KClass
+import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class SubtreeClientTest {
     @Test
-    fun `fetches UUIDs and applies request headers`() = runBlocking {
-        val engine = MockEngine { request ->
-            assertEquals("Bearer token", request.headers[HttpHeaders.Authorization])
-            assertEquals("anon-key", request.headers["apikey"])
-            respond(
-                content =
-                    """{"data":{"groupCollection":{"edges":[""" +
-                        """{"node":{"uuidId":"first"}},{"node":{"uuidId":"second"}}]}}}""",
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-            )
-        }
-        val client = SubtreeClient(
-            httpClient = HttpClient(engine),
-            endpoint = "https://example.test/graphql/v1",
-            requestHeaders = SubtreeRequestHeaders {
-                mapOf(
-                    HttpHeaders.Authorization to "Bearer token",
-                    "apikey" to "anon-key",
+    fun `fetches UUIDs and applies request headers`() =
+        runBlocking {
+            val engine =
+                MockEngine { request ->
+                    assertEquals("Bearer token", request.headers[HttpHeaders.Authorization])
+                    assertEquals("anon-key", request.headers["apikey"])
+                    respond(
+                        content =
+                            """{"data":{"groupCollection":{"edges":[""" +
+                                """{"node":{"uuidId":"first"}},{"node":{"uuidId":"second"}}]}}}""",
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            val client =
+                SubtreeClient(
+                    httpClient = HttpClient(engine),
+                    endpoint = "https://example.test/graphql/v1",
+                    requestHeaders =
+                        SubtreeRequestHeaders {
+                            mapOf(
+                                HttpHeaders.Authorization to "Bearer token",
+                                "apikey" to "anon-key",
+                            )
+                        },
                 )
-            },
-        )
 
-        assertEquals(
-            listOf("first", "second"),
-            client.fetchUuidIds(mockk<ExecutionContext>(), "groupCollection"),
-        )
-    }
-
-    @Test
-    fun `fetches UUID connection edges with provider cursors and page info`() = runBlocking {
-        val engine = MockEngine {
-            respond(
-                content = """
-                    {
-                      "data": {
-                        "groupCollection": {
-                          "edges": [
-                            {"cursor":"cursor-1","node":{"uuidId":"first"}},
-                            {"cursor":"cursor-2","node":{"uuidId":"second"}}
-                          ],
-                          "pageInfo": {
-                            "hasNextPage": true,
-                            "hasPreviousPage": true,
-                            "startCursor": "cursor-1",
-                            "endCursor": "cursor-2"
-                          }
-                        }
-                      }
-                    }
-                """.trimIndent(),
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            assertEquals(
+                listOf("first", "second"),
+                client.fetchUuidIds(mockk<ExecutionContext>(), "groupCollection"),
             )
         }
-        val client = SubtreeClient(
-            httpClient = HttpClient(engine),
-            endpoint = "https://example.test/graphql/v1",
-        )
-
-        val page = client.fetchUuidConnection(
-            ctx = mockk<ExecutionContext>(),
-            collectionField = "groupCollection",
-            first = 2,
-            after = "cursor-0",
-        )
-
-        assertEquals(listOf("first", "second"), page.edges.map(UuidConnectionEdge::uuidId))
-        assertEquals(listOf("cursor-1", "cursor-2"), page.edges.map(UuidConnectionEdge::cursor))
-        assertEquals(true, page.pageInfo.hasNextPage)
-        assertEquals("cursor-2", page.pageInfo.endCursor)
-    }
 
     @Test
-    fun `fetches backward UUID connection arguments`() = runBlocking {
-        val requests = mutableListOf<kotlinx.serialization.json.JsonObject>()
-        val engine = MockEngine { request ->
-            val requestBody = (request.body as OutgoingContent.ByteArrayContent)
-                .bytes()
-                .decodeToString()
-            requests += Json.parseToJsonElement(requestBody).jsonObject
-            respond(
-                content = """
-                    {
-                      "data": {
-                        "groupCollection": {
-                          "edges": [{"cursor":"cursor-2","node":{"uuidId":"second"}}],
-                          "pageInfo": {
-                            "hasNextPage": true,
-                            "hasPreviousPage": true,
-                            "startCursor": "cursor-2",
-                            "endCursor": "cursor-2"
-                          }
-                        }
-                      }
-                    }
-                """.trimIndent(),
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-            )
-        }
-        val client = SubtreeClient(
-            httpClient = HttpClient(engine),
-            endpoint = "https://example.test/graphql/v1",
-        )
-
-        client.fetchUuidConnection(
-            ctx = mockk<ExecutionContext>(),
-            collectionField = "groupCollection",
-            last = 1,
-            before = "cursor-3",
-        )
-
-        val request = requests.single()
-        assertEquals(
-            "1",
-            request["variables"]?.jsonObject?.get("last")?.jsonPrimitive?.content,
-        )
-        assertEquals(
-            "cursor-3",
-            request["variables"]?.jsonObject?.get("before")?.jsonPrimitive?.content,
-        )
-        assertContains(
-            request["query"]?.jsonPrimitive?.content.orEmpty(),
-            "last: ${'$'}last",
-        )
-        assertContains(
-            request["query"]?.jsonPrimitive?.content.orEmpty(),
-            "before: ${'$'}before",
-        )
-    }
-
-    @Test
-    fun `fetches nested connections for all parents in one request`() = runBlocking {
-        val requests = mutableListOf<String>()
-        val engine = MockEngine { request ->
-            requests += (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()
-            respond(
-                content = """
-                    {
-                      "data": {
-                        "groupCollection": {
-                          "edges": [
+    fun `fetches UUID connection edges with provider cursors and page info`() =
+        runBlocking {
+            val engine =
+                MockEngine {
+                    respond(
+                        content =
+                            """
                             {
-                              "node": {
-                                "uuidId": "group-1",
-                                "members": {
-                                  "edges": [{"cursor":"m-1","node":{"uuidId":"member-1"}}],
+                              "data": {
+                                "groupCollection": {
+                                  "edges": [
+                                    {"cursor":"cursor-1","node":{"uuidId":"first"}},
+                                    {"cursor":"cursor-2","node":{"uuidId":"second"}}
+                                  ],
                                   "pageInfo": {
                                     "hasNextPage": true,
-                                    "hasPreviousPage": false,
-                                    "startCursor": "m-1",
-                                    "endCursor": "m-1"
-                                  }
-                                }
-                              }
-                            },
-                            {
-                              "node": {
-                                "uuidId": "group-2",
-                                "members": {
-                                  "edges": [{"cursor":"m-2","node":{"uuidId":"member-2"}}],
-                                  "pageInfo": {
-                                    "hasNextPage": false,
                                     "hasPreviousPage": true,
-                                    "startCursor": "m-2",
-                                    "endCursor": "m-2"
+                                    "startCursor": "cursor-1",
+                                    "endCursor": "cursor-2"
                                   }
                                 }
                               }
                             }
-                          ]
-                        }
-                      }
-                    }
-                """.trimIndent(),
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-            )
+                            """.trimIndent(),
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            val client =
+                SubtreeClient(
+                    httpClient = HttpClient(engine),
+                    endpoint = "https://example.test/graphql/v1",
+                )
+
+            val page =
+                client.fetchUuidConnection(
+                    ctx = mockk<ExecutionContext>(),
+                    collectionField = "groupCollection",
+                    first = 2,
+                    after = "cursor-0",
+                )
+
+            assertEquals(listOf("first", "second"), page.edges.map(UuidConnectionEdge::uuidId))
+            assertEquals(listOf("cursor-1", "cursor-2"), page.edges.map(UuidConnectionEdge::cursor))
+            assertEquals(true, page.pageInfo.hasNextPage)
+            assertEquals("cursor-2", page.pageInfo.endCursor)
         }
-        val client = SubtreeClient(
-            httpClient = HttpClient(engine),
-            endpoint = "https://example.test/graphql/v1",
-        )
-
-        val pages = client.fetchNestedUuidConnections(
-            ctx = mockk<ExecutionContext>(),
-            parentCollectionField = "groupCollection",
-            parentIds = listOf("group-1", "group-2"),
-            childCollectionField = "members",
-            first = 1,
-        )
-
-        assertEquals(1, requests.size)
-        assertContains(requests.single(), "groupCollection(filter: {uuidId: {in: \$parentIds}})")
-        assertContains(requests.single(), "members(first: \$first")
-        assertEquals(listOf("member-1"), pages.getValue("group-1").edges.map { it.uuidId })
-        assertEquals(true, pages.getValue("group-1").pageInfo.hasNextPage)
-        assertEquals(listOf("member-2"), pages.getValue("group-2").edges.map { it.uuidId })
-        assertEquals(false, pages.getValue("group-2").pageInfo.hasNextPage)
-    }
 
     @Test
-    fun `surfaces upstream GraphQL errors`() = runBlocking {
-        val engine = MockEngine {
-            respond(
-                content = """{"errors":[{"message":"database unavailable"}]}""",
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+    fun `fetches backward UUID connection arguments`() =
+        runBlocking {
+            val requests = mutableListOf<JsonObject>()
+            val client = backwardConnectionClient(requests)
+
+            client.fetchUuidConnection(
+                ctx = mockk<ExecutionContext>(),
+                collectionField = "groupCollection",
+                last = 1,
+                before = "cursor-3",
+            )
+
+            val request = requests.single()
+            assertEquals(
+                "1",
+                request["variables"]
+                    ?.jsonObject
+                    ?.get("last")
+                    ?.jsonPrimitive
+                    ?.content,
+            )
+            assertEquals(
+                "cursor-3",
+                request["variables"]
+                    ?.jsonObject
+                    ?.get("before")
+                    ?.jsonPrimitive
+                    ?.content,
+            )
+            assertContains(
+                request["query"]?.jsonPrimitive?.content.orEmpty(),
+                "last: ${'$'}last",
+            )
+            assertContains(
+                request["query"]?.jsonPrimitive?.content.orEmpty(),
+                "before: ${'$'}before",
             )
         }
-        val client = SubtreeClient(
-            httpClient = HttpClient(engine),
+
+    private fun backwardConnectionClient(requests: MutableList<JsonObject>): SubtreeClient =
+        SubtreeClient(
+            httpClient =
+                HttpClient(
+                    MockEngine { request ->
+                        requests += requestJson(request.body)
+                        respond(
+                            content = backwardConnectionResponse(),
+                            headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                        )
+                    },
+                ),
             endpoint = "https://example.test/graphql/v1",
         )
 
-        val error = assertFailsWith<IllegalStateException> {
-            client.fetchUuidIds(mockk<ExecutionContext>(), "groupCollection")
+    private fun requestJson(body: OutgoingContent): JsonObject =
+        Json
+            .parseToJsonElement(
+                (body as OutgoingContent.ByteArrayContent).bytes().decodeToString(),
+            ).jsonObject
+
+    private fun backwardConnectionResponse(): String =
+        """
+        {
+          "data": {
+            "groupCollection": {
+              "edges": [{"cursor":"cursor-2","node":{"uuidId":"second"}}],
+              "pageInfo": {
+                "hasNextPage": true,
+                "hasPreviousPage": true,
+                "startCursor": "cursor-2",
+                "endCursor": "cursor-2"
+              }
+            }
+          }
         }
-        check(error.message.orEmpty().contains("database unavailable"))
-    }
+        """.trimIndent()
+
+    @Test
+    fun `fetches nested connections for all parents in one request`() =
+        runBlocking {
+            val requests = mutableListOf<String>()
+            val client = nestedConnectionClient(requests)
+
+            val pages =
+                client.fetchNestedUuidConnections(
+                    ctx = mockk<ExecutionContext>(),
+                    parentCollectionField = "groupCollection",
+                    parentIds = listOf("group-1", "group-2"),
+                    childCollectionField = "members",
+                    first = 1,
+                )
+
+            assertEquals(1, requests.size)
+            assertContains(requests.single(), "groupCollection(filter: {uuidId: {in: \$parentIds}})")
+            assertContains(requests.single(), "members(first: \$first")
+            assertEquals(listOf("member-1"), pages.getValue("group-1").edges.map { it.uuidId })
+            assertEquals(true, pages.getValue("group-1").pageInfo.hasNextPage)
+            assertEquals(listOf("member-2"), pages.getValue("group-2").edges.map { it.uuidId })
+            assertEquals(false, pages.getValue("group-2").pageInfo.hasNextPage)
+        }
+
+    private fun nestedConnectionClient(requests: MutableList<String>): SubtreeClient =
+        SubtreeClient(
+            httpClient =
+                HttpClient(
+                    MockEngine { request ->
+                        requests += (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()
+                        respond(
+                            content = nestedConnectionResponse(),
+                            headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                        )
+                    },
+                ),
+            endpoint = "https://example.test/graphql/v1",
+        )
+
+    private fun nestedConnectionResponse(): String =
+        """
+        {
+          "data": {
+            "groupCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "uuidId": "group-1",
+                    "members": {
+                      "edges": [{"cursor":"m-1","node":{"uuidId":"member-1"}}],
+                      "pageInfo": {
+                        "hasNextPage": true,
+                        "hasPreviousPage": false,
+                        "startCursor": "m-1",
+                        "endCursor": "m-1"
+                      }
+                    }
+                  }
+                },
+                {
+                  "node": {
+                    "uuidId": "group-2",
+                    "members": {
+                      "edges": [{"cursor":"m-2","node":{"uuidId":"member-2"}}],
+                      "pageInfo": {
+                        "hasNextPage": false,
+                        "hasPreviousPage": true,
+                        "startCursor": "m-2",
+                        "endCursor": "m-2"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+        """.trimIndent()
+
+    @Test
+    fun `surfaces upstream GraphQL errors`() =
+        runBlocking {
+            val engine =
+                MockEngine {
+                    respond(
+                        content = """{"errors":[{"message":"database unavailable"}]}""",
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            val client =
+                SubtreeClient(
+                    httpClient = HttpClient(engine),
+                    endpoint = "https://example.test/graphql/v1",
+                )
+
+            val error =
+                assertFailsWith<IllegalStateException> {
+                    client.fetchUuidIds(mockk<ExecutionContext>(), "groupCollection")
+                }
+            check(error.message.orEmpty().contains("database unavailable"))
+        }
 
     @Test
     fun `recognizes generated connection types by their edges node shape`() {
@@ -255,7 +299,11 @@ class SubtreeClientTest {
         assertEquals("cursor", shape?.cursorField?.name)
         assertEquals(
             listOf("hasNextPage", "hasPreviousPage", "startCursor", "endCursor"),
-            shape?.pageInfo?.fields?.map { it.field.name }?.take(4),
+            shape
+                ?.pageInfo
+                ?.fields
+                ?.map { it.field.name }
+                ?.take(4),
         )
     }
 
@@ -275,13 +323,14 @@ class SubtreeClientTest {
     @Test
     fun `uses pg_graphql edges for connection node references`() {
         val connection = checkNotNull(GeneratedTypeReflection().connection(FixtureTypes.connection))
-        val selection = NodeReferenceSelection(
-            fieldName = "members",
-            targetType = FixtureTypes.connection,
-            kind = NodeReferenceKind.CONNECTION,
-            nodeType = FixtureTypes.node,
-            connection = connection,
-        )
+        val selection =
+            NodeReferenceSelection(
+                fieldName = "members",
+                targetType = FixtureTypes.connection,
+                kind = NodeReferenceKind.CONNECTION,
+                nodeType = FixtureTypes.node,
+                connection = connection,
+            )
 
         assertContains(selection.upstreamSelection, "members {")
         assertContains(selection.upstreamSelection, "edges { cursor node { uuidId }")
@@ -300,18 +349,20 @@ class SubtreeClientTest {
     fun `does not request subselections for enum-valued fields`() {
         val requestedSelections = mockk<SelectionSet<FixtureNode>>()
         every { requestedSelections.contains<FixtureNode>(any()) } returns true
-        every { requestedSelections.toFragment() } returns OutputSelectionFragment(
-            "Main",
-            "fragment Main on FixtureNode { members status }",
-            emptyMap(),
-        )
+        every { requestedSelections.toFragment() } returns
+            OutputSelectionFragment(
+                "Main",
+                "fragment Main on FixtureNode { members status }",
+                emptyMap(),
+            )
         val ownedSelections = mockk<SelectionSet<FixtureNode>>()
         every { ownedSelections.type } returns FixtureTypes.node
         stubConnectionSelections(requestedSelections)
 
-        val references = NodeReferencePlanner(
-            typeReflection = GeneratedTypeReflection(),
-        ).plan(requestedSelections, ownedSelections)
+        val references =
+            NodeReferencePlanner(
+                typeReflection = GeneratedTypeReflection(),
+            ).plan(requestedSelections, ownedSelections)
 
         assertEquals(listOf("members"), references.map(NodeReferenceSelection::fieldName))
     }
@@ -319,16 +370,18 @@ class SubtreeClientTest {
     @Test
     fun `supports non-node composite edge associations`() {
         val selections = mockk<SelectionSet<FixtureAssociation>>()
-        every { selections.toFragment() } returns OutputSelectionFragment(
-            "Association",
-            "fragment Association on FixtureAssociation { label }",
-            emptyMap(),
-        )
-        val field = FixtureCompositeField<FixtureEdge, FixtureAssociation>(
-            "association",
-            FixtureTypes.edge,
-            FixtureTypes.association,
-        )
+        every { selections.toFragment() } returns
+            OutputSelectionFragment(
+                "Association",
+                "fragment Association on FixtureAssociation { label }",
+                emptyMap(),
+            )
+        val field =
+            FixtureCompositeField<FixtureEdge, FixtureAssociation>(
+                "association",
+                FixtureTypes.edge,
+                FixtureTypes.association,
+            )
 
         val responseField = customEdgeResponseField(field, selections)
 
@@ -338,28 +391,30 @@ class SubtreeClientTest {
     @Test
     fun `forwards all Viaduct connection pagination arguments to node references`() {
         val requestedSelections = mockk<SelectionSet<FixtureNode>>()
-        every { requestedSelections.toFragment() } returns OutputSelectionFragment(
-            "Main",
-            """
+        every { requestedSelections.toFragment() } returns
+            OutputSelectionFragment(
+                "Main",
+                """
                 fragment Main on FixtureNode {
                   members(first: ${'$'}first, after: ${'$'}after, last: ${'$'}last, before: ${'$'}before)
                 }
-            """.trimIndent(),
-            mapOf(
-                "first" to 2,
-                "after" to "after-cursor",
-                "last" to 3,
-                "before" to "before-cursor",
-            ),
-        )
+                """.trimIndent(),
+                mapOf(
+                    "first" to 2,
+                    "after" to "after-cursor",
+                    "last" to 3,
+                    "before" to "before-cursor",
+                ),
+            )
         every { requestedSelections.contains<FixtureNode>(any()) } returns true
         val ownedSelections = mockk<SelectionSet<FixtureNode>>()
         every { ownedSelections.type } returns FixtureTypes.node
         stubConnectionSelections(requestedSelections)
 
-        val reference = NodeReferencePlanner(
-            typeReflection = GeneratedTypeReflection(),
-        ).plan(requestedSelections, ownedSelections).single()
+        val reference =
+            NodeReferencePlanner(
+                typeReflection = GeneratedTypeReflection(),
+            ).plan(requestedSelections, ownedSelections).single()
 
         assertContains(
             reference.upstreamSelection,
@@ -372,9 +427,10 @@ class SubtreeClientTest {
     @Test
     fun `preserves schema-specific connection arguments and input values`() {
         val requestedSelections = mockk<SelectionSet<FixtureNode>>()
-        every { requestedSelections.toFragment() } returns OutputSelectionFragment(
-            "Main",
-            """
+        every { requestedSelections.toFragment() } returns
+            OutputSelectionFragment(
+                "Main",
+                """
                 fragment Main on FixtureNode {
                   members(
                     first: ${'$'}first,
@@ -387,24 +443,25 @@ class SubtreeClientTest {
                     orderBy: ${'$'}orderBy
                   )
                 }
-            """.trimIndent(),
-            mapOf(
-                "first" to 2,
-                "status" to FixtureStatus.ACTIVE,
-                "enabled" to true,
-                "tags" to listOf("important", "recent"),
-                "criteria" to linkedMapOf("source" to "imported"),
-                "orderBy" to FixtureSort.NAME,
-            ),
-        )
+                """.trimIndent(),
+                mapOf(
+                    "first" to 2,
+                    "status" to FixtureStatus.ACTIVE,
+                    "enabled" to true,
+                    "tags" to listOf("important", "recent"),
+                    "criteria" to linkedMapOf("source" to "imported"),
+                    "orderBy" to FixtureSort.NAME,
+                ),
+            )
         every { requestedSelections.contains<FixtureNode>(any()) } returns true
         val ownedSelections = mockk<SelectionSet<FixtureNode>>()
         every { ownedSelections.type } returns FixtureTypes.node
         stubConnectionSelections(requestedSelections)
 
-        val reference = NodeReferencePlanner(
-            typeReflection = GeneratedTypeReflection(),
-        ).plan(requestedSelections, ownedSelections).single()
+        val reference =
+            NodeReferencePlanner(
+                typeReflection = GeneratedTypeReflection(),
+            ).plan(requestedSelections, ownedSelections).single()
 
         assertContains(reference.upstreamSelection, "first:2")
         assertContains(
@@ -427,23 +484,26 @@ class SubtreeClientTest {
         every {
             connectionSelections.selectionSetFor(FixtureConnection.Fields.pageInfo)
         } returns pageInfoSelections
-        every { connectionSelections.selectedFieldCoordinates() } returns setOf(
-            FieldCoordinate("FixtureConnection", "edges"),
-            FieldCoordinate("FixtureConnection", "pageInfo"),
-        )
-        every { edgeSelections.selectedFieldCoordinates() } returns setOf(
-            FieldCoordinate("FixtureEdge", "cursor"),
-            FieldCoordinate("FixtureEdge", "node"),
-            FieldCoordinate("FixtureEdge", "owner"),
-            FieldCoordinate("FixtureEdge", "weight"),
-        )
-        every { pageInfoSelections.selectedFieldCoordinates() } returns setOf(
-            FieldCoordinate("FixturePageInfo", "hasNextPage"),
-            FieldCoordinate("FixturePageInfo", "hasPreviousPage"),
-            FieldCoordinate("FixturePageInfo", "startCursor"),
-            FieldCoordinate("FixturePageInfo", "endCursor"),
-            FieldCoordinate("FixturePageInfo", "totalCount"),
-        )
+        every { connectionSelections.selectedFieldCoordinates() } returns
+            setOf(
+                FieldCoordinate("FixtureConnection", "edges"),
+                FieldCoordinate("FixtureConnection", "pageInfo"),
+            )
+        every { edgeSelections.selectedFieldCoordinates() } returns
+            setOf(
+                FieldCoordinate("FixtureEdge", "cursor"),
+                FieldCoordinate("FixtureEdge", "node"),
+                FieldCoordinate("FixtureEdge", "owner"),
+                FieldCoordinate("FixtureEdge", "weight"),
+            )
+        every { pageInfoSelections.selectedFieldCoordinates() } returns
+            setOf(
+                FieldCoordinate("FixturePageInfo", "hasNextPage"),
+                FieldCoordinate("FixturePageInfo", "hasPreviousPage"),
+                FieldCoordinate("FixturePageInfo", "startCursor"),
+                FieldCoordinate("FixturePageInfo", "endCursor"),
+                FieldCoordinate("FixturePageInfo", "totalCount"),
+            )
     }
 }
 
@@ -508,8 +568,11 @@ class FixtureAssociation : CompositeOutput {
         val label: Field<FixtureAssociation> = FixtureField("label", FixtureTypes.association)
     }
 }
+
 class FixtureCursor : GRT
+
 class FixtureBoolean : GRT
+
 class FixtureInt : GRT
 
 enum class FixtureStatus : viaduct.api.types.Enum {

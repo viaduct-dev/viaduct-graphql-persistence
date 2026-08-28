@@ -2,7 +2,6 @@ package dev.viaduct.persistence.pggraphql.translation
 
 import graphql.language.AstPrinter
 import graphql.language.FragmentDefinition
-import graphql.language.SelectionSet
 import graphql.language.TypeName
 import graphql.parser.Parser
 
@@ -19,24 +18,26 @@ internal class SelectionDocumentTranslator(
     ): String {
         val parsed = Parser().parseDocument(document)
         validator.validateInput(parsed, schema, allowInternalResponseAlias)
-        val definitions = parsed.definitions.map { definition ->
-            if (definition !is FragmentDefinition) return@map definition
-            val sourceType = requireNotNull(definition.typeCondition.name)
-            val selections = selectionTransformer.transform(
-                definition.selectionSet,
-                sourceType,
-                schema,
-                rewriteCollectionTypes,
-            )
-            definition.transform { builder ->
-                builder.selectionSet(selections)
-                if (rewriteCollectionTypes) {
-                    schema.collectionNodeType(sourceType)?.let { elementType ->
-                        builder.typeCondition(TypeName("${elementType}Connection"))
+        val definitions =
+            parsed.definitions.map { definition ->
+                if (definition !is FragmentDefinition) return@map definition
+                val sourceType = requireNotNull(definition.typeCondition.name)
+                val selections =
+                    selectionTransformer.transform(
+                        definition.selectionSet,
+                        sourceType,
+                        schema,
+                        rewriteCollectionTypes,
+                    )
+                definition.transform { builder ->
+                    builder.selectionSet(selections)
+                    if (rewriteCollectionTypes) {
+                        schema.collectionNodeType(sourceType)?.let { elementType ->
+                            builder.typeCondition(TypeName("${elementType}Connection"))
+                        }
                     }
                 }
             }
-        }
         val translated = parsed.transform { it.definitions(definitions) }
         validator.validateTranslation(parsed, translated, schema)
         return AstPrinter.printAstCompact(translated)

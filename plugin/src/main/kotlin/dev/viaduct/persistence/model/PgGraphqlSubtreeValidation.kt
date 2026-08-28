@@ -3,9 +3,10 @@ package dev.viaduct.persistence.model
 import viaduct.graphql.schema.ViaductSchema
 
 fun validatePgGraphqlSubtrees(schema: ViaductSchema) {
-    val objectTypes = schema.types.values
-        .filterIsInstance<ViaductSchema.Object>()
-        .associateBy { it.name }
+    val objectTypes =
+        schema.types.values
+            .filterIsInstance<ViaductSchema.Object>()
+            .associateBy { it.name }
 
     for (root in objectTypes.values.filter { it.hasAppliedDirective("subtree") }) {
         validatePgGraphqlSubtree(
@@ -25,17 +26,18 @@ private fun validatePgGraphqlSubtree(
 ) {
     if (!visited.add(type.name)) return
 
-    for (field in type.fields) {
+    type.fields.forEach { field ->
         if (field.hasAppliedDirective("resolver") && !isResolverBackedConnection(field)) {
             val fieldPath = (path + field.name).joinToString(".")
             error(
                 "@subtree type '${path.first()}' transitively reaches '$fieldPath', which is " +
-                    "annotated with @resolver. @subtree fields must be resolvable by pg_graphql."
+                    "annotated with @resolver. @subtree fields must be resolvable by pg_graphql.",
             )
         }
-        val target = field.type.baseTypeDef as? ViaductSchema.Object ?: continue
-        val targetType = objectTypes[target.name] ?: continue
-        validatePgGraphqlSubtree(targetType, objectTypes, path + field.name, visited)
+        val target = field.type.baseTypeDef as? ViaductSchema.Object
+        objectTypes[target?.name]?.let {
+            validatePgGraphqlSubtree(it, objectTypes, path + field.name, visited)
+        }
     }
 }
 
@@ -44,11 +46,12 @@ private fun validatePgGraphqlSubtree(
  * pagination arguments to the corresponding pg_graphql collection. The connection wrapper
  * remains structural and does not introduce another persisted entity or relationship.
  */
-private fun isResolverBackedConnection(field: ViaductSchema.Field): Boolean {
-    val connection = field.type.baseTypeDef as? ViaductSchema.Object ?: return false
-    val edge = connection.fields.singleOrNull { it.name == "edges" }
+private fun isResolverBackedConnection(field: ViaductSchema.Field): Boolean =
+    (field.type.baseTypeDef as? ViaductSchema.Object)
+        ?.fields
+        ?.singleOrNull { it.name == "edges" }
         ?.type
-        ?.baseTypeDef as? ViaductSchema.Object
-        ?: return false
-    return edge.fields.singleOrNull { it.name == "node" } != null
-}
+        ?.baseTypeDef
+        ?.let { it as? ViaductSchema.Object }
+        ?.fields
+        ?.singleOrNull { it.name == "node" } != null

@@ -14,16 +14,18 @@ internal class EffectiveHibernateEntityProjector(
             schemaName = table.schema ?: "public",
             tableName = table.name,
             generatedGlobalId = entity.generatedGlobalId,
-            internalIdColumnName = if (entity.generatedGlobalId) {
-                binding.getProperty("internalId").singleColumnName()
-            } else {
-                null
-            },
-            globalIdColumnName = if (entity.generatedGlobalId) {
-                binding.getProperty("id").singleColumnName()
-            } else {
-                null
-            },
+            internalIdColumnName =
+                if (entity.generatedGlobalId) {
+                    binding.getProperty("internalId").singleColumnName()
+                } else {
+                    null
+                },
+            globalIdColumnName =
+                if (entity.generatedGlobalId) {
+                    binding.getProperty("id").singleColumnName()
+                } else {
+                    null
+                },
         )
     }
 }

@@ -1,8 +1,9 @@
 package dev.viaduct.persistence.gradle
 
-import dev.viaduct.persistence.hibernate.*
-import dev.viaduct.persistence.model.*
-
+import dev.viaduct.persistence.hibernate.HibernateSchemaModelWriter
+import dev.viaduct.persistence.model.PersistenceModelBuilder
+import dev.viaduct.persistence.model.discoverPersistentTypeNames
+import dev.viaduct.persistence.model.validatePgGraphqlSubtrees
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -42,18 +43,21 @@ abstract class GenerateHibernateSchemaModelTask : DefaultTask() {
     init {
         includedTypeNames.convention(emptyList())
         associationSchemaName.convention(
-            HibernateSchemaModelWriter.DEFAULT_ASSOCIATION_SCHEMA
+            HibernateSchemaModelWriter.DEFAULT_ASSOCIATION_SCHEMA,
         )
         unidirectionalTargetForeignKeyFields.convention(emptyList())
     }
 
     @TaskAction
     fun generate() {
-        val schemaFiles = centralSchemaDirectory.get().asFile
-            .walkTopDown()
-            .filter { it.isFile && it.extension == "graphqls" }
-            .sortedBy { it.relativeTo(centralSchemaDirectory.get().asFile).path }
-            .toList()
+        val schemaFiles =
+            centralSchemaDirectory
+                .get()
+                .asFile
+                .walkTopDown()
+                .filter { it.isFile && it.extension == "graphqls" }
+                .sortedBy { it.relativeTo(centralSchemaDirectory.get().asFile).path }
+                .toList()
         require(schemaFiles.isNotEmpty()) {
             "No assembled Viaduct schema files found in ${centralSchemaDirectory.get().asFile}"
         }
@@ -61,15 +65,17 @@ abstract class GenerateHibernateSchemaModelTask : DefaultTask() {
         val schema = ViaductSchemaFactory.fromTypeDefinitionRegistry(schemaFiles)
         validatePgGraphqlSubtrees(schema)
         val requestedTypeNames = includedTypeNames.get().toSet()
-        val persistentTypeNames = requestedTypeNames.ifEmpty {
-            discoverPersistentTypeNames(schemaFiles)
-        }
-        val model = PersistenceModelBuilder().build(
-            schema = schema,
-            includedTypeNames = persistentTypeNames,
-            unidirectionalTargetForeignKeyFields =
-                unidirectionalTargetForeignKeyFields.get().toSet(),
-        )
+        val persistentTypeNames =
+            requestedTypeNames.ifEmpty {
+                discoverPersistentTypeNames(schemaFiles)
+            }
+        val model =
+            PersistenceModelBuilder().build(
+                schema = schema,
+                includedTypeNames = persistentTypeNames,
+                unidirectionalTargetForeignKeyFields =
+                    unidirectionalTargetForeignKeyFields.get().toSet(),
+            )
         HibernateSchemaModelWriter().write(
             model = model,
             outputDirectory = outputDirectory.get().asFile,
@@ -78,7 +84,7 @@ abstract class GenerateHibernateSchemaModelTask : DefaultTask() {
             associationSchemaName = associationSchemaName.get(),
         )
         logger.lifecycle(
-            "Generated Hibernate schema model for ${model.entities.joinToString { it.graphqlName }}"
+            "Generated Hibernate schema model for ${model.entities.joinToString { it.graphqlName }}",
         )
     }
 }

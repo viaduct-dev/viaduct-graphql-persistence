@@ -26,10 +26,11 @@ internal class NodeResponseField(
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
     ): NodeObject? {
-        val internalId = node["uuidId"]
-            ?.takeUnless { it is JsonNull }
-            ?.jsonPrimitive
-            ?.content
+        val internalId =
+            node["uuidId"]
+                ?.takeUnless { it is JsonNull }
+                ?.jsonPrimitive
+                ?.content
         return internalId?.let { nodeResolver.resolve(context, field.type, it) }
     }
 
@@ -39,9 +40,10 @@ internal class NodeResponseField(
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
     ) {
-        val node = response[field.name]
-            ?.takeUnless { it is JsonNull }
-            ?.jsonObject
+        val node =
+            response[field.name]
+                ?.takeUnless { it is JsonNull }
+                ?.jsonObject
         builder.set(field, node?.let { resolve(it, context, nodeResolver) })
     }
 }
@@ -57,10 +59,13 @@ internal class CursorResponseField(
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
     ) {
-        builder.set(field, response[field.name]
-            ?.takeUnless { it is JsonNull }
-            ?.jsonPrimitive
-            ?.content)
+        builder.set(
+            field,
+            response[field.name]
+                ?.takeUnless { it is JsonNull }
+                ?.jsonPrimitive
+                ?.content,
+        )
     }
 }
 
@@ -92,12 +97,13 @@ internal class NodeEdgeResponseField(
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
     ) {
-        val internalId = response[field.name]
-            ?.takeUnless { it is JsonNull }
-            ?.jsonObject
-            ?.get("uuidId")
-            ?.jsonPrimitive
-            ?.content
+        val internalId =
+            response[field.name]
+                ?.takeUnless { it is JsonNull }
+                ?.jsonObject
+                ?.get("uuidId")
+                ?.jsonPrimitive
+                ?.content
         builder.set(field, internalId?.let { nodeResolver.resolve(context, field.type, it) })
     }
 }
@@ -122,10 +128,11 @@ internal class CompositeJsonEdgeResponseField(
         }
         @Suppress("UNCHECKED_CAST")
         val typedSelections = selections as SelectionSet<CompositeOutput>
-        val decoded = when (value) {
-            is JsonArray -> value.map { it.jsonObject.toGRT(context, typedSelections) }
-            else -> value.jsonObject.toGRT(context, typedSelections)
-        }
+        val decoded =
+            when (value) {
+                is JsonArray -> value.map { it.jsonObject.toGRT(context, typedSelections) }
+                else -> value.jsonObject.toGRT(context, typedSelections)
+            }
         builder.set(field, decoded)
     }
 }
@@ -133,26 +140,29 @@ internal class CompositeJsonEdgeResponseField(
 internal fun customEdgeResponseField(
     field: Field<*>,
     selections: SelectionSet<*>?,
-): EdgeResponseField = when {
-    field is CompositeField<*, *> && NodeObject::class.java.isAssignableFrom(field.type.kcls.java) ->
-        NodeEdgeResponseField(field)
-    field is CompositeField<*, *> &&
-        CompositeOutput::class.java.isAssignableFrom(field.type.kcls.java) ->
-        CompositeJsonEdgeResponseField(
-            field,
-            checkNotNull(selections) {
-                "Custom connection edge field '${field.name}' requires a selection set"
-            },
-        )
-    else -> JsonEdgeResponseField(field)
-}
+): EdgeResponseField =
+    when {
+        field is CompositeField<*, *> && NodeObject::class.java.isAssignableFrom(field.type.kcls.java) ->
+            NodeEdgeResponseField(field)
+        field is CompositeField<*, *> &&
+            CompositeOutput::class.java.isAssignableFrom(field.type.kcls.java) ->
+            CompositeJsonEdgeResponseField(
+                field,
+                checkNotNull(selections) {
+                    "Custom connection edge field '${field.name}' requires a selection set"
+                },
+            )
+        else -> JsonEdgeResponseField(field)
+    }
 
 private fun SelectionSet<*>.selectionText(): String {
-    val definition = graphql.parser.Parser()
-        .parseDocument(toFragment().document)
-        .definitions
-        .filterIsInstance<graphql.language.FragmentDefinition>()
-        .single()
+    val definition =
+        graphql.parser
+            .Parser()
+            .parseDocument(toFragment().document)
+            .definitions
+            .filterIsInstance<graphql.language.FragmentDefinition>()
+            .single()
     return definition.selectionSet.selections.joinToString(" ") {
         graphql.language.AstPrinter.printAstCompact(it)
     }

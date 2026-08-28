@@ -11,48 +11,31 @@ import graphql.parser.Parser
 import java.io.File
 
 fun discoverPersistentTypeNames(schemaFiles: List<File>): Set<String> {
-    val documents = schemaFiles
-        .sortedBy(File::getPath)
-        .map { schemaFile ->
-            SchemaDocument(
-                file = schemaFile,
-                notable = schemaFile.name.endsWith(".notable.graphqls"),
-                definitions = Parser.parse(schemaFile.readText()).definitions,
-            )
-        }
+    val documents =
+        schemaFiles
+            .sortedBy(File::getPath)
+            .map { schemaFile ->
+                SchemaDocument(
+                    file = schemaFile,
+                    notable = schemaFile.name.endsWith(".notable.graphqls"),
+                    definitions = Parser.parse(schemaFile.readText()).definitions,
+                )
+            }
 
-    for (document in documents.filter(SchemaDocument::notable)) {
-        val extension = document.definitions.firstOrNull { it is SDLExtensionDefinition }
-        if (extension != null) {
-            throw IllegalArgumentException(
-                "${extension.location(document.file)}: extensions are not allowed in " +
-                    "*.notable.graphqls files"
-            )
-        }
-    }
+    validateNotableFiles(documents)
 
-    val notableDefinitions = documents
-        .filter(SchemaDocument::notable)
-        .flatMap { document ->
-            document.definitions
-                .filterNot { it is SDLExtensionDefinition }
-                .mapNotNull { definition ->
-                    (definition as? NamedNode<*>)?.name?.let { it to document.file }
-                }
-        }
-        .toMap()
+    val notableDefinitions =
+        documents
+            .filter(SchemaDocument::notable)
+            .flatMap { document ->
+                document.definitions
+                    .filterNot { it is SDLExtensionDefinition }
+                    .mapNotNull { definition ->
+                        (definition as? NamedNode<*>)?.name?.let { it to document.file }
+                    }
+            }.toMap()
 
-    for (document in documents.filterNot(SchemaDocument::notable)) {
-        for (definition in document.definitions) {
-            val name = (definition as? NamedNode<*>)?.name ?: continue
-            val notableFile = notableDefinitions[name] ?: continue
-            val action = if (definition is SDLExtensionDefinition) "extended" else "defined"
-            throw IllegalArgumentException(
-                "${definition.location(document.file)}: type '$name' is $action in an ordinary " +
-                    "schema file but is defined in notable file ${notableFile.path}"
-            )
-        }
-    }
+    validateOrdinaryDefinitions(documents, notableDefinitions)
 
     return documents
         .filterNot(SchemaDocument::notable)
@@ -60,6 +43,40 @@ fun discoverPersistentTypeNames(schemaFiles: List<File>): Set<String> {
         .filterIsInstance<ObjectTypeDefinition>()
         .filter(::hasIdField)
         .mapTo(linkedSetOf()) { it.name }
+}
+
+private fun validateNotableFiles(documents: List<SchemaDocument>) {
+    documents
+        .filter(SchemaDocument::notable)
+        .forEach { document ->
+            document.definitions
+                .firstOrNull { it is SDLExtensionDefinition }
+                ?.let { extension ->
+                    throw IllegalArgumentException(
+                        "${extension.location(document.file)}: extensions are not allowed in " +
+                            "*.notable.graphqls files",
+                    )
+                }
+        }
+}
+
+private fun validateOrdinaryDefinitions(
+    documents: List<SchemaDocument>,
+    notableDefinitions: Map<String, File>,
+) {
+    documents
+        .filterNot(SchemaDocument::notable)
+        .flatMap { document ->
+            document.definitions.map { definition -> document to definition }
+        }.forEach { (document, definition) ->
+            val typeName = (definition as? NamedNode<*>)?.name ?: return@forEach
+            val notableFile = notableDefinitions[typeName] ?: return@forEach
+            val action = if (definition is SDLExtensionDefinition) "extended" else "defined"
+            throw IllegalArgumentException(
+                "${definition.location(document.file)}: type '$typeName' is $action " +
+                    "in an ordinary schema file but is defined in notable file ${notableFile.path}",
+            )
+        }
 }
 
 private fun hasIdField(type: ObjectTypeDefinition): Boolean =

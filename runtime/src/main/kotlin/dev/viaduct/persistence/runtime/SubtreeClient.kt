@@ -37,26 +37,29 @@ class SubtreeClient(
         SubtreeRequestHeaders { emptyMap() },
 ) {
     private val typeReflection = GeneratedTypeReflection()
-    private val transport = PgGraphqlTransport(
-        httpClient = httpClient,
-        endpoint = endpoint,
-        requestHeaders = requestHeaders,
-    )
+    private val transport =
+        PgGraphqlTransport(
+            httpClient = httpClient,
+            endpoint = endpoint,
+            requestHeaders = requestHeaders,
+        )
     private val queryPlanner = SubtreeQueryPlanner(typeReflection)
     private val nodeReferencePlanner = NodeReferencePlanner(typeReflection)
     private val nodeReferenceHydrator = NodeReferenceHydrator(typeReflection)
-    private val subtreeFetcher = SubtreeFetcher(
-        transport = transport,
-        queryPlanner = queryPlanner,
-        nodeReferencePlanner = nodeReferencePlanner,
-        nodeReferenceHydrator = nodeReferenceHydrator,
-    )
-    private val subtreeBatchFetcher = SubtreeBatchFetcher(
-        transport = transport,
-        queryPlanner = queryPlanner,
-        nodeReferencePlanner = nodeReferencePlanner,
-        nodeReferenceHydrator = nodeReferenceHydrator,
-    )
+    private val subtreeFetcher =
+        SubtreeFetcher(
+            transport = transport,
+            queryPlanner = queryPlanner,
+            nodeReferencePlanner = nodeReferencePlanner,
+            nodeReferenceHydrator = nodeReferenceHydrator,
+        )
+    private val subtreeBatchFetcher =
+        SubtreeBatchFetcher(
+            transport = transport,
+            queryPlanner = queryPlanner,
+            nodeReferencePlanner = nodeReferencePlanner,
+            nodeReferenceHydrator = nodeReferenceHydrator,
+        )
     private val connectionFetcher = ConnectionFetcher(transport)
 
     suspend fun <T : CompositeOutput> fetch(
@@ -70,12 +73,13 @@ class SubtreeClient(
         subtree: Subtree,
         ownedSelections: SelectionSet<T>,
         requestedSelections: SelectionSet<T>,
-    ): T where T : CompositeOutput, T : NodeObject = subtreeFetcher.fetchNode(
-        ctx,
-        subtree,
-        ownedSelections,
-        requestedSelections,
-    )
+    ): T where T : CompositeOutput, T : NodeObject =
+        subtreeFetcher.fetchNode(
+            ctx,
+            subtree,
+            ownedSelections,
+            requestedSelections,
+        )
 
     suspend fun <T> fetchByUuid(
         ctx: ResolverExecutionContext<out Query>,
@@ -83,20 +87,22 @@ class SubtreeClient(
         id: String,
         ownedSelections: SelectionSet<T>,
         requestedSelections: SelectionSet<T>,
-    ): T where T : CompositeOutput, T : NodeObject = fetchNode(
-        ctx,
-        Subtree(
-            root = SubtreeRoot(
-                field = collectionField,
-                arguments = "(filter: {uuidId: {eq: \$id}})",
-                variableDefinitions = "\$id: UUID!",
-                variables = buildJsonObject { put("id", id) },
-                singleViaFilteredCollection = true,
+    ): T where T : CompositeOutput, T : NodeObject =
+        fetchNode(
+            ctx,
+            Subtree(
+                root =
+                    SubtreeRoot(
+                        field = collectionField,
+                        arguments = "(filter: {uuidId: {eq: \$id}})",
+                        variableDefinitions = "\$id: UUID!",
+                        variables = buildJsonObject { put("id", id) },
+                        singleViaFilteredCollection = true,
+                    ),
             ),
-        ),
-        ownedSelections,
-        requestedSelections,
-    )
+            ownedSelections,
+            requestedSelections,
+        )
 
     /**
      * Fetches and hydrates several nodes with one pg_graphql request. The returned map uses the
@@ -108,13 +114,14 @@ class SubtreeClient(
         ids: List<String>,
         ownedSelections: SelectionSet<T>,
         requestedSelections: SelectionSet<T> = ownedSelections,
-    ): Map<String, T> where T : CompositeOutput, T : NodeObject = subtreeBatchFetcher.fetchByUuids(
-        ctx,
-        collectionField,
-        ids,
-        ownedSelections,
-        requestedSelections,
-    )
+    ): Map<String, T> where T : CompositeOutput, T : NodeObject =
+        subtreeBatchFetcher.fetchByUuids(
+            ctx,
+            collectionField,
+            ids,
+            ownedSelections,
+            requestedSelections,
+        )
 
     suspend fun fetchUuidIds(
         ctx: ExecutionContext,
@@ -122,13 +129,14 @@ class SubtreeClient(
         arguments: String = "",
         variableDefinitions: String = "",
         variables: JsonObject = buildJsonObject {},
-    ): List<String> = connectionFetcher.fetchUuidIds(
-        ctx,
-        collectionField,
-        arguments,
-        variableDefinitions,
-        variables,
-    )
+    ): List<String> =
+        connectionFetcher.fetchUuidIds(
+            ctx,
+            collectionField,
+            arguments,
+            variableDefinitions,
+            variables,
+        )
 
     /**
      * Fetches a pg_graphql connection while preserving the provider's cursors and page info.
@@ -139,6 +147,13 @@ class SubtreeClient(
      */
     suspend fun fetchUuidConnection(
         ctx: ExecutionContext,
+        request: ConnectionPageRequest,
+    ): UuidConnectionPage = connectionFetcher.fetchUuidConnection(ctx, request)
+
+    /** Compatibility overload for callers that pass pagination arguments individually. */
+    @Suppress("LongParameterList")
+    suspend fun fetchUuidConnection(
+        ctx: ExecutionContext,
         collectionField: String,
         first: Int? = null,
         after: String? = null,
@@ -147,25 +162,34 @@ class SubtreeClient(
         additionalArguments: String = "",
         additionalVariableDefinitions: String = "",
         additionalVariables: JsonObject = buildJsonObject {},
-    ): UuidConnectionPage = connectionFetcher.fetchUuidConnection(
-        ctx,
-        ConnectionPageRequest(
-            collectionField,
-            first,
-            after,
-            last,
-            before,
-            additionalArguments,
-            additionalVariableDefinitions,
-            additionalVariables,
-        ),
-    )
+    ): UuidConnectionPage =
+        fetchUuidConnection(
+            ctx = ctx,
+            request =
+                ConnectionPageRequest(
+                    collectionField,
+                    first,
+                    after,
+                    last,
+                    before,
+                    additionalArguments,
+                    additionalVariableDefinitions,
+                    additionalVariables,
+                ),
+        )
 
     /**
      * Loads one paginated child connection for every requested parent in a single pg_graphql
      * query. pg_graphql evaluates the nested connection per parent, so `first`/`after` retain
      * their per-parent meaning without issuing one request per parent.
      */
+    suspend fun fetchNestedUuidConnections(
+        ctx: ExecutionContext,
+        request: NestedConnectionPageRequest,
+    ): Map<String, UuidConnectionPage> = connectionFetcher.fetchNestedUuidConnections(ctx, request)
+
+    /** Compatibility overload for callers that pass nested pagination arguments individually. */
+    @Suppress("LongParameterList")
     suspend fun fetchNestedUuidConnections(
         ctx: ExecutionContext,
         parentCollectionField: String,
@@ -175,15 +199,21 @@ class SubtreeClient(
         after: String? = null,
         last: Int? = null,
         before: String? = null,
-    ): Map<String, UuidConnectionPage> = connectionFetcher.fetchNestedUuidConnections(
-        ctx,
-        parentCollectionField,
-        parentIds,
-        childCollectionField,
-        first,
-        after,
-        last,
-        before,
-    )
-
+    ): Map<String, UuidConnectionPage> =
+        fetchNestedUuidConnections(
+            ctx = ctx,
+            request =
+                NestedConnectionPageRequest(
+                    parentCollectionField = parentCollectionField,
+                    parentIds = parentIds,
+                    child =
+                        ConnectionPageRequest(
+                            collectionField = childCollectionField,
+                            first = first,
+                            after = after,
+                            last = last,
+                            before = before,
+                        ),
+                ),
+        )
 }

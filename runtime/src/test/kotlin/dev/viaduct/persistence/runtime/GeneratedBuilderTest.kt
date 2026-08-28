@@ -2,10 +2,10 @@ package dev.viaduct.persistence.runtime
 
 import graphql.schema.GraphQLObjectType
 import io.mockk.mockk
-import kotlin.test.Test
-import kotlin.test.assertEquals
 import viaduct.api.internal.InternalContext
 import viaduct.engine.api.EngineObjectData
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class GeneratedBuilderTest {
     @Test
@@ -14,12 +14,13 @@ class GeneratedBuilderTest {
         val graphQlType = GraphQLObjectType.newObject().name("FixtureConnection").build()
         val data = mockk<EngineObjectData.Sync>()
 
-        val builder = GeneratedBuilder.fromConnection(
-            builderClass = SyncConnectionBuilder::class.java,
-            context = context,
-            graphQlType = graphQlType,
-            data = data,
-        )
+        val builder =
+            GeneratedBuilder.fromConnection(
+                builderClass = SyncConnectionBuilder::class.java,
+                context = context,
+                graphQlType = graphQlType,
+                data = data,
+            )
 
         assertEquals("built", builder.build())
     }
@@ -30,5 +31,7 @@ private class SyncConnectionBuilder(
     @Suppress("UNUSED_PARAMETER") graphQlType: GraphQLObjectType,
     @Suppress("UNUSED_PARAMETER") data: EngineObjectData.Sync,
 ) {
-    fun build(): String = "built"
+    private val result = "built"
+
+    fun build(): String = result
 }

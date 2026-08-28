@@ -1,12 +1,11 @@
 package dev.viaduct.persistence.hibernate
 
-import dev.viaduct.persistence.model.*
-
 import org.hibernate.boot.Metadata
 
 fun hibernateMetadataFingerprint(metadata: Metadata): String =
     buildString {
-        metadata.collectTableMappings()
+        metadata
+            .collectTableMappings()
             .filter { it.isPhysicalTable }
             .sortedBy { it.fingerprintName() }
             .forEach { table ->
@@ -23,10 +22,11 @@ fun hibernateMetadataFingerprint(metadata: Metadata): String =
                             column.isUnique,
                             column.defaultValue.orEmpty(),
                             column.generatedAs.orEmpty(),
-                        ).joinToString("\t")
+                        ).joinToString("\t"),
                     )
                 }
-                table.primaryKey?.columns
+                table.primaryKey
+                    ?.columns
                     ?.map { it.name }
                     ?.sorted()
                     ?.let { appendLine("primary-key\t$tableName\t${it.joinToString(",")}") }
@@ -35,9 +35,8 @@ fun hibernateMetadataFingerprint(metadata: Metadata): String =
                         compareBy(
                             { it.columns.joinToString(",") { column -> column.name } },
                             { it.referencedTable.name },
-                        )
-                    )
-                    .forEach { foreignKey ->
+                        ),
+                    ).forEach { foreignKey ->
                         appendLine(
                             listOf(
                                 "foreign-key",
@@ -45,11 +44,12 @@ fun hibernateMetadataFingerprint(metadata: Metadata): String =
                                 foreignKey.columns.joinToString(",") { it.name },
                                 foreignKey.referencedTable.fingerprintName(),
                                 foreignKey.referencedColumns.joinToString(",") { it.name },
-                            ).joinToString("\t")
+                            ).joinToString("\t"),
                         )
                     }
             }
     }
 
 private fun org.hibernate.mapping.Table.fingerprintName(): String =
-    listOfNotNull(catalog, schema, name).joinToString(".")
+    listOfNotNull(catalog, schema, name)
+        .joinToString(".")

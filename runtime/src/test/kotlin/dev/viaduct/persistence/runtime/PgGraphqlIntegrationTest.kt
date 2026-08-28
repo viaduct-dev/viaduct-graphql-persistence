@@ -7,12 +7,9 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
-import io.ktor.http.contentType
+import io.ktor.http.content.TextContent
+import io.ktor.util.reflect.typeInfo
 import io.mockk.mockk
-import kotlin.test.Test
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -20,6 +17,10 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import viaduct.api.context.ExecutionContext
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Live contract coverage for the connection shape emitted by pg_graphql.
@@ -30,70 +31,96 @@ import viaduct.api.context.ExecutionContext
  */
 class PgGraphqlIntegrationTest {
     @Test
-    fun `fetches a pg_graphql connection with edges cursors and page info`() = runBlocking {
-        val endpoint = System.getenv("PG_GRAPHQL_URL")
-            ?: "http://127.0.0.1:54321/graphql/v1"
-        val apiKey = System.getenv("PG_GRAPHQL_API_KEY")
-            ?: System.getenv("SUPABASE_ANON_KEY")
+    fun `fetches a pg_graphql connection with edges cursors and page info`() =
+        runBlocking {
+            val config = testConfig()
+            val httpClient = HttpClient(CIO)
+            try {
+                assertConnectionContract(httpClient, config)
+            } finally {
+                httpClient.close()
+            }
+        }
+
+    private fun testConfig(): PgGraphqlTestConfig {
+        val apiKey =
+            System.getenv("PG_GRAPHQL_API_KEY")
+                ?: System.getenv("SUPABASE_ANON_KEY")
         assumeTrue(
             !apiKey.isNullOrBlank(),
             "Set PG_GRAPHQL_API_KEY to run the live pg_graphql integration test",
         )
-        val collectionField = System.getenv("PG_GRAPHQL_COLLECTION_FIELD") ?: "groupCollection"
-        val httpClient = HttpClient(CIO)
-        try {
-            val subtreeClient = SubtreeClient(
-                httpClient = httpClient,
-                endpoint = endpoint,
-                requestHeaders = SubtreeRequestHeaders {
-                    mapOf("apikey" to apiKey!!)
-                },
-            )
+        return PgGraphqlTestConfig(
+            endpoint = System.getenv("PG_GRAPHQL_URL") ?: "http://127.0.0.1:54321/graphql/v1",
+            apiKey = requireNotNull(apiKey),
+            collectionField = System.getenv("PG_GRAPHQL_COLLECTION_FIELD") ?: "groupCollection",
+        )
+    }
 
-            val ids = subtreeClient.fetchUuidIds(
+    private suspend fun assertConnectionContract(
+        httpClient: HttpClient,
+        config: PgGraphqlTestConfig,
+    ) {
+        val subtreeClient =
+            SubtreeClient(
+                httpClient = httpClient,
+                endpoint = config.endpoint,
+                requestHeaders = SubtreeRequestHeaders { mapOf("apikey" to config.apiKey) },
+            )
+        val ids =
+            subtreeClient.fetchUuidIds(
                 ctx = mockk<ExecutionContext>(),
-                collectionField = collectionField,
+                collectionField = config.collectionField,
                 arguments = "(first: 1)",
             )
-            assertTrue(ids.size <= 1)
+        assertTrue(ids.size <= 1)
 
-            val pageQuery = """
-                query PgGraphqlConnectionContract {
-                  $collectionField(first: 1) {
-                    edges {
-                      cursor
-                      node { uuidId }
-                    }
-                    pageInfo {
-                      hasNextPage
-                      hasPreviousPage
-                      startCursor
-                      endCursor
-                    }
-                  }
-                }
-            """.trimIndent()
-            val response = httpClient.post(endpoint) {
-                header("apikey", apiKey)
-                contentType(ContentType.Application.Json)
+        val response =
+            httpClient.post(config.endpoint) {
+                header("apikey", config.apiKey)
                 setBody(
-                    buildJsonObject {
-                        put("query", pageQuery)
-                        put("variables", buildJsonObject {})
-                    }.toString(),
+                    TextContent(
+                        text =
+                            buildJsonObject {
+                                put("query", connectionQuery(config.collectionField))
+                                put("variables", buildJsonObject {})
+                            }.toString(),
+                        contentType = ContentType.Application.Json,
+                    ),
+                    typeInfo<TextContent>(),
                 )
             }
-            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            assertNull(body["errors"], body.toString())
-            val connection = body["data"]?.jsonObject
-                ?.get(collectionField)
-                ?.jsonObject
-            assertNotNull(connection, body.toString())
-            assertNotNull(connection["edges"], body.toString())
-            assertNotNull(connection["pageInfo"]?.jsonObject, body.toString())
-            Unit
-        } finally {
-            httpClient.close()
-        }
+        val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        assertNull(body["errors"], body.toString())
+        val connection =
+            requireNotNull(body["data"]?.jsonObject?.get(config.collectionField)?.jsonObject) {
+                body.toString()
+            }
+        assertNotNull(connection["edges"], body.toString())
+        assertNotNull(connection["pageInfo"]?.jsonObject, body.toString())
     }
+
+    private fun connectionQuery(collectionField: String): String =
+        """
+        query PgGraphqlConnectionContract {
+          $collectionField(first: 1) {
+            edges {
+              cursor
+              node { uuidId }
+            }
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+              startCursor
+              endCursor
+            }
+          }
+        }
+        """.trimIndent()
+
+    private data class PgGraphqlTestConfig(
+        val endpoint: String,
+        val apiKey: String,
+        val collectionField: String,
+    )
 }

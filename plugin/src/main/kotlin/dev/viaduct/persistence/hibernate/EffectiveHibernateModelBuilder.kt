@@ -9,9 +9,10 @@ object EffectiveHibernateModelBuilder {
         metadata: Metadata,
         semanticModel: PersistenceModel,
         packageName: String,
-    ): EffectiveHibernateModel = EffectiveHibernateModelAssembler(
-        HibernateModelContext(metadata, semanticModel, packageName),
-    ).build()
+    ): EffectiveHibernateModel =
+        EffectiveHibernateModelAssembler(
+            HibernateModelContext(metadata, semanticModel, packageName),
+        ).build()
 }
 
 private class EffectiveHibernateModelAssembler(
@@ -25,27 +26,31 @@ private class EffectiveHibernateModelAssembler(
         HibernateSemanticModelValidator(context).validate()
         val relationshipProjection = relationshipProjector.project()
         return EffectiveHibernateModel(
-            entities = context.semanticModel.entities
-                .map(entityProjector::project)
-                .sortedBy(EffectiveHibernateEntity::graphqlName),
-            relationships = relationshipProjection.relationships.sortedWith(
-                compareBy(
-                    EffectiveHibernateRelationship::ownerTypeName,
-                    EffectiveHibernateRelationship::fieldName,
-                )
-            ),
-            computedRelationships = relationshipProjection.computedRelationships.sortedWith(
-                compareBy(
-                    EffectiveHibernateComputedRelationship::ownerTypeName,
-                    EffectiveHibernateComputedRelationship::fieldName,
-                )
-            ),
-            arrays = arrayProjector.project().sortedWith(
-                compareBy(
-                    EffectiveHibernateArray::ownerTypeName,
-                    EffectiveHibernateArray::fieldName,
-                )
-            ),
+            entities =
+                context.semanticModel.entities
+                    .map(entityProjector::project)
+                    .sortedBy(EffectiveHibernateEntity::graphqlName),
+            relationships =
+                relationshipProjection.relationships.sortedWith(
+                    compareBy(
+                        EffectiveHibernateRelationship::ownerTypeName,
+                        EffectiveHibernateRelationship::fieldName,
+                    ),
+                ),
+            computedRelationships =
+                relationshipProjection.computedRelationships.sortedWith(
+                    compareBy(
+                        EffectiveHibernateComputedRelationship::ownerTypeName,
+                        EffectiveHibernateComputedRelationship::fieldName,
+                    ),
+                ),
+            arrays =
+                arrayProjector.project().sortedWith(
+                    compareBy(
+                        EffectiveHibernateArray::ownerTypeName,
+                        EffectiveHibernateArray::fieldName,
+                    ),
+                ),
         )
     }
 }

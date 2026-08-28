@@ -12,20 +12,22 @@ class PersistenceModelBuilder {
         unidirectionalTargetForeignKeyFields: Set<String> = emptySet(),
     ): PersistenceModel {
         val includedObjects = resolveIncludedObjects(schema, includedTypeNames)
-        val modelContext = PersistenceModelContext(
-            includedObjects = includedObjects,
-            unidirectionalTargetForeignKeyFields = unidirectionalTargetForeignKeyFields,
-        )
+        val modelContext =
+            PersistenceModelContext(
+                includedObjects = includedObjects,
+                unidirectionalTargetForeignKeyFields = unidirectionalTargetForeignKeyFields,
+            )
         modelValidator.validateTargetForeignKeyFields(modelContext)
-        val entities = includedObjects.values
-            .sortedBy { it.name }
-            .map { type ->
-                entityAttributeFactory.build(
-                    type = type,
-                    generatedGlobalId = generatesGlobalId(type),
-                    modelContext = modelContext,
-                )
-            }
+        val entities =
+            includedObjects.values
+                .sortedBy { it.name }
+                .map { type ->
+                    entityAttributeFactory.build(
+                        type = type,
+                        generatedGlobalId = generatesGlobalId(type),
+                        modelContext = modelContext,
+                    )
+                }
 
         return PersistenceModel(
             entities = entities,
@@ -36,10 +38,11 @@ class PersistenceModelBuilder {
     private fun resolveIncludedObjects(
         schema: ViaductSchema,
         includedTypeNames: Set<String>,
-    ): Map<String, ViaductSchema.Object> = includedTypeNames.associateWith { typeName ->
-        schema.types[typeName] as? ViaductSchema.Object
-            ?: error("Persistence type '$typeName' is not a GraphQL object")
-    }
+    ): Map<String, ViaductSchema.Object> =
+        includedTypeNames.associateWith { typeName ->
+            schema.types[typeName] as? ViaductSchema.Object
+                ?: error("Persistence type '$typeName' is not a GraphQL object")
+        }
 
     private fun generatesGlobalId(type: ViaductSchema.Object): Boolean =
         type.supers.any { it.name == "Node" } && type.hasAppliedDirective("subtree")

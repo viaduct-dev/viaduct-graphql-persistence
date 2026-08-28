@@ -12,13 +12,16 @@ internal class PersistenceXmlWriter {
         persistenceUnitName: String,
     ): Document {
         val document = HibernateXmlDocuments.newDocument()
-        val persistence = document.createElementNS(HibernateXmlDocuments.PERSISTENCE_NS, "persistence")
-            .apply { setAttribute("version", "3.2") }
+        val persistence =
+            document
+                .createElementNS(HibernateXmlDocuments.PERSISTENCE_NS, "persistence")
+                .apply { setAttribute("version", "3.2") }
         document.appendChild(persistence)
-        val unit = persistence.child("persistence-unit").apply {
-            setAttribute("name", persistenceUnitName)
-            setAttribute("transaction-type", "RESOURCE_LOCAL")
-        }
+        val unit =
+            persistence.child("persistence-unit").apply {
+                setAttribute("name", persistenceUnitName)
+                setAttribute("transaction-type", "RESOURCE_LOCAL")
+            }
         unit.child("mapping-file").textContent = "META-INF/orm.xml"
         unit.child("exclude-unlisted-classes").textContent = "true"
         val properties = unit.child("properties")
@@ -33,7 +36,10 @@ internal class PersistenceXmlWriter {
         return document
     }
 
-    private fun org.w3c.dom.Element.property(name: String, value: String) {
+    private fun org.w3c.dom.Element.property(
+        name: String,
+        value: String,
+    ) {
         child("property").apply {
             setAttribute("name", name)
             setAttribute("value", value)

@@ -18,7 +18,10 @@ internal interface SelectionTransformVisitor<C> {
         children: (SelectionSet, C) -> SelectionSet,
     ): Selection<*>
 
-    fun other(selection: Selection<*>, context: C): Selection<*>
+    fun other(
+        selection: Selection<*>,
+        context: C,
+    ): Selection<*>
 }
 
 internal interface SelectionFoldVisitor<C, R> {
@@ -34,7 +37,10 @@ internal interface SelectionFoldVisitor<C, R> {
         children: (SelectionSet, C) -> R,
     ): R
 
-    fun other(selection: Selection<*>, context: C): R
+    fun other(
+        selection: Selection<*>,
+        context: C,
+    ): R
 }
 
 internal class SelectionTreeWalker {
@@ -46,13 +52,14 @@ internal class SelectionTreeWalker {
         val children: (SelectionSet, C) -> SelectionSet = { nested, nestedContext ->
             transform(nested, nestedContext, visitor)
         }
-        val transformed = selectionSet.selections.map { selection ->
-            when (selection) {
-                is Field -> visitor.field(selection, context, children)
-                is InlineFragment -> visitor.inlineFragment(selection, context, children)
-                else -> visitor.other(selection, context)
+        val transformed =
+            selectionSet.selections.map { selection ->
+                when (selection) {
+                    is Field -> visitor.field(selection, context, children)
+                    is InlineFragment -> visitor.inlineFragment(selection, context, children)
+                    else -> visitor.other(selection, context)
+                }
             }
-        }
         return selectionSet.transform { it.selections(transformed) }
     }
 
@@ -67,11 +74,12 @@ internal class SelectionTreeWalker {
             fold(nested, nestedContext, zero, combine, visitor)
         }
         return selectionSet.selections.fold(zero) { result, selection ->
-            val value = when (selection) {
-                is Field -> visitor.field(selection, context, children)
-                is InlineFragment -> visitor.inlineFragment(selection, context, children)
-                else -> visitor.other(selection, context)
-            }
+            val value =
+                when (selection) {
+                    is Field -> visitor.field(selection, context, children)
+                    is InlineFragment -> visitor.inlineFragment(selection, context, children)
+                    else -> visitor.other(selection, context)
+                }
             combine(result, value)
         }
     }

@@ -4,12 +4,13 @@ import dev.viaduct.persistence.hibernate.EffectiveHibernateModel
 
 /** Combines id-column and scalar-array migration statements. */
 internal object PostgresqlMigrationRenderer {
-    fun render(model: EffectiveHibernateModel): String = buildString {
-        model.entities.filter { it.generatedGlobalId }.forEach {
-            appendLine(GlobalIdMigrationRenderer.render(it))
+    fun render(model: EffectiveHibernateModel): String =
+        buildString {
+            model.entities.filter { it.generatedGlobalId }.forEach {
+                appendLine(GlobalIdMigrationRenderer.render(it))
+            }
+            model.arrays.filterNot { it.elementNullable }.forEach {
+                appendLine(ArrayConstraintMigrationRenderer.render(it))
+            }
         }
-        model.arrays.filterNot { it.elementNullable }.forEach {
-            appendLine(ArrayConstraintMigrationRenderer.render(it))
-        }
-    }
 }

@@ -17,6 +17,7 @@ internal fun <T : CompositeOutput> JsonObject.toGRT(
     selections: SelectionSet<T>,
 ): T {
     val jsonString = Json.encodeToString(JsonObject.serializer(), this)
-    return JsonDomain.forSelectionSet(ctx, selections)
+    return JsonDomain
+        .forSelectionSet(ctx, selections)
         .mapperTo(GRTDomain.forSelectionSet(ctx, selections))(jsonString) as T
 }

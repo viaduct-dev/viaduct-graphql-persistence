@@ -7,12 +7,16 @@ import kotlinx.serialization.json.jsonObject
 
 /** Reads the pg_graphql edge envelope used by filtered subtree roots. */
 internal object SubtreeResponseReader {
-    fun firstNode(data: JsonObject, responseKey: String): JsonObject =
+    fun firstNode(
+        data: JsonObject,
+        responseKey: String,
+    ): JsonObject =
         nodes(data).firstOrNull()
             ?: error("Subtree response for '$responseKey' matched no rows")
 
     fun nodes(data: JsonObject): List<JsonObject> =
-        data["edges"]?.jsonArray
+        data["edges"]
+            ?.jsonArray
             ?.mapNotNull { edge ->
                 edge.jsonObject["node"]
                     ?.takeUnless { it is JsonNull }

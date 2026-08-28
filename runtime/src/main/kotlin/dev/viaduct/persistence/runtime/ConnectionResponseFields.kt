@@ -31,8 +31,7 @@ internal class NodesResponseField(
     private val edgeField: CompositeField<*, *>,
     private val edge: EdgeShape,
 ) : ConnectionResponseField {
-    override fun selection(): String =
-        "${VIADUCT_NODES_RESPONSE_ALIAS}: ${edgeField.name} { ${edge.node.selection()} }"
+    override fun selection(): String = "${VIADUCT_NODES_RESPONSE_ALIAS}: ${edgeField.name} { ${edge.node.selection()} }"
 
     override fun value(
         response: JsonObject,
@@ -40,22 +39,26 @@ internal class NodesResponseField(
         typeReflection: GeneratedTypeReflection,
         nodeResolver: NodeReferenceResolver,
         connectionFieldName: String,
-    ): Any = response[field.name]?.jsonArray
-        ?.mapIndexed { index, node ->
-            val nodeObject = node.jsonObject
-            edge.node.resolve(nodeObject, context, nodeResolver) ?: error(
-                "Subtree response for '$connectionFieldName' had a null node at index $index"
-            )
-        }
-        ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'")
+    ): Any =
+        response[field.name]
+            ?.jsonArray
+            ?.mapIndexed { index, node ->
+                val nodeObject = node.jsonObject
+                edge.node.resolve(nodeObject, context, nodeResolver) ?: error(
+                    "Subtree response for '$connectionFieldName' had a null node at index $index",
+                )
+            }
+            ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'")
 }
 
 internal class EdgesResponseField(
     override val field: Field<*>,
     private val edge: EdgeShape,
 ) : ConnectionResponseField {
-    override fun selection(): String =
-        "${field.name} { ${edge.fields.joinToString(" ", transform = EdgeResponseField::selection)} }"
+    override fun selection(): String {
+        val edgeSelections = edge.fields.joinToString(" ", transform = EdgeResponseField::selection)
+        return "${field.name} { $edgeSelections }"
+    }
 
     override fun value(
         response: JsonObject,
@@ -63,11 +66,22 @@ internal class EdgesResponseField(
         typeReflection: GeneratedTypeReflection,
         nodeResolver: NodeReferenceResolver,
         connectionFieldName: String,
-    ): Any = response[field.name]?.jsonArray
-        ?.mapIndexed { index, edgeJson ->
-            edge.build(edgeJson.jsonObject, index, connectionFieldName, context, typeReflection, nodeResolver)
-        }
-        ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'")
+    ): Any =
+        response[field.name]
+            ?.jsonArray
+            ?.mapIndexed { index, edgeJson ->
+                edge.build(
+                    edgeJson.jsonObject,
+                    EdgeBuildContext(
+                        index = index,
+                        connectionTypeName = connectionFieldName,
+                        executionContext = context,
+                        typeReflection = typeReflection,
+                        nodeResolver = nodeResolver,
+                    ),
+                )
+            }
+            ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'")
 }
 
 internal class PageInfoResponseField(
@@ -82,11 +96,12 @@ internal class PageInfoResponseField(
         typeReflection: GeneratedTypeReflection,
         nodeResolver: NodeReferenceResolver,
         connectionFieldName: String,
-    ): Any = shape.build(
-        response[field.name]?.jsonObject
-            ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'"),
-        context,
-        typeReflection,
-        nodeResolver,
-    )
+    ): Any =
+        shape.build(
+            response[field.name]?.jsonObject
+                ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'"),
+            context,
+            typeReflection,
+            nodeResolver,
+        )
 }

@@ -2,17 +2,24 @@ package dev.viaduct.persistence.hibernate
 
 import java.io.File
 
-data class HibernateReferenceManifest(
+@Suppress("LongParameterList")
+class HibernateReferenceManifest(
     val mappingFile: File,
-    val classpath: List<File>,
-    val managedClassNames: List<String>,
+    classpath: List<File>,
+    managedClassNames: List<String>,
     val implicitNamingStrategyClassName: String,
     val physicalNamingStrategyClassName: String,
-    val metadataCustomizerClassNames: List<String>,
+    metadataCustomizerClassNames: List<String>,
     val dialectClassName: String,
-    val hibernateSettings: Map<String, String>,
+    hibernateSettings: Map<String, String>,
     val ownershipManifestFile: File,
 ) {
+    val classpath: List<File> = java.util.List.copyOf(classpath)
+    val managedClassNames: List<String> = java.util.List.copyOf(managedClassNames)
+    val metadataCustomizerClassNames: List<String> = java.util.List.copyOf(metadataCustomizerClassNames)
+    val hibernateSettings: Map<String, String> =
+        java.util.Collections.unmodifiableMap(java.util.LinkedHashMap(hibernateSettings))
+
     fun validate() {
         require(mappingFile.isFile) {
             "Hibernate mapping file does not exist: ${mappingFile.absolutePath}"
@@ -22,13 +29,51 @@ data class HibernateReferenceManifest(
         }
     }
 
+    override fun equals(other: Any?): Boolean =
+        other is HibernateReferenceManifest &&
+            mappingFile == other.mappingFile &&
+            classpath == other.classpath &&
+            managedClassNames == other.managedClassNames &&
+            implicitNamingStrategyClassName == other.implicitNamingStrategyClassName &&
+            physicalNamingStrategyClassName == other.physicalNamingStrategyClassName &&
+            metadataCustomizerClassNames == other.metadataCustomizerClassNames &&
+            dialectClassName == other.dialectClassName &&
+            hibernateSettings == other.hibernateSettings &&
+            ownershipManifestFile == other.ownershipManifestFile
+
+    override fun hashCode(): Int =
+        listOf(
+            mappingFile,
+            classpath,
+            managedClassNames,
+            implicitNamingStrategyClassName,
+            physicalNamingStrategyClassName,
+            metadataCustomizerClassNames,
+            dialectClassName,
+            hibernateSettings,
+            ownershipManifestFile,
+        ).hashCode()
+
+    override fun toString(): String =
+        "HibernateReferenceManifest(" +
+            "mappingFile=$mappingFile, " +
+            "classpath=$classpath, " +
+            "managedClassNames=$managedClassNames, " +
+            "implicitNamingStrategyClassName=$implicitNamingStrategyClassName, " +
+            "physicalNamingStrategyClassName=$physicalNamingStrategyClassName, " +
+            "metadataCustomizerClassNames=$metadataCustomizerClassNames, " +
+            "dialectClassName=$dialectClassName, " +
+            "hibernateSettings=$hibernateSettings, " +
+            "ownershipManifestFile=$ownershipManifestFile)"
+
     companion object {
         const val DEFAULT_DIALECT = "org.hibernate.dialect.PostgreSQLDialect"
 
-        val DEFAULT_SETTINGS = mapOf(
-            "hibernate.boot.allow_jdbc_metadata_access" to "false",
-            "hibernate.temp.use_jdbc_metadata_defaults" to "false",
-        )
+        fun defaultSettings(): Map<String, String> =
+            mapOf(
+                "hibernate.boot.allow_jdbc_metadata_access" to "false",
+                "hibernate.temp.use_jdbc_metadata_defaults" to "false",
+            )
     }
 }
 
@@ -36,9 +81,10 @@ internal const val HIBERNATE_REFERENCE_MANIFEST_HEADER = "viaduct-hibernate-refe
 
 /** Compatibility facade for the separate reproducibility manifest reader and writer. */
 object HibernateReferenceManifestCodec {
-    fun write(manifest: HibernateReferenceManifest, destination: File) =
-        HibernateReferenceManifestWriter.write(manifest, destination)
+    fun write(
+        manifest: HibernateReferenceManifest,
+        destination: File,
+    ) = HibernateReferenceManifestWriter.write(manifest, destination)
 
-    fun read(source: File): HibernateReferenceManifest =
-        HibernateReferenceManifestReader.read(source)
+    fun read(source: File): HibernateReferenceManifest = HibernateReferenceManifestReader.read(source)
 }

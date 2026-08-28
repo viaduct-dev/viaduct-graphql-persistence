@@ -20,18 +20,20 @@ internal class OrmAttributeWriter(
     ) {
         when (attribute) {
             is PersistenceBasicAttribute -> writeBasic(attributes, entity, attribute)
-            is PersistenceToOneAttribute -> associationWriter.writeToOne(
-                attributes,
-                attribute,
-                packageName,
-            )
-            is PersistenceToManyAttribute -> associationWriter.writeToMany(
-                attributes,
-                entity,
-                attribute,
-                packageName,
-                associationSchemaName,
-            )
+            is PersistenceToOneAttribute ->
+                associationWriter.writeToOne(
+                    attributes,
+                    attribute,
+                    packageName,
+                )
+            is PersistenceToManyAttribute ->
+                associationWriter.writeToMany(
+                    attributes,
+                    entity,
+                    attribute,
+                    packageName,
+                    associationSchemaName,
+                )
         }
     }
 
@@ -40,23 +42,32 @@ internal class OrmAttributeWriter(
         entity: PersistenceEntity,
         attribute: PersistenceBasicAttribute,
     ) {
-        val primaryKey = attribute.name == "internalId" ||
-            (!entity.generatedGlobalId && attribute.name == "id")
-        val element = attributes.child(if (primaryKey) "id" else "basic").apply {
-            setAttribute("name", attribute.name)
-            if (!primaryKey) setAttribute("optional", attribute.nullable.toString())
-        }
+        val primaryKey = isPrimaryKey(entity, attribute)
+        val element =
+            attributes.child(if (primaryKey) "id" else "basic").apply {
+                setAttribute("name", attribute.name)
+                if (!primaryKey) setAttribute("optional", attribute.nullable.toString())
+            }
         if (attribute.enumTypeName != null) element.child("enumerated").textContent = "STRING"
+        writeColumn(element, entity, attribute, primaryKey)
+    }
+
+    private fun isPrimaryKey(
+        entity: PersistenceEntity,
+        attribute: PersistenceBasicAttribute,
+    ): Boolean = attribute.name == "internalId" || (!entity.generatedGlobalId && attribute.name == "id")
+
+    private fun writeColumn(
+        element: Element,
+        entity: PersistenceEntity,
+        attribute: PersistenceBasicAttribute,
+        primaryKey: Boolean,
+    ) {
         element.child("column").apply {
             setAttribute("name", attribute.name)
             setAttribute("nullable", attribute.nullable.toString())
-            when {
-                attribute.name == "internalId" ||
-                    primaryKey && attribute.kotlinType == "java.util.UUID" ->
-                    setAttribute("column-definition", "uuid default gen_random_uuid()")
-                entity.generatedGlobalId && attribute.name == "id" -> {
-                    setAttribute("column-definition", "text")
-                }
+            columnDefinition(entity, attribute, primaryKey)?.let {
+                setAttribute("column-definition", it)
             }
             if (entity.generatedGlobalId && attribute.name == "id") {
                 setAttribute("insertable", "false")
@@ -64,4 +75,18 @@ internal class OrmAttributeWriter(
             }
         }
     }
+
+    private fun columnDefinition(
+        entity: PersistenceEntity,
+        attribute: PersistenceBasicAttribute,
+        primaryKey: Boolean,
+    ): String? =
+        when {
+            attribute.name == "internalId" ||
+                primaryKey &&
+                attribute.kotlinType == "java.util.UUID" ->
+                "uuid default gen_random_uuid()"
+            entity.generatedGlobalId && attribute.name == "id" -> "text"
+            else -> null
+        }
 }

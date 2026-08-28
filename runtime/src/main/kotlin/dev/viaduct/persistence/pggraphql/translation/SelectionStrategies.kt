@@ -17,30 +17,33 @@ internal data class SelectionTransformContext(
 internal class SelectionTransformerChain(
     private val walker: SelectionTreeWalker = SelectionTreeWalker(),
 ) : SelectionTransformVisitor<SelectionTransformContext> {
-    private val fieldTransformations: List<FieldTransformation> = listOf(
-        CollectionNodesFieldTransformation(),
-        NestedFieldTransformation(),
-        PassthroughFieldTransformation(),
-    )
+    private val fieldTransformations: List<FieldTransformation> =
+        listOf(
+            CollectionNodesFieldTransformation(),
+            NestedFieldTransformation(),
+            PassthroughFieldTransformation(),
+        )
 
     fun transform(
         selectionSet: SelectionSet,
         parentType: String,
         schema: PgGraphqlTranslationSchema,
         rewriteCollectionTypes: Boolean,
-    ): SelectionSet = walker.transform(
-        selectionSet = selectionSet,
-        context = SelectionTransformContext(parentType, schema, rewriteCollectionTypes),
-        visitor = this,
-    )
+    ): SelectionSet =
+        walker.transform(
+            selectionSet = selectionSet,
+            context = SelectionTransformContext(parentType, schema, rewriteCollectionTypes),
+            visitor = this,
+        )
 
     override fun field(
         selection: Field,
         context: SelectionTransformContext,
         children: (SelectionSet, SelectionTransformContext) -> SelectionSet,
-    ): Selection<*> = fieldTransformations
-        .first { it.supports(selection, context) }
-        .transform(selection, context, children)
+    ): Selection<*> =
+        fieldTransformations
+            .first { it.supports(selection, context) }
+            .transform(selection, context, children)
 
     override fun inlineFragment(
         selection: InlineFragment,
@@ -48,10 +51,11 @@ internal class SelectionTransformerChain(
         children: (SelectionSet, SelectionTransformContext) -> SelectionSet,
     ): Selection<*> {
         val fragmentType = selection.typeCondition?.name ?: context.parentType
-        val transformedSelectionSet = children(
-            selection.selectionSet,
-            context.copy(parentType = fragmentType),
-        )
+        val transformedSelectionSet =
+            children(
+                selection.selectionSet,
+                context.copy(parentType = fragmentType),
+            )
         return selection.transform {
             it.selectionSet(transformedSelectionSet)
             if (context.rewriteCollectionTypes && selection.typeCondition != null) {
@@ -62,12 +66,17 @@ internal class SelectionTransformerChain(
         }
     }
 
-    override fun other(selection: Selection<*>, context: SelectionTransformContext): Selection<*> =
-        selection
+    override fun other(
+        selection: Selection<*>,
+        context: SelectionTransformContext,
+    ): Selection<*> = selection
 }
 
 private interface FieldTransformation {
-    fun supports(field: Field, context: SelectionTransformContext): Boolean
+    fun supports(
+        field: Field,
+        context: SelectionTransformContext,
+    ): Boolean
 
     fun transform(
         field: Field,
@@ -77,7 +86,10 @@ private interface FieldTransformation {
 }
 
 private class CollectionNodesFieldTransformation : FieldTransformation {
-    override fun supports(field: Field, context: SelectionTransformContext): Boolean =
+    override fun supports(
+        field: Field,
+        context: SelectionTransformContext,
+    ): Boolean =
         field.name == "nodes" &&
             field.selectionSet != null &&
             context.schema.collectionNodeType(context.parentType) != null
@@ -89,19 +101,26 @@ private class CollectionNodesFieldTransformation : FieldTransformation {
     ): Field {
         val elementType = checkNotNull(context.schema.collectionNodeType(context.parentType))
         val selectionSet = requireNotNull(field.selectionSet)
-        val nodeField = Field.newField(
-            "node",
-            children(selectionSet, context.copy(parentType = elementType)),
-        ).build()
-        return Field.newField(
-            "edges",
-            SelectionSet.newSelectionSet().selection(nodeField).build(),
-        ).alias(VIADUCT_NODES_RESPONSE_ALIAS).build()
+        val nodeField =
+            Field
+                .newField(
+                    "node",
+                    children(selectionSet, context.copy(parentType = elementType)),
+                ).build()
+        return Field
+            .newField(
+                "edges",
+                SelectionSet.newSelectionSet().selection(nodeField).build(),
+            ).alias(VIADUCT_NODES_RESPONSE_ALIAS)
+            .build()
     }
 }
 
 private class NestedFieldTransformation : FieldTransformation {
-    override fun supports(field: Field, context: SelectionTransformContext): Boolean =
+    override fun supports(
+        field: Field,
+        context: SelectionTransformContext,
+    ): Boolean =
         field.selectionSet != null &&
             context.schema.fieldType(context.parentType, field.name) != null
 
@@ -110,9 +129,10 @@ private class NestedFieldTransformation : FieldTransformation {
         context: SelectionTransformContext,
         children: (SelectionSet, SelectionTransformContext) -> SelectionSet,
     ): Field {
-        val targetType = checkNotNull(
-            context.schema.fieldType(context.parentType, field.name)
-        )
+        val targetType =
+            checkNotNull(
+                context.schema.fieldType(context.parentType, field.name),
+            )
         val selectionSet = requireNotNull(field.selectionSet)
         return field.transform {
             it.selectionSet(children(selectionSet, context.copy(parentType = targetType)))
@@ -121,7 +141,10 @@ private class NestedFieldTransformation : FieldTransformation {
 }
 
 private class PassthroughFieldTransformation : FieldTransformation {
-    override fun supports(field: Field, context: SelectionTransformContext): Boolean = true
+    override fun supports(
+        field: Field,
+        context: SelectionTransformContext,
+    ): Boolean = true
 
     override fun transform(
         field: Field,

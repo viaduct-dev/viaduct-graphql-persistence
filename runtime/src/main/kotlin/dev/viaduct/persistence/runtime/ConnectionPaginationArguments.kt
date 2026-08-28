@@ -3,8 +3,8 @@ package dev.viaduct.persistence.runtime
 import viaduct.api.select.OutputSelectionFragment
 
 /** The standard pagination arguments declared by a Viaduct connection field. */
-internal data class ConnectionPaginationArguments(
-    private val renderedArguments: List<String> = emptyList(),
+internal class ConnectionPaginationArguments private constructor(
+    private val renderedArguments: List<String>,
 ) {
     fun render(): String =
         renderedArguments.takeUnless(List<String>::isEmpty)?.joinToString(
@@ -14,11 +14,11 @@ internal data class ConnectionPaginationArguments(
         ) ?: ""
 
     companion object {
-        val NONE = ConnectionPaginationArguments()
+        fun none() = ConnectionPaginationArguments(emptyList())
 
-        fun fromFragment(
-            fragment: OutputSelectionFragment,
-        ): Map<String, ConnectionPaginationArguments> =
+        internal fun fromArguments(arguments: List<String>) = ConnectionPaginationArguments(arguments)
+
+        fun fromFragment(fragment: OutputSelectionFragment): Map<String, ConnectionPaginationArguments> =
             ConnectionArgumentExtractor.fromFragment(fragment)
     }
 }

@@ -14,11 +14,12 @@ internal class OrmEntityWriter(
         packageName: String,
         associationSchemaName: String,
     ) {
-        val element = mappings.child("entity").apply {
-            setAttribute("class", "$packageName.${entityClassName(entity.graphqlName)}")
-            setAttribute("access", "FIELD")
-            setAttribute("metadata-complete", "true")
-        }
+        val element =
+            mappings.child("entity").apply {
+                setAttribute("class", "$packageName.${entityClassName(entity.graphqlName)}")
+                setAttribute("access", "FIELD")
+                setAttribute("metadata-complete", "true")
+            }
         element.child("table").setAttribute("name", entity.graphqlName)
         val attributes = element.child("attributes")
         entity.attributes.forEach { attribute ->

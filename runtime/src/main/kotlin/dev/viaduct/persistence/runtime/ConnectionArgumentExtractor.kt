@@ -18,9 +18,10 @@ import viaduct.api.select.OutputSelectionFragment
 internal object ConnectionArgumentExtractor {
     fun fromFragment(fragment: OutputSelectionFragment): Map<String, ConnectionPaginationArguments> {
         val document = Parser().parseDocument(fragment.document)
-        val definitions = document.definitions
-            .filterIsInstance<FragmentDefinition>()
-            .associateBy { it.name }
+        val definitions =
+            document.definitions
+                .filterIsInstance<FragmentDefinition>()
+                .associateBy { it.name }
         val entryPoint = definitions[fragment.name] ?: return emptyMap()
         return directFields(entryPoint.selectionSet, definitions)
             .distinctBy { it.name }
@@ -30,51 +31,65 @@ internal object ConnectionArgumentExtractor {
     private fun fromField(
         field: Field,
         variables: Map<String, Any?>,
-    ): ConnectionPaginationArguments = ConnectionPaginationArguments(
-        field.arguments.asSequence().map { argument ->
-            argument.transform { builder ->
-                builder.value(inlineVariable(argument.value, variables))
-            }.let(AstPrinter::printAstCompact)
-        }.toList(),
-    )
+    ): ConnectionPaginationArguments =
+        ConnectionPaginationArguments.fromArguments(
+            field.arguments
+                .asSequence()
+                .map { argument ->
+                    argument
+                        .transform { builder ->
+                            builder.value(inlineVariable(argument.value, variables))
+                        }.let(AstPrinter::printAstCompact)
+                }.toList(),
+        )
 
     private fun directFields(
         selectionSet: SelectionSet,
         definitions: Map<String, FragmentDefinition>,
         visitedFragments: Set<String> = emptySet(),
-    ): Sequence<Field> = sequence {
-        for (selection in selectionSet.selections) {
-            when (selection) {
-                is Field -> yield(selection)
-                is InlineFragment -> yieldAll(
-                    directFields(selection.selectionSet, definitions, visitedFragments),
-                )
-                is FragmentSpread -> if (selection.name !in visitedFragments) {
-                    definitions[selection.name]?.let { definition ->
+    ): Sequence<Field> =
+        sequence {
+            for (selection in selectionSet.selections) {
+                when (selection) {
+                    is Field -> yield(selection)
+                    is InlineFragment ->
                         yieldAll(
-                            directFields(
-                                definition.selectionSet,
-                                definitions,
-                                visitedFragments + selection.name,
-                            )
+                            directFields(selection.selectionSet, definitions, visitedFragments),
                         )
-                    }
+                    is FragmentSpread ->
+                        if (selection.name !in visitedFragments) {
+                            definitions[selection.name]?.let { definition ->
+                                yieldAll(
+                                    directFields(
+                                        definition.selectionSet,
+                                        definitions,
+                                        visitedFragments + selection.name,
+                                    ),
+                                )
+                            }
+                        }
                 }
             }
         }
-    }
 
-    private fun inlineVariable(value: Value<*>, variables: Map<String, Any?>): Value<*> = when (value) {
-        is VariableReference -> {
-            require(value.name in variables) {
-                "Selection references GraphQL variable '${value.name}' but no value was supplied"
+    private fun inlineVariable(
+        value: Value<*>,
+        variables: Map<String, Any?>,
+    ): Value<*> =
+        when (value) {
+            is VariableReference -> {
+                require(value.name in variables) {
+                    "Selection references GraphQL variable '${value.name}' but no value was supplied"
+                }
+                GraphqlLiteralValue.from(variables[value.name])
             }
-            GraphqlLiteralValue.from(variables[value.name])
+            is ArrayValue -> ArrayValue(value.values.map { inlineVariable(it, variables) })
+            is ObjectValue ->
+                ObjectValue(
+                    value.objectFields.map { field ->
+                        ObjectField(field.name, inlineVariable(field.value, variables))
+                    },
+                )
+            else -> value
         }
-        is ArrayValue -> ArrayValue(value.values.map { inlineVariable(it, variables) })
-        is ObjectValue -> ObjectValue(value.objectFields.map { field ->
-            ObjectField(field.name, inlineVariable(field.value, variables))
-        })
-        else -> value
-    }
 }

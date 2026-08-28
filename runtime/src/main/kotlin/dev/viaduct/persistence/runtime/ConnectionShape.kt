@@ -21,23 +21,24 @@ internal data class ConnectionShape(
     val cursorField: Field<*>? get() = edge.cursor?.field
 
     /** Fields are selected and restored by their reflected GraphQL field types. */
-    val fields: List<ConnectionResponseField> = buildList {
-        if ("nodes" in requestedFieldNames.orEmpty()) {
-            nodesField?.let { add(NodesResponseField(it, edgeField, edge)) }
-        }
-        if (requestedFieldNames == null || "edges" in requestedFieldNames) {
-            add(EdgesResponseField(edgeField, edge))
-        }
-        if (requestedFieldNames == null || "pageInfo" in requestedFieldNames) {
-            pageInfoField?.let { field ->
-                pageInfo?.let { shape -> add(PageInfoResponseField(field, shape)) }
+    val fields: List<ConnectionResponseField> =
+        buildList {
+            if ("nodes" in requestedFieldNames.orEmpty()) {
+                nodesField?.let { add(NodesResponseField(it, edgeField, edge)) }
+            }
+            if (requestedFieldNames == null || "edges" in requestedFieldNames) {
+                add(EdgesResponseField(edgeField, edge))
+            }
+            if (requestedFieldNames == null || "pageInfo" in requestedFieldNames) {
+                pageInfoField?.let { field ->
+                    pageInfo?.let { shape -> add(PageInfoResponseField(field, shape)) }
+                }
             }
         }
-    }
 
     fun upstreamSelection(
         fieldName: String,
-        arguments: ConnectionPaginationArguments = ConnectionPaginationArguments.NONE,
+        arguments: ConnectionPaginationArguments = ConnectionPaginationArguments.none(),
     ): String {
         val selections = fields.mapNotNull(ConnectionResponseField::selection)
         return "$fieldName${arguments.render()} { ${selections.joinToString(" ")} }"

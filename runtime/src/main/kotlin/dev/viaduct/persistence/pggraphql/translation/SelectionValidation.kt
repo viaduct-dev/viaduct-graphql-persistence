@@ -48,10 +48,13 @@ internal class SelectionValidatorChain(
         val targetType = context.schema.fieldType(context.parentType, selection.name)
         selection.selectionSet?.let { nested ->
             targetType?.let { type ->
-                children(nested, context.copy(
-                    parentType = type,
-                    path = "${context.path}.${selection.name}",
-                ))
+                children(
+                    nested,
+                    context.copy(
+                        parentType = type,
+                        path = "${context.path}.${selection.name}",
+                    ),
+                )
             }
         }
     }
@@ -65,5 +68,8 @@ internal class SelectionValidatorChain(
         children(selection.selectionSet, context.copy(parentType = fragmentType))
     }
 
-    override fun other(selection: Selection<*>, context: SelectionValidationContext) = Unit
+    override fun other(
+        selection: Selection<*>,
+        context: SelectionValidationContext,
+    ) = Unit
 }

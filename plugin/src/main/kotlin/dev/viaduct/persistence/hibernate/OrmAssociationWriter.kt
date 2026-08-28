@@ -14,12 +14,13 @@ internal class OrmAssociationWriter {
         attribute: PersistenceToOneAttribute,
         packageName: String,
     ) {
-        val association = attributes.child("many-to-one").apply {
-            setAttribute("name", attribute.name)
-            setAttribute("target-entity", "$packageName.${entityClassName(attribute.targetTypeName)}")
-            setAttribute("optional", attribute.nullable.toString())
-            setAttribute("fetch", "LAZY")
-        }
+        val association =
+            attributes.child("many-to-one").apply {
+                setAttribute("name", attribute.name)
+                setAttribute("target-entity", "$packageName.${entityClassName(attribute.targetTypeName)}")
+                setAttribute("optional", attribute.nullable.toString())
+                setAttribute("fetch", "LAZY")
+            }
         association.child("join-column").apply {
             setAttribute("name", logicalJoinColumnName(attribute.name))
             setAttribute("nullable", attribute.nullable.toString())
@@ -34,17 +35,20 @@ internal class OrmAssociationWriter {
         packageName: String,
         associationSchemaName: String,
     ) {
-        val associationName = when (attribute.storage) {
-            PersistenceToManyStorage.TARGET_FOREIGN_KEY -> "one-to-many"
-            PersistenceToManyStorage.JOIN_TABLE_OWNER,
-            PersistenceToManyStorage.JOIN_TABLE_INVERSE -> "many-to-many"
-        }
-        val association = attributes.child(associationName).apply {
-            setAttribute("name", attribute.name)
-            setAttribute("target-entity", "$packageName.${entityClassName(attribute.targetTypeName)}")
-            setAttribute("fetch", "LAZY")
-            attribute.inverseFieldName?.let { setAttribute("mapped-by", it) }
-        }
+        val associationName =
+            when (attribute.storage) {
+                PersistenceToManyStorage.TARGET_FOREIGN_KEY -> "one-to-many"
+                PersistenceToManyStorage.JOIN_TABLE_OWNER,
+                PersistenceToManyStorage.JOIN_TABLE_INVERSE,
+                -> "many-to-many"
+            }
+        val association =
+            attributes.child(associationName).apply {
+                setAttribute("name", attribute.name)
+                setAttribute("target-entity", "$packageName.${entityClassName(attribute.targetTypeName)}")
+                setAttribute("fetch", "LAZY")
+                attribute.inverseFieldName?.let { setAttribute("mapped-by", it) }
+            }
         when {
             attribute.storage == PersistenceToManyStorage.TARGET_FOREIGN_KEY &&
                 attribute.inverseFieldName == null -> writeTargetForeignKey(association, entity)
@@ -53,7 +57,10 @@ internal class OrmAssociationWriter {
         }
     }
 
-    private fun writeTargetForeignKey(association: Element, entity: PersistenceEntity) {
+    private fun writeTargetForeignKey(
+        association: Element,
+        entity: PersistenceEntity,
+    ) {
         association.child("join-column").apply {
             setAttribute("name", logicalJoinColumnName(entity.graphqlName))
             setAttribute("nullable", "false")
@@ -89,9 +96,16 @@ internal class OrmAssociationWriter {
 }
 
 private fun logicalJoinColumnName(attributeName: String): String =
-    "${attributeName.replaceFirstChar(Char::lowercaseChar)}Id"
+    buildString {
+        append(attributeName.replaceFirstChar(Char::lowercaseChar))
+        append("Id")
+    }
 
-private fun joinColumnName(typeName: String, role: String, selfReferential: Boolean): String =
+private fun joinColumnName(
+    typeName: String,
+    role: String,
+    selfReferential: Boolean,
+): String =
     if (selfReferential) {
         "${role}${typeName.replaceFirstChar(Char::uppercaseChar)}Id"
     } else {

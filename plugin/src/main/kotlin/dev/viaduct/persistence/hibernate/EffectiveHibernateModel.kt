@@ -1,11 +1,39 @@
 package dev.viaduct.persistence.hibernate
 
-data class EffectiveHibernateModel(
-    val entities: List<EffectiveHibernateEntity>,
-    val relationships: List<EffectiveHibernateRelationship>,
-    val computedRelationships: List<EffectiveHibernateComputedRelationship>,
-    val arrays: List<EffectiveHibernateArray>,
-)
+class EffectiveHibernateModel(
+    entities: List<EffectiveHibernateEntity>,
+    relationships: List<EffectiveHibernateRelationship>,
+    computedRelationships: List<EffectiveHibernateComputedRelationship>,
+    arrays: List<EffectiveHibernateArray>,
+) {
+    val entities: List<EffectiveHibernateEntity> = java.util.List.copyOf(entities)
+    val relationships: List<EffectiveHibernateRelationship> = java.util.List.copyOf(relationships)
+    val computedRelationships: List<EffectiveHibernateComputedRelationship> =
+        java.util.List.copyOf(computedRelationships)
+    val arrays: List<EffectiveHibernateArray> = java.util.List.copyOf(arrays)
+
+    override fun equals(other: Any?): Boolean =
+        other is EffectiveHibernateModel &&
+            entities == other.entities &&
+            relationships == other.relationships &&
+            computedRelationships == other.computedRelationships &&
+            arrays == other.arrays
+
+    override fun hashCode(): Int {
+        var result = entities.hashCode()
+        result = 31 * result + relationships.hashCode()
+        result = 31 * result + computedRelationships.hashCode()
+        result = 31 * result + arrays.hashCode()
+        return result
+    }
+
+    override fun toString(): String =
+        "EffectiveHibernateModel(" +
+            "entities=$entities, " +
+            "relationships=$relationships, " +
+            "computedRelationships=$computedRelationships, " +
+            "arrays=$arrays)"
+}
 
 data class EffectiveHibernateEntity(
     val graphqlName: String,

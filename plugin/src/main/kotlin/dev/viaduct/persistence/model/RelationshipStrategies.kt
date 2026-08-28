@@ -15,17 +15,17 @@ internal interface RelationshipTargetResolver {
 }
 
 internal class RelationshipTargetResolverChain(
-    private val resolvers: List<RelationshipTargetResolver> = listOf(
-        DirectRelationshipTargetResolver(),
-        ConnectionRelationshipTargetResolver(),
-        NodesCollectionRelationshipTargetResolver(),
-    ),
+    private val resolvers: List<RelationshipTargetResolver> =
+        listOf(
+            DirectRelationshipTargetResolver(),
+            ConnectionRelationshipTargetResolver(),
+            NodesCollectionRelationshipTargetResolver(),
+        ),
 ) : RelationshipTargetResolver {
     override fun resolve(
         field: ViaductSchema.Field,
         includedObjects: Map<String, ViaductSchema.Object>,
-    ): PersistenceRelationshipTarget? =
-        resolvers.firstNotNullOfOrNull { it.resolve(field, includedObjects) }
+    ): PersistenceRelationshipTarget? = resolvers.firstNotNullOfOrNull { it.resolve(field, includedObjects) }
 }
 
 private class DirectRelationshipTargetResolver : RelationshipTargetResolver {
@@ -48,10 +48,9 @@ private class ConnectionRelationshipTargetResolver : RelationshipTargetResolver 
             ?.takeIf { it.name in includedObjects }
             ?.let { PersistenceRelationshipTarget(it.name, collection = true) }
 
-    private fun connectionNodeType(
-        connectionType: ViaductSchema.Object,
-    ): ViaductSchema.Object? =
-        connectionType.fields.singleOrNull { it.name == "edges" }
+    private fun connectionNodeType(connectionType: ViaductSchema.Object): ViaductSchema.Object? =
+        connectionType.fields
+            .singleOrNull { it.name == "edges" }
             ?.type
             ?.baseTypeDef
             ?.let { it as? ViaductSchema.Object }
@@ -77,14 +76,16 @@ private class NodesCollectionRelationshipTargetResolver : RelationshipTargetReso
             ?.let { PersistenceRelationshipTarget(it.name, collection = true) }
 }
 
-private fun isStructuralConnection(type: ViaductSchema.Object): Boolean = (
-    type.fields.singleOrNull { it.name == "edges" }
-        ?.type
-        ?.baseTypeDef
-        ?.let { it as? ViaductSchema.Object }
-        ?.fields
-        ?.any { it.name == "node" }
-        == true
+private fun isStructuralConnection(type: ViaductSchema.Object): Boolean =
+    (
+        type.fields
+            .singleOrNull { it.name == "edges" }
+            ?.type
+            ?.baseTypeDef
+            ?.let { it as? ViaductSchema.Object }
+            ?.fields
+            ?.any { it.name == "node" }
+            == true
     )
 
 internal data class PersistenceCollectionMapping(
@@ -108,15 +109,16 @@ internal interface CollectionMappingStrategy {
 }
 
 internal class CollectionMappingResolver(
-    private val strategies: List<CollectionMappingStrategy> = listOf(
-        InverseToOneCollectionMappingStrategy(),
-        MutualCollectionMappingStrategy(),
-        AmbiguousInverseCollectionStrategy(),
-        ConfiguredTargetForeignKeyStrategy(),
-        SingleUnidirectionalCollectionStrategy(),
-        MultipleUnidirectionalCollectionStrategy(),
-        FallbackJoinTableStrategy(),
-    ),
+    private val strategies: List<CollectionMappingStrategy> =
+        listOf(
+            InverseToOneCollectionMappingStrategy(),
+            MutualCollectionMappingStrategy(),
+            AmbiguousInverseCollectionStrategy(),
+            ConfiguredTargetForeignKeyStrategy(),
+            SingleUnidirectionalCollectionStrategy(),
+            MultipleUnidirectionalCollectionStrategy(),
+            FallbackJoinTableStrategy(),
+        ),
 ) {
     fun resolve(context: CollectionMappingContext): PersistenceCollectionMapping =
         checkNotNull(strategies.firstNotNullOfOrNull { it.resolve(context) }) {
@@ -157,11 +159,12 @@ private class MutualCollectionMappingStrategy : CollectionMappingStrategy {
         val ownerField = if (sourceOwns) context.sourceField else inverseField
         return PersistenceCollectionMapping(
             inverseFieldName = if (sourceOwns) null else inverseField.name,
-            storage = if (sourceOwns) {
-                PersistenceToManyStorage.JOIN_TABLE_OWNER
-            } else {
-                PersistenceToManyStorage.JOIN_TABLE_INVERSE
-            },
+            storage =
+                if (sourceOwns) {
+                    PersistenceToManyStorage.JOIN_TABLE_OWNER
+                } else {
+                    PersistenceToManyStorage.JOIN_TABLE_INVERSE
+                },
             joinTableName = associationJoinTableName(ownerType.name, ownerField.name),
         )
     }
@@ -212,10 +215,11 @@ private class MultipleUnidirectionalCollectionStrategy : CollectionMappingStrate
             PersistenceCollectionMapping(
                 inverseFieldName = null,
                 storage = PersistenceToManyStorage.JOIN_TABLE_OWNER,
-                joinTableName = associationJoinTableName(
-                    context.source.name,
-                    context.sourceField.name,
-                ),
+                joinTableName =
+                    associationJoinTableName(
+                        context.source.name,
+                        context.sourceField.name,
+                    ),
             )
         } else {
             null
@@ -227,9 +231,10 @@ private class FallbackJoinTableStrategy : CollectionMappingStrategy {
         PersistenceCollectionMapping(
             inverseFieldName = null,
             storage = PersistenceToManyStorage.JOIN_TABLE_OWNER,
-            joinTableName = associationJoinTableName(
-                context.source.name,
-                context.sourceField.name,
-            ),
+            joinTableName =
+                associationJoinTableName(
+                    context.source.name,
+                    context.sourceField.name,
+                ),
         )
 }

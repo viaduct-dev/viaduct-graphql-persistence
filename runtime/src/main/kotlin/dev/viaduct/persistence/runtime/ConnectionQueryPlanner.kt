@@ -13,17 +13,20 @@ internal class ConnectionQueryPlanner {
         variableDefinitions: String,
         variables: kotlinx.serialization.json.JsonObject,
     ): GraphqlQuery {
-        val operation = variableDefinitions.takeIf(String::isNotBlank)
-            ?.let { "query($it)" }
-            ?: "query"
+        val operation =
+            variableDefinitions
+                .takeIf(String::isNotBlank)
+                ?.let { "query($it)" }
+                ?: "query"
         return GraphqlQuery(
-            text = """
+            text =
+                """
                 $operation {
                   $collectionField$arguments {
                     edges { node { uuidId } }
                   }
                 }
-            """.trimIndent(),
+                """.trimIndent(),
             variables = variables,
             responseKey = collectionField,
         )
@@ -33,47 +36,46 @@ internal class ConnectionQueryPlanner {
         val arguments = connectionArguments(request)
         val definitions = connectionDefinitions(request)
         return GraphqlQuery(
-            text = """
+            text =
+                """
                 query($definitions) {
                   ${request.collectionField}$arguments {
                     edges { cursor node { uuidId } }
                     pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                   }
                 }
-            """.trimIndent(),
+                """.trimIndent(),
             variables = connectionVariables(request),
             responseKey = request.collectionField,
         )
     }
 
-    fun nested(
-        parentCollectionField: String,
-        parentIds: List<String>,
-        childCollectionField: String,
-        first: Int?,
-        after: String?,
-        last: Int?,
-        before: String?,
-    ): GraphqlQuery {
-        val definitions = "\$parentIds: [UUID!]!, " +
-            "\$first: Int, \$after: String, \$last: Int, \$before: String"
-        val variables = buildJsonObject {
-            put("parentIds", buildJsonArray {
-                parentIds.distinct().forEach { add(JsonPrimitive(it)) }
-            })
-            first?.let { put("first", it) }
-            after?.let { put("after", it) }
-            last?.let { put("last", it) }
-            before?.let { put("before", it) }
-        }
+    fun nested(request: NestedConnectionPageRequest): GraphqlQuery {
+        val definitions =
+            "\$parentIds: [UUID!]!, " +
+                "\$first: Int, \$after: String, \$last: Int, \$before: String"
+        val variables =
+            buildJsonObject {
+                put(
+                    "parentIds",
+                    buildJsonArray {
+                        request.parentIds.distinct().forEach { add(JsonPrimitive(it)) }
+                    },
+                )
+                request.child.first?.let { put("first", it) }
+                request.child.after?.let { put("after", it) }
+                request.child.last?.let { put("last", it) }
+                request.child.before?.let { put("before", it) }
+            }
         return GraphqlQuery(
-            text = """
+            text =
+                """
                 query($definitions) {
-                  $parentCollectionField(filter: {uuidId: {in: ${'$'}parentIds}}) {
+                  ${request.parentCollectionField}(filter: {uuidId: {in: ${'$'}parentIds}}) {
                     edges {
                       node {
                         uuidId
-                        $childCollectionField(first: ${'$'}first, after: ${'$'}after, last: ${'$'}last, before: ${'$'}before) {
+                        ${request.child.collectionField}(first: ${'$'}first, after: ${'$'}after, last: ${'$'}last, before: ${'$'}before) {
                           edges { cursor node { uuidId } }
                           pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                         }
@@ -81,9 +83,9 @@ internal class ConnectionQueryPlanner {
                     }
                   }
                 }
-            """.trimIndent(),
+                """.trimIndent(),
             variables = variables,
-            responseKey = parentCollectionField,
+            responseKey = request.parentCollectionField,
         )
     }
 
@@ -99,17 +101,26 @@ internal class ConnectionQueryPlanner {
             request.additionalVariableDefinitions,
         ).filter(String::isNotBlank).joinToString(", ")
 
-    private fun connectionVariables(request: ConnectionPageRequest) = buildJsonObject {
-        request.first?.let { put("first", it) }
-        request.after?.let { put("after", it) }
-        request.last?.let { put("last", it) }
-        request.before?.let { put("before", it) }
-        request.additionalVariables.forEach { (name, value) -> put(name, value) }
-    }
+    private fun connectionVariables(request: ConnectionPageRequest) =
+        buildJsonObject {
+            request.first?.let { put("first", it) }
+            request.after?.let { put("after", it) }
+            request.last?.let { put("last", it) }
+            request.before?.let { put("before", it) }
+            request.additionalVariables.forEach { (name, value) -> put(name, value) }
+        }
 
     private fun mergeArguments(vararg groups: String): String =
-        groups.mapNotNull { group ->
-            group.trim().removePrefix("(").removeSuffix(")").trim()
-                .takeIf(String::isNotEmpty)
-        }.joinToString(", ").takeIf(String::isNotEmpty)?.let { "($it)" }.orEmpty()
+        groups
+            .mapNotNull { group ->
+                group
+                    .trim()
+                    .removePrefix("(")
+                    .removeSuffix(")")
+                    .trim()
+                    .takeIf(String::isNotEmpty)
+            }.joinToString(", ")
+            .takeIf(String::isNotEmpty)
+            ?.let { "($it)" }
+            .orEmpty()
 }

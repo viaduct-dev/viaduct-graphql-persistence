@@ -13,7 +13,8 @@ internal class NodeReferenceResolver {
         context: ResolverExecutionContext<out Query>,
         type: Type<*>,
         internalId: String,
-    ): NodeObject = context.nodeRef(
-        context.globalIDFor(type as Type<NodeObject>, internalId)
-    )
+    ): NodeObject =
+        context.nodeRef(
+            context.globalIDFor(type as Type<NodeObject>, internalId),
+        )
 }

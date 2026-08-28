@@ -11,29 +11,31 @@ import kotlin.test.assertFalse
 class PostgresqlOverlayTest {
     @Test
     fun `adds element null checks only for non-null GraphQL list elements`() {
-        val model = EffectiveHibernateModel(
-            entities = emptyList(),
-            relationships = emptyList(),
-            computedRelationships = emptyList(),
-            arrays = listOf(
-                EffectiveHibernateArray(
-                    ownerTypeName = "Group",
-                    fieldName = "labels",
-                    schemaName = "public",
-                    tableName = "groups",
-                    columnName = "labels",
-                    elementNullable = false,
-                ),
-                EffectiveHibernateArray(
-                    ownerTypeName = "Group",
-                    fieldName = "notes",
-                    schemaName = "public",
-                    tableName = "groups",
-                    columnName = "notes",
-                    elementNullable = true,
-                ),
-            ),
-        )
+        val model =
+            EffectiveHibernateModel(
+                entities = emptyList(),
+                relationships = emptyList(),
+                computedRelationships = emptyList(),
+                arrays =
+                    listOf(
+                        EffectiveHibernateArray(
+                            ownerTypeName = "Group",
+                            fieldName = "labels",
+                            schemaName = "public",
+                            tableName = "groups",
+                            columnName = "labels",
+                            elementNullable = false,
+                        ),
+                        EffectiveHibernateArray(
+                            ownerTypeName = "Group",
+                            fieldName = "notes",
+                            schemaName = "public",
+                            tableName = "groups",
+                            columnName = "notes",
+                            elementNullable = true,
+                        ),
+                    ),
+            )
 
         val sql = PostgresqlOverlay.renderMigration(model)
         assertContains(sql, """array_position("labels", NULL) IS NULL""")
@@ -43,21 +45,23 @@ class PostgresqlOverlayTest {
 
     @Test
     fun `global ids are self contained and repeatable`() {
-        val model = EffectiveHibernateModel(
-            entities = listOf(
-                EffectiveHibernateEntity(
-                    graphqlName = "Group",
-                    schemaName = "application",
-                    tableName = "groups",
-                    generatedGlobalId = true,
-                    internalIdColumnName = "_uuid_id",
-                    globalIdColumnName = "id",
-                )
-            ),
-            relationships = emptyList(),
-            computedRelationships = emptyList(),
-            arrays = emptyList(),
-        )
+        val model =
+            EffectiveHibernateModel(
+                entities =
+                    listOf(
+                        EffectiveHibernateEntity(
+                            graphqlName = "Group",
+                            schemaName = "application",
+                            tableName = "groups",
+                            generatedGlobalId = true,
+                            internalIdColumnName = "_uuid_id",
+                            globalIdColumnName = "id",
+                        ),
+                    ),
+                relationships = emptyList(),
+                computedRelationships = emptyList(),
+                arrays = emptyList(),
+            )
 
         val sql = PostgresqlOverlay.renderMigration(model)
         assertContains(sql, "is_generated = 'NEVER'")
@@ -72,27 +76,29 @@ class PostgresqlOverlayTest {
 
     @Test
     fun `creates internal association schemas as prerequisites`() {
-        val model = EffectiveHibernateModel(
-            entities = emptyList(),
-            relationships = emptyList(),
-            computedRelationships = listOf(
-                EffectiveHibernateComputedRelationship(
-                    ownerTypeName = "Person",
-                    fieldName = "friends",
-                    ownerSchemaName = "public",
-                    ownerTableName = "persons",
-                    ownerIdColumnName = "id",
-                    targetSchemaName = "public",
-                    targetTableName = "persons",
-                    targetIdColumnName = "id",
-                    joinSchemaName = "viaduct_internal",
-                    joinTableName = "person_friends_associations",
-                    joinOwnerColumnName = "owner_person_id",
-                    joinTargetColumnName = "target_person_id",
-                )
-            ),
-            arrays = emptyList(),
-        )
+        val model =
+            EffectiveHibernateModel(
+                entities = emptyList(),
+                relationships = emptyList(),
+                computedRelationships =
+                    listOf(
+                        EffectiveHibernateComputedRelationship(
+                            ownerTypeName = "Person",
+                            fieldName = "friends",
+                            ownerSchemaName = "public",
+                            ownerTableName = "persons",
+                            ownerIdColumnName = "id",
+                            targetSchemaName = "public",
+                            targetTableName = "persons",
+                            targetIdColumnName = "id",
+                            joinSchemaName = "viaduct_internal",
+                            joinTableName = "person_friends_associations",
+                            joinOwnerColumnName = "owner_person_id",
+                            joinTargetColumnName = "target_person_id",
+                        ),
+                    ),
+                arrays = emptyList(),
+            )
 
         assertContains(
             PostgresqlOverlay.renderPrerequisites(model),

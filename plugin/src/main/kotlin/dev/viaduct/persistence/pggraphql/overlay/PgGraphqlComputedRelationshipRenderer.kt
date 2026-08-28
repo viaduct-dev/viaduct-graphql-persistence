@@ -5,14 +5,16 @@ import dev.viaduct.persistence.hibernate.EffectiveHibernateModel
 
 /** Renders SQL functions that expose association-backed computed relationships to pg_graphql. */
 internal object PgGraphqlComputedRelationshipRenderer {
-    fun render(model: EffectiveHibernateModel): String = buildString {
-        model.computedRelationships.forEach { appendLine(render(it)) }
-    }
+    fun render(model: EffectiveHibernateModel): String =
+        buildString {
+            model.computedRelationships.forEach { appendLine(render(it)) }
+        }
 
     private fun render(relationship: EffectiveHibernateComputedRelationship): String {
-        val functionName = "viaduct_${relationship.ownerTableName}_${relationship.fieldName}"
-            .replace(Regex("([a-z0-9])([A-Z])"), "$1_$2")
-            .lowercase()
+        val functionName =
+            "viaduct_${relationship.ownerTableName}_${relationship.fieldName}"
+                .replace(Regex("([a-z0-9])([A-Z])"), "$1_$2")
+                .lowercase()
         val qualifiedFunction =
             "${quoteIdentifier(relationship.ownerSchemaName)}.${quoteIdentifier(functionName)}"
         val ownerType = qualifiedName(relationship.ownerSchemaName, relationship.ownerTableName)
@@ -36,6 +38,6 @@ internal object PgGraphqlComputedRelationshipRenderer {
             ${'$'}viaduct_relationship${'$'};
             COMMENT ON FUNCTION $qualifiedFunction($ownerType)
               IS E'@graphql({"name": "${relationship.fieldName}"})';
-        """.trimIndent()
+            """.trimIndent()
     }
 }

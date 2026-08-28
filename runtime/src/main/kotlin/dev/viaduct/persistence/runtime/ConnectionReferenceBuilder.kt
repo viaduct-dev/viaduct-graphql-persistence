@@ -21,21 +21,25 @@ internal class ConnectionReferenceBuilder(
         response: JsonObject,
         context: ResolverExecutionContext<out Query>,
     ): Any {
-        val shape = checkNotNull(reference.connection) {
-            "Connection reference '${reference.fieldName}' has no reflected connection shape"
-        }
-        val internalContext = context as? InternalContext
-            ?: error(
-                "Connection node references require Viaduct's internal execution context"
+        val shape =
+            checkNotNull(reference.connection) {
+                "Connection reference '${reference.fieldName}' has no reflected connection shape"
+            }
+        val internalContext =
+            context as? InternalContext
+                ?: error(
+                    "Connection node references require Viaduct's internal execution context",
+                )
+        val graphQlType =
+            internalContext.schema.schema.getObjectType(shape.type.name)
+                ?: error("GraphQL connection type '${shape.type.name}' is not registered")
+        val connectionBuilder =
+            GeneratedBuilder.fromConnection(
+                typeReflection.builderClass(shape.type),
+                internalContext,
+                graphQlType,
+                ResolvedEngineObjectData.Builder(graphQlType).build(),
             )
-        val graphQlType = internalContext.schema.schema.getObjectType(shape.type.name)
-            ?: error("GraphQL connection type '${shape.type.name}' is not registered")
-        val connectionBuilder = GeneratedBuilder.fromConnection(
-            typeReflection.builderClass(shape.type),
-            internalContext,
-            graphQlType,
-            ResolvedEngineObjectData.Builder(graphQlType).build(),
-        )
 
         shape.fields.forEach { field ->
             connectionBuilder.set(

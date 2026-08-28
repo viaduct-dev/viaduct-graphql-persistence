@@ -13,11 +13,15 @@ internal class OrmXmlWriter {
         associationSchemaName: String,
     ): Document {
         val document = HibernateXmlDocuments.newDocument()
-        val mappings = document.createElementNS(HibernateXmlDocuments.ORM_NS, "entity-mappings")
-            .apply { setAttribute("version", "3.2") }
+        val mappings =
+            document
+                .createElementNS(HibernateXmlDocuments.ORM_NS, "entity-mappings")
+                .apply { setAttribute("version", "3.2") }
         document.appendChild(mappings)
-        mappings.child("persistence-unit-metadata")
-            .child("persistence-unit-defaults").apply {
+        mappings
+            .child("persistence-unit-metadata")
+            .child("persistence-unit-defaults")
+            .apply {
                 child("schema").textContent = "public"
                 child("access").textContent = "FIELD"
             }

@@ -23,21 +23,23 @@ internal class LiquibaseDatabaseSession private constructor(
             username: String? = null,
             password: String? = null,
         ): LiquibaseDatabaseSession {
-            val resourceAccessor = ClassLoaderResourceAccessor(
-                ViaductHibernateDatabase::class.java.classLoader,
-            )
-            return try {
+            val resourceAccessor =
+                ClassLoaderResourceAccessor(
+                    ViaductHibernateDatabase::class.java.classLoader,
+                )
+            return runCatching {
                 LiquibaseDatabaseSession(
-                    database = DatabaseFactory.getInstance().openDatabase(
-                        url,
-                        username,
-                        password,
-                        null,
-                        resourceAccessor,
-                    ),
+                    database =
+                        DatabaseFactory.getInstance().openDatabase(
+                            url,
+                            username,
+                            password,
+                            null,
+                            resourceAccessor,
+                        ),
                     resourceAccessor = resourceAccessor,
                 )
-            } catch (failure: Throwable) {
+            }.getOrElse { failure ->
                 resourceAccessor.close()
                 throw failure
             }

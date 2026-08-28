@@ -9,6 +9,7 @@ import viaduct.api.types.CompositeOutput
 /** Builds the ephemeral translator schema from generated Viaduct types. */
 internal class GeneratedTranslationSchemaFactory(
     private val reflection: GeneratedTypeReflection,
+    private val fieldReflection: GeneratedFieldReflection,
 ) {
     fun build(rootType: Type<*>): PgGraphqlTranslationSchema {
         val visited = mutableSetOf<String>()
@@ -22,7 +23,7 @@ internal class GeneratedTranslationSchemaFactory(
             reflection.legacyCollectionNodeType(type)?.let { nodeType ->
                 collections[type.name] = nodeType.name
             }
-            reflection.allFields(type).forEach { field ->
+            fieldReflection.allFields(type).forEach { field ->
                 val composite = field as? CompositeField<*, *> ?: return@forEach
                 fieldTypes[PgGraphqlFieldCoordinate(type.name, field.name)] = composite.type.name
                 if (CompositeOutput::class.java.isAssignableFrom(composite.type.kcls.java)) {

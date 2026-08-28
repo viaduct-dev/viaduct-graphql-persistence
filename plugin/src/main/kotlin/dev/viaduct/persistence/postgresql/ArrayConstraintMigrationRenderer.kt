@@ -24,6 +24,6 @@ internal object ArrayConstraintMigrationRenderer {
               END IF;
             END
             ${'$'}viaduct_array_check${'$'};
-        """.trimIndent()
+            """.trimIndent()
     }
 }

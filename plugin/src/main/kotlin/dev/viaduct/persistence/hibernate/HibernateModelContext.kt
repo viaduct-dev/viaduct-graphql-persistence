@@ -12,12 +12,12 @@ internal class HibernateModelContext(
     val semanticModel: dev.viaduct.persistence.model.PersistenceModel,
     val packageName: String,
 ) {
-    private val bindingsByClassName = metadata.entityBindings
-        .mapNotNull { binding -> binding.className?.let { it to binding } }
-        .toMap()
+    private val bindingsByClassName =
+        metadata.entityBindings
+            .mapNotNull { binding -> binding.className?.let { it to binding } }
+            .toMap()
 
-    fun className(graphqlTypeName: String): String =
-        "$packageName.${entityClassName(graphqlTypeName)}"
+    fun className(graphqlTypeName: String): String = "$packageName.${entityClassName(graphqlTypeName)}"
 
     fun bindingFor(entity: PersistenceEntity): PersistentClass = bindingFor(entity.graphqlName)
 
@@ -28,7 +28,10 @@ internal class HibernateModelContext(
         }
     }
 
-    fun collectionFor(ownerTypeName: String, fieldName: String): Collection {
+    fun collectionFor(
+        ownerTypeName: String,
+        fieldName: String,
+    ): Collection {
         val role = "${className(ownerTypeName)}.$fieldName"
         return requireNotNull(metadata.getCollectionBinding(role)) {
             "Hibernate metadata does not contain collection $role"

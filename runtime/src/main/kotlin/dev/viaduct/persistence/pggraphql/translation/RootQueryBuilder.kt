@@ -9,14 +9,17 @@ internal object RootQueryBuilder {
         fragmentDocument: String,
         singleViaFilteredCollection: Boolean,
     ): String {
-        val variables = variableDefinitions.takeIf(String::isNotBlank)
-            ?.let { "($it)" }
-            .orEmpty()
-        val rootSelection = if (singleViaFilteredCollection) {
-            "$field$arguments { edges { node { ...Main } } } }"
-        } else {
-            "$field$arguments { ...Main } }"
-        }
+        val variables =
+            variableDefinitions
+                .takeIf(String::isNotBlank)
+                ?.let { "($it)" }
+                .orEmpty()
+        val rootSelection =
+            if (singleViaFilteredCollection) {
+                "$field$arguments { edges { node { ...Main } } } }"
+            } else {
+                "$field$arguments { ...Main } }"
+            }
         return "query ViaductSubtree$variables { $rootSelection $fragmentDocument"
     }
 }

@@ -1,10 +1,10 @@
 package dev.viaduct.persistence.gradle
 
+import org.gradle.testfixtures.ProjectBuilder
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
-import org.gradle.testfixtures.ProjectBuilder
 
 class ConservativeLiquibaseDiffTaskTest {
     @Test
@@ -12,26 +12,28 @@ class ConservativeLiquibaseDiffTaskTest {
         val directory = Files.createTempDirectory("conservative-liquibase-diff").toFile()
         try {
             val project = ProjectBuilder.builder().withProjectDir(directory).build()
-            val raw = directory.resolve("raw.sql").apply {
-                writeText(
-                    """
-                    -- liquibase formatted sql
+            val raw =
+                directory.resolve("raw.sql").apply {
+                    writeText(
+                        """
+                        -- liquibase formatted sql
 
-                    -- changeset test:1
-                    CREATE TABLE public.groups (id uuid);
+                        -- changeset test:1
+                        CREATE TABLE public.groups (id uuid);
 
-                    -- changeset test:2
-                    ALTER TABLE public.groups DROP CONSTRAINT groups_owner_fkey;
+                        -- changeset test:2
+                        ALTER TABLE public.groups DROP CONSTRAINT groups_owner_fkey;
 
-                    -- changeset test:3
-                    ALTER TABLE public.groups DROP CONSTRAINT groups_owner_fkey;
-                    """.trimIndent()
+                        -- changeset test:3
+                        ALTER TABLE public.groups DROP CONSTRAINT groups_owner_fkey;
+                        """.trimIndent(),
+                    )
+                }
+            val task =
+                project.tasks.create(
+                    "filterDiff",
+                    ConservativeLiquibaseDiffTask::class.java,
                 )
-            }
-            val task = project.tasks.create(
-                "filterDiff",
-                ConservativeLiquibaseDiffTask::class.java,
-            )
             task.rawDiffFile.set(raw)
             task.migrationFile.set(directory.resolve("migration.sql"))
             task.destructiveReviewFile.set(directory.resolve("destructive.sql"))

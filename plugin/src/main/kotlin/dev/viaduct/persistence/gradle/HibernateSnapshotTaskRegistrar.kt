@@ -8,9 +8,7 @@ internal class HibernateSnapshotTaskRegistrar(
     private val project: Project,
     private val layout: PersistenceBuildLayout,
 ) {
-    fun register(
-        effective: TaskProvider<BuildEffectiveHibernateModelTask>,
-    ) {
+    fun register(effective: TaskProvider<BuildEffectiveHibernateModelTask>) {
         project.tasks.register("hibernateSchemaSnapshot", HibernateSchemaSnapshotTask::class.java) { task ->
             task.group = "verification"
             task.description =
