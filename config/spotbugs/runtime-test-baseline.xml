@@ -1,0 +1,804 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BugCollection version="4.10.4">
+<BugInstance type="BC_IMPOSSIBLE_INSTANCEOF" priority="2" rank="9" abbrev="BC" category="CORRECTNESS" instanceHash="f7526d6c8ce98383ba35de4c7ec1a5e4" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="704">
+    <ShortMessage>instanceof will always return false</ShortMessage>
+    <LongMessage>instanceof will always return false in dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.invokeSuspend(Object), since a String cannot be a io.ktor.http.content.OutgoingContent</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="159" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>At PgGraphqlIntegrationTest.kt:[lines 33-159]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" name="invokeSuspend" signature="(Ljava/lang/Object;)Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="33" startBytecode="0" endBytecode="532" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt"/>
+      <Message>In method dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.invokeSuspend(Object)</Message>
+    </Method>
+    <Type descriptor="Ljava/lang/String;" role="TYPE_FOUND">
+      <SourceLine classname="java.lang.String" start="142" end="4914" sourcefile="String.java" sourcepath="java/lang/String.java">
+        <Message>At String.java:[lines 142-4914]</Message>
+      </SourceLine>
+      <Message>Actual type String</Message>
+    </Type>
+    <Type descriptor="Lio/ktor/http/content/OutgoingContent;" role="TYPE_EXPECTED">
+      <SourceLine classname="io.ktor.http.content.OutgoingContent" start="25" end="222" sourcefile="OutgoingContent.kt" sourcepath="io/ktor/http/content/OutgoingContent.kt">
+        <Message>At OutgoingContent.kt:[lines 25-222]</Message>
+      </SourceLine>
+      <Message>Expected io.ktor.http.content.OutgoingContent</Message>
+    </Type>
+    <LocalVariable name="body$iv" register="22" pc="668" role="LOCAL_VARIABLE_VALUE_OF">
+      <Message>Value loaded from body$iv</Message>
+    </LocalVariable>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" start="148" end="148" startBytecode="670" endBytecode="670" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+      <Message>At PgGraphqlIntegrationTest.kt:[line 148]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="NP_NULL_ON_SOME_PATH" priority="2" rank="8" abbrev="NP" category="CORRECTNESS" instanceHash="ab0ea4d8fb60d548952d65ea9c315297" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="476">
+    <ShortMessage>Possible null pointer dereference</ShortMessage>
+    <LongMessage>Possible null pointer dereference of null in dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.invokeSuspend(Object)</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="159" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>At PgGraphqlIntegrationTest.kt:[lines 33-159]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" name="invokeSuspend" signature="(Ljava/lang/Object;)Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="33" startBytecode="0" endBytecode="3841" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt"/>
+      <Message>In method dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.invokeSuspend(Object)</Message>
+    </Method>
+    <String value="null" role="STRING_NONSTRING_CONSTANT">
+      <Message>Constant value null</Message>
+    </String>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" start="92" end="92" startBytecode="1049" endBytecode="1049" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" role="SOURCE_LINE_DEREF">
+      <Message>Dereferenced at PgGraphqlIntegrationTest.kt:[line 92]</Message>
+    </SourceLine>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="88" end="88" startBytecode="1030" endBytecode="1030" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" role="SOURCE_LINE_KNOWN_NULL">
+      <Message>Known null at PgGraphqlIntegrationTest.kt:[line 88]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" priority="2" rank="18" abbrev="RCN" category="STYLE" instanceHash="501cfdb2ac9007f8e879bcd83dcedf89" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="476">
+    <ShortMessage>Redundant nullcheck of value known to be non-null</ShortMessage>
+    <LongMessage>Redundant nullcheck of body$iv, which is known to be non-null in dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.invokeSuspend(Object)</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="159" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>At PgGraphqlIntegrationTest.kt:[lines 33-159]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" name="invokeSuspend" signature="(Ljava/lang/Object;)Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="33" startBytecode="0" endBytecode="3841" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt"/>
+      <Message>In method dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.invokeSuspend(Object)</Message>
+    </Method>
+    <LocalVariable name="body$iv" register="22" pc="593" role="LOCAL_VARIABLE_VALUE_OF">
+      <Message>Value loaded from body$iv</Message>
+    </LocalVariable>
+    <Method classname="kotlinx.serialization.json.JsonObject" name="toString" signature="()Ljava/lang/String;" isStatic="false" role="METHOD_RETURN_VALUE_OF" classAnnotationNames="org.jetbrains.annotations.NotNull">
+      <SourceLine classname="kotlinx.serialization.json.JsonObject" start="197" end="197" startBytecode="0" endBytecode="98" sourcefile="JsonElement.kt" sourcepath="kotlinx/serialization/json/JsonElement.kt"/>
+      <Message>Return value of kotlinx.serialization.json.JsonObject.toString() of type String</Message>
+    </Method>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" start="136" end="136" startBytecode="595" endBytecode="595" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" role="SOURCE_REDUNDANT_NULL_CHECK">
+      <Message>Redundant null check at PgGraphqlIntegrationTest.kt:[line 136]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="6575174731d23ce3ea76c77ef2aac2a6" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1 defines non-transient non-serializable instance field L$3</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="159" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>At PgGraphqlIntegrationTest.kt:[lines 33-159]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" name="L$3" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>In PgGraphqlIntegrationTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$3</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/HttpClient;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.HttpClient" start="1286" end="1498" sourcefile="HttpClient.kt" sourcepath="io/ktor/client/HttpClient.kt">
+        <Message>At HttpClient.kt:[lines 1286-1498]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.HttpClient</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" synthetic="true">
+      <Message>In PgGraphqlIntegrationTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="d462cafd56787fc769e6cac9a1813576" instanceOccurrenceNum="0" instanceOccurrenceMax="1">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.HttpClient stored into non-transient field PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$1</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="159" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>At PgGraphqlIntegrationTest.kt:[lines 33-159]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" name="L$1" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>In PgGraphqlIntegrationTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$1</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/HttpClient;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.HttpClient" start="1286" end="1498" sourcefile="HttpClient.kt" sourcepath="io/ktor/client/HttpClient.kt">
+        <Message>At HttpClient.kt:[lines 1286-1498]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.HttpClient</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" start="86" end="86" startBytecode="886" endBytecode="886" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+      <Message>At PgGraphqlIntegrationTest.kt:[line 86]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="d462cafd56787fc769e6cac9a1813576" instanceOccurrenceNum="1" instanceOccurrenceMax="1">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.HttpClient stored into non-transient field PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$1</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="159" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>At PgGraphqlIntegrationTest.kt:[lines 33-159]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" name="L$1" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>In PgGraphqlIntegrationTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$1</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/HttpClient;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.HttpClient" start="1286" end="1498" sourcefile="HttpClient.kt" sourcepath="io/ktor/client/HttpClient.kt">
+        <Message>At HttpClient.kt:[lines 1286-1498]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.HttpClient</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" start="159" end="159" startBytecode="792" endBytecode="792" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+      <Message>At PgGraphqlIntegrationTest.kt:[line 159]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="eed561f147456fd736a386b44eb302d5" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>kotlinx.serialization.json.Json$Default stored into non-transient field PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$2</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="159" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>At PgGraphqlIntegrationTest.kt:[lines 33-159]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" name="L$2" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>In PgGraphqlIntegrationTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$2</Message>
+    </Field>
+    <Type descriptor="Lkotlinx/serialization/json/Json$Default;" role="TYPE_FOUND">
+      <SourceLine classname="kotlinx.serialization.json.Json$Default" start="98" end="100" sourcefile="Json.kt" sourcepath="kotlinx/serialization/json/Json.kt">
+        <Message>At Json.kt:[lines 98-100]</Message>
+      </SourceLine>
+      <Message>Actual type kotlinx.serialization.json.Json$Default</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" start="86" end="86" startBytecode="892" endBytecode="892" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+      <Message>At PgGraphqlIntegrationTest.kt:[line 86]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="f761b3d9787a6671f3d9d93570b7a609" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.HttpClient stored into non-transient field PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$3</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" start="33" end="159" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>At PgGraphqlIntegrationTest.kt:[lines 33-159]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" name="L$3" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+        <Message>In PgGraphqlIntegrationTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1.L$3</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/HttpClient;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.HttpClient" start="1286" end="1498" sourcefile="HttpClient.kt" sourcepath="io/ktor/client/HttpClient.kt">
+        <Message>At HttpClient.kt:[lines 1286-1498]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.HttpClient</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.PgGraphqlIntegrationTest$fetches a pg_graphql connection with edges cursors and page info$1" primary="true" start="53" end="53" startBytecode="307" endBytecode="307" sourcefile="PgGraphqlIntegrationTest.kt" sourcepath="dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/PgGraphqlIntegrationTest.kt">
+      <Message>At PgGraphqlIntegrationTest.kt:[line 53]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="BC_BAD_CAST_TO_ABSTRACT_COLLECTION" priority="2" rank="17" abbrev="BC" category="STYLE" instanceHash="31b4f5734a2eb9636c1160c9ea62cd4b" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="704">
+    <ShortMessage>Questionable cast to abstract collection</ShortMessage>
+    <LongMessage>Questionable cast from Collection to abstract class java.util.List in dev.viaduct.persistence.runtime.SubtreeClientTest.does not request subselections for enum-valued fields()</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest" primary="true" classAnnotationNames="kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" start="31" end="797" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 31-797]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.runtime.SubtreeClientTest" name="does not request subselections for enum-valued fields" signature="()V" isStatic="false" primary="true" classAnnotationNames="org.junit.jupiter.api.Test">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" start="301" end="317" startBytecode="0" endBytecode="196" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt"/>
+      <Message>In method dev.viaduct.persistence.runtime.SubtreeClientTest.does not request subselections for enum-valued fields()</Message>
+    </Method>
+    <Type descriptor="Ljava/util/Collection;" role="TYPE_FOUND">
+      <SourceLine classname="java.util.Collection" start="418" end="771" sourcefile="Collection.java" sourcepath="java/util/Collection.java">
+        <Message>At Collection.java:[lines 418-771]</Message>
+      </SourceLine>
+      <Message>Actual type java.util.Collection</Message>
+    </Type>
+    <Type descriptor="Ljava/util/List;" role="TYPE_EXPECTED">
+      <SourceLine classname="java.util.List" start="141" end="1193" sourcefile="List.java" sourcepath="java/util/List.java">
+        <Message>At List.java:[lines 141-1193]</Message>
+      </SourceLine>
+      <Message>Expected java.util.List</Message>
+    </Type>
+    <LocalVariable name="destination$iv$iv" register="7" pc="409" role="LOCAL_VARIABLE_VALUE_OF">
+      <Message>Value loaded from destination$iv$iv</Message>
+    </LocalVariable>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" primary="true" start="615" end="615" startBytecode="411" endBytecode="411" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>At SubtreeClientTest.kt:[line 615]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="BC_BAD_CAST_TO_ABSTRACT_COLLECTION" priority="2" rank="17" abbrev="BC" category="STYLE" instanceHash="9726bfd8e730d2e74dfbd491afdd90f" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="704">
+    <ShortMessage>Questionable cast to abstract collection</ShortMessage>
+    <LongMessage>Questionable cast from Collection to abstract class java.util.List in dev.viaduct.persistence.runtime.SubtreeClientTest.recognizes generated connection types by their edges node shape()</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest" primary="true" classAnnotationNames="kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" start="31" end="797" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 31-797]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.runtime.SubtreeClientTest" name="recognizes generated connection types by their edges node shape" signature="()V" isStatic="false" primary="true" classAnnotationNames="org.junit.jupiter.api.Test">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" start="252" end="260" startBytecode="0" endBytecode="131" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt"/>
+      <Message>In method dev.viaduct.persistence.runtime.SubtreeClientTest.recognizes generated connection types by their edges node shape()</Message>
+    </Method>
+    <Type descriptor="Ljava/util/Collection;" role="TYPE_FOUND">
+      <SourceLine classname="java.util.Collection" start="418" end="771" sourcefile="Collection.java" sourcepath="java/util/Collection.java">
+        <Message>At Collection.java:[lines 418-771]</Message>
+      </SourceLine>
+      <Message>Actual type java.util.Collection</Message>
+    </Type>
+    <Type descriptor="Ljava/util/List;" role="TYPE_EXPECTED">
+      <SourceLine classname="java.util.List" start="141" end="1193" sourcefile="List.java" sourcepath="java/util/List.java">
+        <Message>At List.java:[lines 141-1193]</Message>
+      </SourceLine>
+      <Message>Expected java.util.List</Message>
+    </Type>
+    <LocalVariable name="destination$iv$iv" register="6" pc="242" role="LOCAL_VARIABLE_VALUE_OF">
+      <Message>Value loaded from destination$iv$iv</Message>
+    </LocalVariable>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" primary="true" start="555" end="555" startBytecode="244" endBytecode="244" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>At SubtreeClientTest.kt:[line 555]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="BC_BAD_CAST_TO_ABSTRACT_COLLECTION" priority="2" rank="17" abbrev="BC" category="STYLE" instanceHash="e58fac1d4b4aafd6c7565c83f44decea" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="704">
+    <ShortMessage>Questionable cast to abstract collection</ShortMessage>
+    <LongMessage>Questionable cast from Collection to abstract class java.util.List in dev.viaduct.persistence.runtime.SubtreeClientTest.uses pg_graphql edges for connection node references()</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest" primary="true" classAnnotationNames="kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" start="31" end="797" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 31-797]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.runtime.SubtreeClientTest" name="uses pg_graphql edges for connection node references" signature="()V" isStatic="false" primary="true" classAnnotationNames="org.junit.jupiter.api.Test">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" start="277" end="297" startBytecode="0" endBytecode="257" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt"/>
+      <Message>In method dev.viaduct.persistence.runtime.SubtreeClientTest.uses pg_graphql edges for connection node references()</Message>
+    </Method>
+    <Type descriptor="Ljava/util/Collection;" role="TYPE_FOUND">
+      <SourceLine classname="java.util.Collection" start="418" end="771" sourcefile="Collection.java" sourcepath="java/util/Collection.java">
+        <Message>At Collection.java:[lines 418-771]</Message>
+      </SourceLine>
+      <Message>Actual type java.util.Collection</Message>
+    </Type>
+    <Type descriptor="Ljava/util/List;" role="TYPE_EXPECTED">
+      <SourceLine classname="java.util.List" start="141" end="1193" sourcefile="List.java" sourcepath="java/util/List.java">
+        <Message>At List.java:[lines 141-1193]</Message>
+      </SourceLine>
+      <Message>Expected java.util.List</Message>
+    </Type>
+    <LocalVariable name="destination$iv$iv" register="6" pc="307" role="LOCAL_VARIABLE_VALUE_OF">
+      <Message>Value loaded from destination$iv$iv</Message>
+    </LocalVariable>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" primary="true" start="559" end="559" startBytecode="309" endBytecode="309" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>At SubtreeClientTest.kt:[line 559]</Message>
+    </SourceLine>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" start="563" end="563" startBytecode="428" endBytecode="428" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" role="SOURCE_LINE_ANOTHER_INSTANCE">
+      <Message>Another occurrence at SubtreeClientTest.kt:[line 563]</Message>
+    </SourceLine>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest" start="567" end="567" startBytecode="550" endBytecode="550" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" role="SOURCE_LINE_ANOTHER_INSTANCE">
+      <Message>Another occurrence at SubtreeClientTest.kt:[line 567]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="BC_BAD_CAST_TO_ABSTRACT_COLLECTION" priority="2" rank="17" abbrev="BC" category="STYLE" instanceHash="5d520cca1cd25272427078cb20ac6a17" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="704">
+    <ShortMessage>Questionable cast to abstract collection</ShortMessage>
+    <LongMessage>Questionable cast from Collection to abstract class java.util.List in dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1.invokeSuspend(Object)</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1" start="62" end="581" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 62-581]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1" name="invokeSuspend" signature="(Ljava/lang/Object;)Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1" start="62" end="62" startBytecode="0" endBytecode="266" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt"/>
+      <Message>In method dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1.invokeSuspend(Object)</Message>
+    </Method>
+    <Type descriptor="Ljava/util/Collection;" role="TYPE_FOUND">
+      <SourceLine classname="java.util.Collection" start="418" end="771" sourcefile="Collection.java" sourcepath="java/util/Collection.java">
+        <Message>At Collection.java:[lines 418-771]</Message>
+      </SourceLine>
+      <Message>Actual type java.util.Collection</Message>
+    </Type>
+    <Type descriptor="Ljava/util/List;" role="TYPE_EXPECTED">
+      <SourceLine classname="java.util.List" start="141" end="1193" sourcefile="List.java" sourcepath="java/util/List.java">
+        <Message>At List.java:[lines 141-1193]</Message>
+      </SourceLine>
+      <Message>Expected java.util.List</Message>
+    </Type>
+    <LocalVariable name="destination$iv$iv" register="8" pc="364" role="LOCAL_VARIABLE_VALUE_OF">
+      <Message>Value loaded from destination$iv$iv</Message>
+    </LocalVariable>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1" primary="true" start="577" end="577" startBytecode="366" endBytecode="366" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>At SubtreeClientTest.kt:[line 577]</Message>
+    </SourceLine>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1" start="581" end="581" startBytecode="504" endBytecode="504" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" role="SOURCE_LINE_ANOTHER_INSTANCE">
+      <Message>Another occurrence at SubtreeClientTest.kt:[line 581]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="6cc8b489e41657642ebb68b06c3c52d9" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1 defines non-transient non-serializable instance field L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" start="63" end="84" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 63-84]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="cef5684d7b1dfc388b671cd11dd20e40" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.engine.mock.MockRequestHandleScope stored into non-transient field SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1.L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" start="63" end="84" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 63-84]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUID connection edges with provider cursors and page info$1$engine$1" startBytecode="13" endBytecode="13" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="32c536c372d8ae18c9e3a94f33cdd01a" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1 defines non-transient non-serializable instance field L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" start="34" end="42" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 34-42]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="41589270b36f85133ef1b9b00db755fc" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1 defines non-transient non-serializable instance field L$1</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" start="34" end="42" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 34-42]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" name="L$1" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1.L$1</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/request/HttpRequestData;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.request.HttpRequestData" start="225" end="249" sourcefile="HttpRequest.kt" sourcepath="io/ktor/client/request/HttpRequest.kt">
+        <Message>At HttpRequest.kt:[lines 225-249]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.request.HttpRequestData</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="11d0243128a3d071fa4cb11feb3788d" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.engine.mock.MockRequestHandleScope stored into non-transient field SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1.L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" start="34" end="42" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 34-42]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" startBytecode="13" endBytecode="13" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="a9e3bd46d74c542ecfe33fd0437a6a34" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.request.HttpRequestData stored into non-transient field SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1.L$1</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" start="34" end="42" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 34-42]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" name="L$1" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1.L$1</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/request/HttpRequestData;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.request.HttpRequestData" start="225" end="249" sourcefile="HttpRequest.kt" sourcepath="io/ktor/client/request/HttpRequest.kt">
+        <Message>At HttpRequest.kt:[lines 225-249]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.request.HttpRequestData</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches UUIDs and applies request headers$1$engine$1" startBytecode="19" endBytecode="19" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="ed8535c8b62ad81c79808f46fbc792cb" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1 defines non-transient non-serializable instance field $requests</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" start="107" end="129" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 107-129]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" name="$requests" signature="Ljava/util/List;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1.$requests</Message>
+    </Field>
+    <Type descriptor="Lkotlinx/serialization/json/JsonObject;" role="TYPE_FOUND">
+      <SourceLine classname="kotlinx.serialization.json.JsonObject" start="190" end="206" sourcefile="JsonElement.kt" sourcepath="kotlinx/serialization/json/JsonElement.kt">
+        <Message>At JsonElement.kt:[lines 190-206]</Message>
+      </SourceLine>
+      <Message>Actual type kotlinx.serialization.json.JsonObject</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="2ebb650a367c0e2bedc16b3583e3d1fb" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1 defines non-transient non-serializable instance field L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" start="107" end="129" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 107-129]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="57b9fb7e00611f361e4dc4948d372ac2" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1 defines non-transient non-serializable instance field L$1</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" start="107" end="129" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 107-129]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" name="L$1" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1.L$1</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/request/HttpRequestData;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.request.HttpRequestData" start="225" end="249" sourcefile="HttpRequest.kt" sourcepath="io/ktor/client/request/HttpRequest.kt">
+        <Message>At HttpRequest.kt:[lines 225-249]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.request.HttpRequestData</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="bce7155304cd0267246f1e6f1cd9a8d1" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.engine.mock.MockRequestHandleScope stored into non-transient field SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1.L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" start="107" end="129" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 107-129]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" startBytecode="17" endBytecode="17" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="ea51e5ea48d482b535c9a9486be7cce9" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.request.HttpRequestData stored into non-transient field SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1.L$1</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" start="107" end="129" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 107-129]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" name="L$1" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1.L$1</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/request/HttpRequestData;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.request.HttpRequestData" start="225" end="249" sourcefile="HttpRequest.kt" sourcepath="io/ktor/client/request/HttpRequest.kt">
+        <Message>At HttpRequest.kt:[lines 225-249]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.request.HttpRequestData</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches backward UUID connection arguments$1$engine$1" startBytecode="23" endBytecode="23" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="BC_BAD_CAST_TO_ABSTRACT_COLLECTION" priority="2" rank="17" abbrev="BC" category="STYLE" instanceHash="c9ac5406b7a4b57b234f5d73d97213ac" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="704">
+    <ShortMessage>Questionable cast to abstract collection</ShortMessage>
+    <LongMessage>Questionable cast from Collection to abstract class java.util.List in dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1.invokeSuspend(Object)</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1" start="163" end="581" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 163-581]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1" name="invokeSuspend" signature="(Ljava/lang/Object;)Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1" start="163" end="163" startBytecode="0" endBytecode="311" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt"/>
+      <Message>In method dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1.invokeSuspend(Object)</Message>
+    </Method>
+    <Type descriptor="Ljava/util/Collection;" role="TYPE_FOUND">
+      <SourceLine classname="java.util.Collection" start="418" end="771" sourcefile="Collection.java" sourcepath="java/util/Collection.java">
+        <Message>At Collection.java:[lines 418-771]</Message>
+      </SourceLine>
+      <Message>Actual type java.util.Collection</Message>
+    </Type>
+    <Type descriptor="Ljava/util/List;" role="TYPE_EXPECTED">
+      <SourceLine classname="java.util.List" start="141" end="1193" sourcefile="List.java" sourcepath="java/util/List.java">
+        <Message>At List.java:[lines 141-1193]</Message>
+      </SourceLine>
+      <Message>Expected java.util.List</Message>
+    </Type>
+    <LocalVariable name="destination$iv$iv" register="9" pc="461" role="LOCAL_VARIABLE_VALUE_OF">
+      <Message>Value loaded from destination$iv$iv</Message>
+    </LocalVariable>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1" primary="true" start="577" end="577" startBytecode="463" endBytecode="463" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>At SubtreeClientTest.kt:[line 577]</Message>
+    </SourceLine>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1" start="581" end="581" startBytecode="621" endBytecode="621" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" role="SOURCE_LINE_ANOTHER_INSTANCE">
+      <Message>Another occurrence at SubtreeClientTest.kt:[line 581]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="be5cd5e9905b093cf6c06d521f6ea24d" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1 defines non-transient non-serializable instance field L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" start="165" end="207" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 165-207]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="5abbe3a355cdcd3fe41a9e67d36c902f" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1 defines non-transient non-serializable instance field L$1</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" start="165" end="207" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 165-207]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" name="L$1" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1.L$1</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/request/HttpRequestData;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.request.HttpRequestData" start="225" end="249" sourcefile="HttpRequest.kt" sourcepath="io/ktor/client/request/HttpRequest.kt">
+        <Message>At HttpRequest.kt:[lines 225-249]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.request.HttpRequestData</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="79924a64d27654bced2e317bea9e6a85" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.engine.mock.MockRequestHandleScope stored into non-transient field SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1.L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" start="165" end="207" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 165-207]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" startBytecode="17" endBytecode="17" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="e64170f7099f912065d599592d664873" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.request.HttpRequestData stored into non-transient field SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1.L$1</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" start="165" end="207" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 165-207]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" name="L$1" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1.L$1</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/request/HttpRequestData;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.request.HttpRequestData" start="225" end="249" sourcefile="HttpRequest.kt" sourcepath="io/ktor/client/request/HttpRequest.kt">
+        <Message>At HttpRequest.kt:[lines 225-249]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.request.HttpRequestData</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$fetches nested connections for all parents in one request$1$engine$1" startBytecode="23" endBytecode="23" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="6222b689c5098083a73d9acc81f54682" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-transient non-serializable instance field in serializable class</ShortMessage>
+    <LongMessage>Class dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1 defines non-transient non-serializable instance field L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" start="233" end="237" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 233-237]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt" synthetic="true">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="SE_BAD_FIELD_STORE" priority="2" rank="16" abbrev="Se" category="BAD_PRACTICE" instanceHash="102e6841402987023ae46e8c71781e4c" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Non-serializable value stored into instance field of a serializable class</ShortMessage>
+    <LongMessage>io.ktor.client.engine.mock.MockRequestHandleScope stored into non-transient field SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1.L$0</LongMessage>
+    <Class classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" primary="true" classAnnotationNames="kotlin.coroutines.jvm.internal.DebugMetadata,kotlin.Metadata">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" start="233" end="237" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>At SubtreeClientTest.kt:[lines 233-237]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1</Message>
+    </Class>
+    <Field classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" name="L$0" signature="Ljava/lang/Object;" isStatic="false" primary="true">
+      <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+        <Message>In SubtreeClientTest.kt</Message>
+      </SourceLine>
+      <Message>Field dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1.L$0</Message>
+    </Field>
+    <Type descriptor="Lio/ktor/client/engine/mock/MockRequestHandleScope;" role="TYPE_FOUND">
+      <SourceLine classname="io.ktor.client.engine.mock.MockRequestHandleScope" start="26" end="26" sourcefile="MockEngineConfig.kt" sourcepath="io/ktor/client/engine/mock/MockEngineConfig.kt">
+        <Message>At MockEngineConfig.kt:[line 26]</Message>
+      </SourceLine>
+      <Message>Actual type io.ktor.client.engine.mock.MockRequestHandleScope</Message>
+    </Type>
+    <SourceLine classname="dev.viaduct.persistence.runtime.SubtreeClientTest$surfaces upstream GraphQL errors$1$engine$1" startBytecode="13" endBytecode="13" sourcefile="SubtreeClientTest.kt" sourcepath="dev/viaduct/persistence/runtime/SubtreeClientTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/runtime/SubtreeClientTest.kt">
+      <Message>In SubtreeClientTest.kt</Message>
+    </SourceLine>
+  </BugInstance>
+</BugCollection>

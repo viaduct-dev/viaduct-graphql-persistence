@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BugCollection version="4.10.4">
+<BugInstance type="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE" priority="2" rank="16" abbrev="RV" category="BAD_PRACTICE" instanceHash="10e80d92f30f57bb0f3aaa39d4c6acfe" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="253">
+    <ShortMessage>Method ignores exceptional return value</ShortMessage>
+    <LongMessage>Exceptional return value of java.io.File.mkdirs() ignored in dev.viaduct.persistence.gradle.ViaductPersistencePluginTest.generated resource source directories carry their task dependency()</LongMessage>
+    <Class classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" primary="true" classAnnotationNames="kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" start="9" end="191" sourcefile="ViaductPersistencePluginTest.kt" sourcepath="dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt">
+        <Message>At ViaductPersistencePluginTest.kt:[lines 9-191]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.gradle.ViaductPersistencePluginTest</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" name="generated resource source directories carry their task dependency" signature="()V" isStatic="false" primary="true" classAnnotationNames="org.junit.jupiter.api.Test">
+      <SourceLine classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" start="117" end="186" startBytecode="0" endBytecode="372" sourcefile="ViaductPersistencePluginTest.kt" sourcepath="dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt"/>
+      <Message>In method dev.viaduct.persistence.gradle.ViaductPersistencePluginTest.generated resource source directories carry their task dependency()</Message>
+    </Method>
+    <Method classname="java.io.File" name="mkdirs" signature="()Z" isStatic="false" role="METHOD_CALLED">
+      <SourceLine classname="java.io.File" start="1405" end="1419" startBytecode="0" endBytecode="230" sourcefile="File.java" sourcepath="java/io/File.java"/>
+      <Message>Called method java.io.File.mkdirs()</Message>
+    </Method>
+    <SourceLine classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" primary="true" start="163" end="163" startBytecode="54" endBytecode="54" sourcefile="ViaductPersistencePluginTest.kt" sourcepath="dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt">
+      <Message>At ViaductPersistencePluginTest.kt:[line 163]</Message>
+    </SourceLine>
+  </BugInstance>
+<BugInstance type="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE" priority="2" rank="16" abbrev="RV" category="BAD_PRACTICE" instanceHash="de09c8787f6362820fd0d6141718aec4" instanceOccurrenceNum="0" instanceOccurrenceMax="0" cweid="253">
+    <ShortMessage>Method ignores exceptional return value</ShortMessage>
+    <LongMessage>Exceptional return value of java.io.File.mkdirs() ignored in dev.viaduct.persistence.gradle.ViaductPersistencePluginTest.generates effective metadata in a synthetic consumer()</LongMessage>
+    <Class classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" primary="true" classAnnotationNames="kotlin.Metadata,kotlin.jvm.internal.SourceDebugExtension">
+      <SourceLine classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" start="9" end="191" sourcefile="ViaductPersistencePluginTest.kt" sourcepath="dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt">
+        <Message>At ViaductPersistencePluginTest.kt:[lines 9-191]</Message>
+      </SourceLine>
+      <Message>In class dev.viaduct.persistence.gradle.ViaductPersistencePluginTest</Message>
+    </Class>
+    <Method classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" name="generates effective metadata in a synthetic consumer" signature="()V" isStatic="false" primary="true" classAnnotationNames="org.junit.jupiter.api.Test">
+      <SourceLine classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" start="13" end="112" startBytecode="0" endBytecode="759" sourcefile="ViaductPersistencePluginTest.kt" sourcepath="dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt"/>
+      <Message>In method dev.viaduct.persistence.gradle.ViaductPersistencePluginTest.generates effective metadata in a synthetic consumer()</Message>
+    </Method>
+    <Method classname="java.io.File" name="mkdirs" signature="()Z" isStatic="false" role="METHOD_CALLED">
+      <SourceLine classname="java.io.File" start="1405" end="1419" startBytecode="0" endBytecode="230" sourcefile="File.java" sourcepath="java/io/File.java"/>
+      <Message>Called method java.io.File.mkdirs()</Message>
+    </Method>
+    <SourceLine classname="dev.viaduct.persistence.gradle.ViaductPersistencePluginTest" primary="true" start="47" end="47" startBytecode="54" endBytecode="54" sourcefile="ViaductPersistencePluginTest.kt" sourcepath="dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt" relSourcepath="kotlin/dev/viaduct/persistence/gradle/ViaductPersistencePluginTest.kt">
+      <Message>At ViaductPersistencePluginTest.kt:[line 47]</Message>
+    </SourceLine>
+  </BugInstance>
+</BugCollection>

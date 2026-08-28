@@ -147,6 +147,19 @@ workflow.
 
 The current artifact version is `0.1.0-SNAPSHOT`.
 
+## Development Checks
+
+Both published modules apply KtLint, Detekt, and SpotBugs through the standard Gradle `check`
+lifecycle. Run the complete verification suite with:
+
+```bash
+./gradlew check
+```
+
+The checked-in baselines record existing findings so that new lint, best-practice, or SpotBugs
+findings fail the build without requiring an unrelated cleanup. Regenerate a module's baseline
+only when deliberately accepting its current findings.
+
 ## Published Artifacts
 
 The two public libraries use the `dev.viaduct.persistence` Maven group:
