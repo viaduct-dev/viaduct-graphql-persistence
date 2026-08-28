@@ -1,6 +1,5 @@
 package dev.viaduct.persistence.runtime
 
-import dev.viaduct.persistence.pggraphql.translation.PgGraphqlTranslationSchema
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.header
@@ -49,10 +48,6 @@ class PgGraphqlIntegrationTest {
                 requestHeaders = SubtreeRequestHeaders {
                     mapOf("apikey" to apiKey!!)
                 },
-                translationSchema = PgGraphqlTranslationSchema(
-                    collectionElementTypes = emptyMap(),
-                    fieldTypes = emptyMap(),
-                ),
             )
 
             val ids = subtreeClient.fetchUuidIds(

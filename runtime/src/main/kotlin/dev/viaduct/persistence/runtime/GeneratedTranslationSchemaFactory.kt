@@ -1,0 +1,35 @@
+package dev.viaduct.persistence.runtime
+
+import dev.viaduct.persistence.pggraphql.translation.PgGraphqlFieldCoordinate
+import dev.viaduct.persistence.pggraphql.translation.PgGraphqlTranslationSchema
+import viaduct.api.reflect.CompositeField
+import viaduct.api.reflect.Type
+import viaduct.api.types.CompositeOutput
+
+/** Builds the ephemeral translator schema from generated Viaduct types. */
+internal class GeneratedTranslationSchemaFactory(
+    private val reflection: GeneratedTypeReflection,
+) {
+    fun build(rootType: Type<*>): PgGraphqlTranslationSchema {
+        val visited = mutableSetOf<String>()
+        val collections = linkedMapOf<String, String>()
+        val fieldTypes = linkedMapOf<PgGraphqlFieldCoordinate, String>()
+        val pending = ArrayDeque<Type<*>>().apply { add(rootType) }
+
+        while (pending.isNotEmpty()) {
+            val type = pending.removeFirst()
+            if (!visited.add(type.name)) continue
+            reflection.legacyCollectionNodeType(type)?.let { nodeType ->
+                collections[type.name] = nodeType.name
+            }
+            reflection.allFields(type).forEach { field ->
+                val composite = field as? CompositeField<*, *> ?: return@forEach
+                fieldTypes[PgGraphqlFieldCoordinate(type.name, field.name)] = composite.type.name
+                if (CompositeOutput::class.java.isAssignableFrom(composite.type.kcls.java)) {
+                    pending += composite.type
+                }
+            }
+        }
+        return PgGraphqlTranslationSchema(collections, fieldTypes)
+    }
+}

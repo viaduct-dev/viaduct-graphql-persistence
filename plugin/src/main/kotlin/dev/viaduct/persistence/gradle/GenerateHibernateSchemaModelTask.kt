@@ -2,8 +2,6 @@ package dev.viaduct.persistence.gradle
 
 import dev.viaduct.persistence.hibernate.*
 import dev.viaduct.persistence.model.*
-import dev.viaduct.persistence.pggraphql.translation.PgGraphqlFieldCoordinate
-import dev.viaduct.persistence.pggraphql.translation.PgGraphqlTranslationSchema
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
@@ -79,36 +77,8 @@ abstract class GenerateHibernateSchemaModelTask : DefaultTask() {
             replacementOrmXml = replacementOrmXml.orNull?.asFile,
             associationSchemaName = associationSchemaName.get(),
         )
-        writeTranslationSchema(schema)
         logger.lifecycle(
             "Generated Hibernate schema model for ${model.entities.joinToString { it.graphqlName }}"
         )
-    }
-
-    private fun writeTranslationSchema(schema: viaduct.graphql.schema.ViaductSchema) {
-        val objects = schema.types.values.filterIsInstance<
-            viaduct.graphql.schema.ViaductSchema.Object
-            >()
-        val collections = objects.mapNotNull { type ->
-            val nodes = type.fields.singleOrNull {
-                type.name.endsWith("Collection") &&
-                    it.name == "nodes" &&
-                    it.type.isList
-            }
-                ?: return@mapNotNull null
-            type.name to nodes.type.baseTypeDef.name
-        }.toMap()
-        val fields = objects.flatMap { type ->
-            type.fields.mapNotNull { field ->
-                val target = field.type.baseTypeDef
-                    .takeIf { it is viaduct.graphql.schema.ViaductSchema.Object }
-                    ?: return@mapNotNull null
-                PgGraphqlFieldCoordinate(type.name, field.name) to target.name
-            }
-        }.toMap()
-        val destination = outputDirectory.get().asFile
-            .resolve("resources/${PgGraphqlTranslationSchema.RESOURCE}")
-        destination.parentFile.mkdirs()
-        destination.writeText(PgGraphqlTranslationSchema(collections, fields).encode())
     }
 }

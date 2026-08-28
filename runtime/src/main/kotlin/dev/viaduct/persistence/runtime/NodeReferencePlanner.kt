@@ -2,7 +2,6 @@
 
 package dev.viaduct.persistence.runtime
 
-import dev.viaduct.persistence.pggraphql.translation.PgGraphqlTranslationSchema
 import viaduct.api.reflect.CompositeField
 import viaduct.api.reflect.Type
 import viaduct.api.select.SelectionSet
@@ -11,7 +10,6 @@ import viaduct.api.types.NodeObject
 
 /** Identifies requested fields that must be hydrated from their pg_graphql references. */
 internal class NodeReferencePlanner(
-    private val translationSchema: PgGraphqlTranslationSchema,
     private val typeReflection: GeneratedTypeReflection,
 ) {
     @Suppress("UNCHECKED_CAST")
@@ -19,18 +17,44 @@ internal class NodeReferencePlanner(
         requestedSelections: SelectionSet<T>,
         ownedSelections: SelectionSet<T>,
     ): List<NodeReferenceSelection> where T : CompositeOutput, T : NodeObject {
+        val paginationArguments = ConnectionPaginationArguments.fromFragment(
+            requestedSelections.toFragment(),
+        )
         return typeReflection.fields(ownedSelections.type)
             .asSequence()
             .mapNotNull { it as? CompositeField<T, *> }
             .filter { requestedSelections.contains(it) }
-            .mapNotNull(::referenceFor)
+            .mapNotNull { field ->
+                val connection = typeReflection.connection(field.type)
+                val fieldSelections = connection?.let {
+                    childSelections(requestedSelections, field)
+                }
+                referenceFor(
+                    field,
+                    paginationArguments[field.name] ?: ConnectionPaginationArguments.NONE,
+                    fieldSelections,
+                )
+            }
             .distinctBy(NodeReferenceSelection::fieldName)
             .toList()
     }
 
-    private fun referenceFor(field: CompositeField<*, *>): NodeReferenceSelection? {
-        val connection = typeReflection.connection(field.type)
-        val collectionElementType = translationSchema.collectionElementType(field.type.name)
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : CompositeOutput> childSelections(
+        parent: SelectionSet<T>,
+        field: CompositeField<*, *>,
+    ): SelectionSet<*> =
+        (parent as SelectionSet<CompositeOutput>).selectionSetFor(
+            field as CompositeField<CompositeOutput, CompositeOutput>,
+        )
+
+    private fun referenceFor(
+        field: CompositeField<*, *>,
+        paginationArguments: ConnectionPaginationArguments,
+        requestedFieldSelections: SelectionSet<*>?,
+    ): NodeReferenceSelection? {
+        val connection = typeReflection.connection(field.type, requestedFieldSelections)
+        val collectionElementType = typeReflection.legacyCollectionNodeType(field.type)
         return when {
             connection != null -> NodeReferenceSelection(
                 fieldName = field.name,
@@ -38,16 +62,14 @@ internal class NodeReferencePlanner(
                 kind = NodeReferenceKind.CONNECTION,
                 nodeType = connection.nodeField.type,
                 connection = connection,
+                connectionArguments = paginationArguments,
             )
             collectionElementType != null ->
                 NodeReferenceSelection(
                     fieldName = field.name,
                     targetType = field.type,
                     kind = NodeReferenceKind.LEGACY_COLLECTION,
-                    nodeType = typeReflection.reflectedType(
-                        field.type,
-                        collectionElementType,
-                    ),
+                    nodeType = collectionElementType,
                 )
             NodeObject::class.java.isAssignableFrom(field.type.kcls.java) ->
                 NodeReferenceSelection(
@@ -73,6 +95,7 @@ internal data class NodeReferenceSelection(
     val kind: NodeReferenceKind,
     val nodeType: Type<*>,
     val connection: ConnectionShape? = null,
+    val connectionArguments: ConnectionPaginationArguments = ConnectionPaginationArguments.NONE,
 ) {
     val responseAlias: String = "_viaduct_ref_$fieldName"
     val responseKeys: Set<String> =
@@ -83,7 +106,7 @@ internal data class NodeReferenceSelection(
             NodeReferenceKind.CONNECTION ->
                 checkNotNull(connection) {
                     "Connection reference '$fieldName' has no reflected connection shape"
-                }.upstreamSelection(fieldName)
+                }.upstreamSelection(fieldName, connectionArguments)
             NodeReferenceKind.LEGACY_COLLECTION ->
                 "$fieldName { nodes { uuidId } }"
             NodeReferenceKind.TO_ONE ->

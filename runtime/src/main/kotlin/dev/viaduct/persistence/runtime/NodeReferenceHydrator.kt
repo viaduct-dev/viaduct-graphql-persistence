@@ -4,9 +4,11 @@ package dev.viaduct.persistence.runtime
 
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import viaduct.api.context.ResolverExecutionContext
 import viaduct.api.types.CompositeOutput
 import viaduct.api.types.NodeObject
@@ -17,6 +19,28 @@ internal class NodeReferenceHydrator(
     private val typeReflection: GeneratedTypeReflection,
 ) {
     private val values = NodeReferenceValueBuilder(typeReflection)
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T> hydrate(
+        base: JsonObject,
+        selections: viaduct.api.select.SelectionSet<T>,
+        references: List<NodeReferenceSelection>,
+        context: ResolverExecutionContext<out Query>,
+    ): T where T : CompositeOutput, T : NodeObject {
+        val ownedJson = if (selections.isEmpty()) {
+            buildJsonObject { put("__typename", selections.type.name) }
+        } else {
+            buildJsonObject {
+                base.forEach { (key, value) ->
+                    if (key != "uuidId" && references.none { it.responseKeys.contains(key) }) {
+                        put(key, value)
+                    }
+                }
+            }
+        }
+        val owned = ownedJson.toGRT(context, selections)
+        return attach(owned, base, references, context)
+    }
 
     @Suppress("UNCHECKED_CAST")
     fun <T> attach(

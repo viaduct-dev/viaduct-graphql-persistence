@@ -44,7 +44,6 @@ private class ConnectionRelationshipTargetResolver : RelationshipTargetResolver 
         includedObjects: Map<String, ViaductSchema.Object>,
     ): PersistenceRelationshipTarget? =
         (field.type.baseTypeDef as? ViaductSchema.Object)
-            ?.takeIf { it.hasAppliedDirective("connection") }
             ?.let(::connectionNodeType)
             ?.takeIf { it.name in includedObjects }
             ?.let { PersistenceRelationshipTarget(it.name, collection = true) }
@@ -56,7 +55,6 @@ private class ConnectionRelationshipTargetResolver : RelationshipTargetResolver 
             ?.type
             ?.baseTypeDef
             ?.let { it as? ViaductSchema.Object }
-            ?.takeIf { it.hasAppliedDirective("edge") }
             ?.fields
             ?.singleOrNull { it.name == "node" }
             ?.type
@@ -69,6 +67,7 @@ private class NodesCollectionRelationshipTargetResolver : RelationshipTargetReso
         includedObjects: Map<String, ViaductSchema.Object>,
     ): PersistenceRelationshipTarget? =
         (field.type.baseTypeDef as? ViaductSchema.Object)
+            ?.takeUnless(::isStructuralConnection)
             ?.fields
             ?.singleOrNull { it.name == "nodes" }
             ?.type
@@ -77,6 +76,16 @@ private class NodesCollectionRelationshipTargetResolver : RelationshipTargetReso
             ?.takeIf { it.name in includedObjects }
             ?.let { PersistenceRelationshipTarget(it.name, collection = true) }
 }
+
+private fun isStructuralConnection(type: ViaductSchema.Object): Boolean = (
+    type.fields.singleOrNull { it.name == "edges" }
+        ?.type
+        ?.baseTypeDef
+        ?.let { it as? ViaductSchema.Object }
+        ?.fields
+        ?.any { it.name == "node" }
+        == true
+    )
 
 internal data class PersistenceCollectionMapping(
     val inverseFieldName: String?,

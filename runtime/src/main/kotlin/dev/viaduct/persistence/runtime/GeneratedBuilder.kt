@@ -8,6 +8,7 @@ package dev.viaduct.persistence.runtime
 import graphql.schema.GraphQLObjectType
 import viaduct.api.context.ExecutionContext
 import viaduct.api.internal.InternalContext
+import viaduct.api.reflect.Field
 import viaduct.engine.api.EngineObjectData
 
 /** Small adapter around the generated builders' reflective API. */
@@ -26,7 +27,27 @@ internal class GeneratedBuilder private constructor(
         return this
     }
 
+    fun set(field: Field<*>, value: Any?): GeneratedBuilder = set(field.name, value)
+
+    fun setJson(
+        field: Field<*>,
+        value: kotlinx.serialization.json.JsonElement?,
+    ): GeneratedBuilder {
+        val setter = setter(field.name)
+        setter.invoke(
+            instance,
+            JsonValueDecoder.decode(value, setter.genericParameterTypes.single()),
+        )
+        return this
+    }
+
     fun build(): Any = builderClass.getMethod("build").invoke(instance)
+
+    private fun setter(fieldName: String) = builderClass.methods.singleOrNull {
+        it.name == fieldName && it.parameterCount == 1
+    } ?: error(
+        "Generated builder '${builderClass.name}' has no unique '$fieldName' setter"
+    )
 
     companion object {
         fun fromObject(value: Any): GeneratedBuilder = GeneratedBuilder(
@@ -48,11 +69,20 @@ internal class GeneratedBuilder private constructor(
             graphQlType: GraphQLObjectType,
             data: EngineObjectData,
         ): GeneratedBuilder = GeneratedBuilder(
-            builderClass.getConstructor(
-                InternalContext::class.java,
-                GraphQLObjectType::class.java,
-                EngineObjectData::class.java,
-            ).newInstance(context, graphQlType, data)
+            builderClass.constructors
+                .singleOrNull { constructor ->
+                    constructor.parameterCount == 3 &&
+                        constructor.parameterTypes.zip(
+                            arrayOf(context, graphQlType, data),
+                        ).all { (parameterType, argument) ->
+                            parameterType.isAssignableFrom(argument::class.java)
+                        }
+                }
+                ?.newInstance(context, graphQlType, data)
+                ?: error(
+                    "Generated connection builder '${builderClass.name}' has no constructor " +
+                        "compatible with InternalContext, GraphQLObjectType, and EngineObjectData"
+                )
         )
     }
 }

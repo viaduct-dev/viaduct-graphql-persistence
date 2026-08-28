@@ -171,21 +171,65 @@ class PgGraphqlTranslationTest {
     }
 
     @Test
-    fun `rejects nodes selected on a standard connection`() {
+    fun `rewrites nodes selected on a standard connection`() {
         val connectionSchema = PgGraphqlTranslationSchema(
             collectionElementTypes = emptyMap(),
             fieldTypes = mapOf(
                 PgGraphqlFieldCoordinate("Group", "members") to "PersonConnection",
+                PgGraphqlFieldCoordinate("PersonConnection", "edges") to "PersonEdge",
+                PgGraphqlFieldCoordinate("PersonEdge", "node") to "Person",
             ),
         )
-        val error = assertFailsWith<IllegalArgumentException> {
-            PgGraphqlTranslation.translateSelectionDocument(
-                "fragment Main on Group { members { nodes { id } } }",
-                connectionSchema,
-            )
-        }
+        val translated = PgGraphqlTranslation.translateSelectionDocument(
+            "fragment Main on Group { members { nodes { id } } }",
+            connectionSchema,
+        )
 
-        assertContains(error.message.orEmpty(), "use 'edges'")
+        assertContains(translated, "members{_viaduct_nodes:edges{node{id}}}")
+    }
+
+    @Test
+    fun `rewrites nodes for arbitrary structural connection type names`() {
+        val schema = PgGraphqlTranslationSchema(
+            collectionElementTypes = emptyMap(),
+            fieldTypes = mapOf(
+                PgGraphqlFieldCoordinate("Group", "members") to "MembershipPage",
+                PgGraphqlFieldCoordinate("MembershipPage", "edges") to "MembershipLink",
+                PgGraphqlFieldCoordinate("MembershipLink", "node") to "Person",
+            ),
+        )
+
+        val translated = PgGraphqlTranslation.translateSelectionDocument(
+            "fragment Main on Group { members { nodes { id } } }",
+            schema,
+        )
+
+        assertContains(translated, "members{_viaduct_nodes:edges{node{id}}}")
+    }
+
+    @Test
+    fun `rewrites nested nodes on structural connections`() {
+        val schema = PgGraphqlTranslationSchema(
+            collectionElementTypes = emptyMap(),
+            fieldTypes = mapOf(
+                PgGraphqlFieldCoordinate("Group", "members") to "MembershipPage",
+                PgGraphqlFieldCoordinate("MembershipPage", "edges") to "MembershipLink",
+                PgGraphqlFieldCoordinate("MembershipLink", "node") to "Membership",
+                PgGraphqlFieldCoordinate("Membership", "groups") to "GroupPage",
+                PgGraphqlFieldCoordinate("GroupPage", "edges") to "GroupLink",
+                PgGraphqlFieldCoordinate("GroupLink", "node") to "Group",
+            ),
+        )
+
+        val translated = PgGraphqlTranslation.translateSelectionDocument(
+            "fragment Main on Group { members { nodes { groups { nodes { id } } } } }",
+            schema,
+        )
+
+        assertContains(
+            translated,
+            "members{_viaduct_nodes:edges{node{groups{_viaduct_nodes:edges{node{id}}}}}}",
+        )
     }
 
     @Test

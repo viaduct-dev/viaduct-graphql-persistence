@@ -406,13 +406,19 @@ return subtreeClient.fetchByUuid(
 
 The runtime also exposes `fetch` for an explicit `Subtree`, `fetchNode` when requested node
 references must be attached, and `fetchUuidIds` for collection resolvers that return node
-references.
+references. For connection-backed collection resolvers, `fetchUuidConnection` accepts Viaduct's
+standard `first`/`after` and `last`/`before` arguments and returns UUID references together with
+the provider's cursors and `pageInfo`; pass the returned cursor to the next call so pagination
+remains caller-managed and database-backed.
 
-The plugin packages `META-INF/pg-graphql-translation-schema.tsv`, which the runtime loads from the
-application classpath for legacy Viaduct collection fields. Relay-style Viaduct connections already
-use the same `edges { node }` shape as pg_graphql and pass through unchanged. Translation rewrites
-only actual Viaduct collection fields and marks generated edge selections with an internal alias.
-Nested collections are restored recursively without changing domain fields named `nodes` or `edges`.
+The runtime does not require a translation metadata resource. It derives the type and field map
+from generated Viaduct reflection and recognizes a collection structurally: a generated
+`ConnectionBuilder` with a compatibility `nodes` field, or a connection whose `edges` object has a
+`node` field. A Viaduct collection or connection may expose `nodes`; pg_graphql exposes the same
+records through `edges { node }`. Translation rewrites recognized `nodes` selections to that shape
+and marks the generated edge selections with an internal alias. The response restorer changes the
+alias back to `nodes` recursively, including for nested collections, while ordinary domain fields
+named `nodes` or `edges` pass through unchanged.
 
 Translation is included in the runtime library. The runtime owns GraphQL request construction,
 upstream error handling, response-shape restoration, Viaduct GRT mapping, and node-reference

@@ -5,11 +5,7 @@
 
 package dev.viaduct.persistence.runtime
 
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import viaduct.api.context.ResolverExecutionContext
 import viaduct.api.internal.InternalContext
 import viaduct.api.types.Query
@@ -41,61 +37,18 @@ internal class ConnectionReferenceBuilder(
             ResolvedEngineObjectData.Builder(graphQlType).build(),
         )
 
-        val edges = response["edges"]?.jsonArray
-            ?: error("Subtree response for '${reference.fieldName}' did not include 'edges'")
-        val edgeValues = edges.mapIndexed { index, edge ->
-            buildEdge(shape, edge.jsonObject, index, context)
-        }
-        connectionBuilder.set("edges", edgeValues)
-
-        shape.pageInfo?.let { pageInfoShape ->
-            val pageInfo = response["pageInfo"]?.jsonObject
-                ?: error(
-                    "Subtree response for '${reference.fieldName}' did not include 'pageInfo'"
-                )
+        shape.fields.forEach { field ->
             connectionBuilder.set(
-                "pageInfo",
-                pageInfoShape.build(pageInfo, context, typeReflection),
+                field.field,
+                field.value(
+                    response = response,
+                    context = context,
+                    typeReflection = typeReflection,
+                    nodeResolver = nodeResolver,
+                    connectionFieldName = reference.fieldName,
+                ),
             )
         }
         return connectionBuilder.build()
-}
-    private fun buildEdge(
-        shape: ConnectionShape,
-        edge: JsonObject,
-        index: Int,
-        context: ResolverExecutionContext<out Query>,
-    ): Any {
-        val edgeBuilder = GeneratedBuilder.fromExecutionContext(
-            typeReflection.builderClass(shape.edgeType),
-            context,
-        )
-        val node = edge["node"]
-            ?.takeUnless { it is JsonNull }
-            ?.jsonObject
-        val nodeValue = node?.get("uuidId")
-            ?.jsonPrimitive
-            ?.content
-            ?.let { nodeResolver.resolve(context, shape.nodeField.type, it) }
-        edgeBuilder.set("node", nodeValue)
-
-        if (shape.cursorField != null) {
-            edgeBuilder.set("cursor", edge.optionalCursor("cursor"))
-        }
-        return try {
-            edgeBuilder.build()
-        } catch (error: ReflectiveOperationException) {
-            throw IllegalStateException(
-                "Could not build connection edge at index $index for '${shape.type.name}'",
-                error,
-            )
-        }
     }
-
-    private fun JsonObject.optionalCursor(fieldName: String): String? =
-        this[fieldName]
-            ?.takeUnless { it is JsonNull }
-            ?.jsonPrimitive
-            ?.content
-
 }

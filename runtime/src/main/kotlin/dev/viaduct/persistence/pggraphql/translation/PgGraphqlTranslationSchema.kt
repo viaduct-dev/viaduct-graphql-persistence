@@ -12,55 +12,30 @@ data class PgGraphqlTranslationSchema(
     fun collectionElementType(typeName: String): String? =
         collectionElementTypes[typeName]
 
+    /**
+     * Returns the node type for a structural connection identified by its `edges.node` shape.
+     */
+    fun connectionNodeType(typeName: String): String? {
+        val edgeType = fieldType(typeName, "edges") ?: return null
+        return fieldType(edgeType, "node")
+    }
+
+    /**
+     * Returns the element type for either a legacy Viaduct collection or a structural connection.
+     */
+    fun collectionNodeType(typeName: String): String? =
+        collectionElementType(typeName) ?: connectionNodeType(typeName)
+
     fun fieldType(parentType: String, fieldName: String): String? =
         fieldTypes[PgGraphqlFieldCoordinate(parentType, fieldName)]
 
-    fun encode(): String =
-        buildString {
-            appendLine(FORMAT)
-            collectionElementTypes.toSortedMap().forEach { (collection, element) ->
-                appendLine("collection\t$collection\t$element")
-            }
-            fieldTypes.entries
-                .sortedWith(
-                    compareBy(
-                        { it.key.parentType },
-                        { it.key.fieldName },
-                    )
-                )
-                .forEach { (coordinate, target) ->
-                    appendLine(
-                        "field\t${coordinate.parentType}\t${coordinate.fieldName}\t$target"
-                    )
-                }
-        }
-
-    companion object {
-        const val RESOURCE = "META-INF/pg-graphql-translation-schema.tsv"
-        private const val FORMAT = "viaduct-pg-graphql-translation-schema-v1"
-
-        fun decode(text: String): PgGraphqlTranslationSchema {
-            val lines = text.lineSequence().filter(String::isNotBlank).toList()
-            require(lines.firstOrNull() == FORMAT) {
-                "Unsupported pg_graphql translation schema format"
-            }
-            val collections = linkedMapOf<String, String>()
-            val fields = linkedMapOf<PgGraphqlFieldCoordinate, String>()
-            for (line in lines.drop(1)) {
-                val values = line.split('\t')
-                when (values.firstOrNull()) {
-                    "collection" -> {
-                        require(values.size == 3) { "Invalid collection shape: $line" }
-                        collections[values[1]] = values[2]
-                    }
-                    "field" -> {
-                        require(values.size == 4) { "Invalid field shape: $line" }
-                        fields[PgGraphqlFieldCoordinate(values[1], values[2])] = values[3]
-                    }
-                    else -> error("Unknown translation schema record: $line")
-                }
-            }
-            return PgGraphqlTranslationSchema(collections, fields)
-        }
+    /**
+     * Returns true for any structural connection, regardless of whether the schema author called
+     * it `Connection`, `Page`, `List`, or something else. A connection is identified by an
+     * `edges` object whose edge object has a `node` field.
+     */
+    fun isConnectionType(typeName: String): Boolean {
+        return connectionNodeType(typeName) != null
     }
+
 }

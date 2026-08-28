@@ -26,7 +26,7 @@ private fun validatePgGraphqlSubtree(
     if (!visited.add(type.name)) return
 
     for (field in type.fields) {
-        if (field.hasAppliedDirective("resolver")) {
+        if (field.hasAppliedDirective("resolver") && !isResolverBackedConnection(field)) {
             val fieldPath = (path + field.name).joinToString(".")
             error(
                 "@subtree type '${path.first()}' transitively reaches '$fieldPath', which is " +
@@ -37,4 +37,18 @@ private fun validatePgGraphqlSubtree(
         val targetType = objectTypes[target.name] ?: continue
         validatePgGraphqlSubtree(targetType, objectTypes, path + field.name, visited)
     }
+}
+
+/**
+ * A connection field may be resolver-backed when the resolver forwards its filter and
+ * pagination arguments to the corresponding pg_graphql collection. The connection wrapper
+ * remains structural and does not introduce another persisted entity or relationship.
+ */
+private fun isResolverBackedConnection(field: ViaductSchema.Field): Boolean {
+    val connection = field.type.baseTypeDef as? ViaductSchema.Object ?: return false
+    val edge = connection.fields.singleOrNull { it.name == "edges" }
+        ?.type
+        ?.baseTypeDef as? ViaductSchema.Object
+        ?: return false
+    return edge.fields.singleOrNull { it.name == "node" } != null
 }

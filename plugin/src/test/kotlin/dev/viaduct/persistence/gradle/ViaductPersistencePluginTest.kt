@@ -54,18 +54,18 @@ class ViaductPersistencePluginTest {
                   id: ID!
                   name: String!
                   labels: [String!]!
-                  members: PersonConnection!
+                  members: PersonPage!
                 }
 
                 type Person {
                   id: ID!
                 }
 
-                type PersonConnection @connection {
-                  edges: [PersonEdge!]!
+                type PersonPage {
+                  edges: [PersonLink!]!
                 }
 
-                type PersonEdge @edge {
+                type PersonLink {
                   node: Person!
                 }
 
@@ -91,13 +91,14 @@ class ViaductPersistencePluginTest {
                 effectiveModel,
                 "relationship\tGroup\tmembers\tpublic\tpersons\tgroup_id\tLOCAL",
             )
-            val translationSchema = projectDirectory.resolve(
-                "build/generated/viaduct-persistence/resources/" +
-                    "META-INF/pg-graphql-translation-schema.tsv"
-            ).readText()
-            assertTrue(!translationSchema.contains("collection\tQuery\t"))
-            assertTrue(!translationSchema.contains("connection\t"))
-            assertContains(translationSchema, "field\tGroup\tmembers\tPersonConnection")
+            val generatedMetaInf = projectDirectory.resolve(
+                "build/generated/viaduct-persistence/resources/META-INF"
+            )
+            assertTrue(
+                generatedMetaInf.listFiles().orEmpty().none {
+                    it.name.startsWith("pg-graphql-translation-schema")
+                }
+            )
         } finally {
             projectDirectory.deleteRecursively()
         }

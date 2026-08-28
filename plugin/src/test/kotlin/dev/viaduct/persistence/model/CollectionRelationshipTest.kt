@@ -114,6 +114,37 @@ class CollectionRelationshipTest {
     }
 
     @Test
+    fun `detects connections by shape rather than directives or type suffixes`() {
+        val schema = ViaductSchemaFactory.fromTypeDefinitionRegistry(
+            """
+            type Group {
+              id: ID!
+              members: PersonPage!
+            }
+
+            type Person {
+              id: ID!
+            }
+
+            type PersonPage {
+              edges: [PersonLink!]!
+            }
+
+            type PersonLink {
+              node: Person!
+            }
+            """.trimIndent()
+        )
+
+        val model = PersistenceModelBuilder().build(schema, setOf("Group", "Person"))
+        val members = model.entities.single { it.graphqlName == "Group" }
+            .attributes.single { it.name == "members" } as PersistenceToManyAttribute
+
+        assertEquals("Person", members.targetTypeName)
+        assertEquals(PersistenceToManyStorage.TARGET_FOREIGN_KEY, members.storage)
+    }
+
+    @Test
     fun `allows an existing unidirectional target foreign key by configuration`() {
         val schema = ViaductSchemaFactory.fromTypeDefinitionRegistry(
             """
