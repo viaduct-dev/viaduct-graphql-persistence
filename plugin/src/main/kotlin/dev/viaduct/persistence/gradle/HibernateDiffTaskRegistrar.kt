@@ -1,9 +1,6 @@
 package dev.viaduct.persistence.gradle
 
-import dev.viaduct.persistence.liquibase.ViaductHibernateDatabase
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskProvider
 
 /** Registers the raw and conservative review-only Liquibase diff tasks. */
@@ -14,9 +11,8 @@ internal class HibernateDiffTaskRegistrar(
 ) {
     fun register(
         effective: TaskProvider<BuildEffectiveHibernateModelTask>,
-        tooling: Configuration,
     ) {
-        val rawDiff = registerRaw(effective, tooling)
+        val rawDiff = registerRaw(effective)
         project.tasks.register("hibernateSchemaDiff", ConservativeLiquibaseDiffTask::class.java) {
             it.group = "verification"
             it.description =
@@ -36,41 +32,27 @@ internal class HibernateDiffTaskRegistrar(
 
     private fun registerRaw(
         effective: TaskProvider<BuildEffectiveHibernateModelTask>,
-        tooling: Configuration,
-    ): TaskProvider<JavaExec> = project.tasks.register(
+    ): TaskProvider<HibernateSchemaDiffTask> = project.tasks.register(
         "hibernateSchemaDiffRaw",
-        JavaExec::class.java,
+        HibernateSchemaDiffTask::class.java,
     ) { task ->
         task.group = "verification"
         task.description =
             "Write an unfiltered review-only Liquibase diff against a consumer database."
         task.dependsOn(effective)
-        task.classpath = layout.mainSourceSet.runtimeClasspath + tooling
-        task.mainClass.set("liquibase.integration.commandline.LiquibaseCommandLine")
         val diffFile = project.layout.buildDirectory
             .file("schema-diff/hibernate-raw-review.postgresql.sql")
-        task.outputs.file(diffFile)
-        task.outputs.upToDateWhen { false }
-        task.doFirst {
-            val destination = diffFile.get().asFile
-            destination.parentFile.mkdirs()
-            destination.delete()
-            val effectiveDirectory = layout.effectiveRoot.get().asFile
-            val tablePattern = effectiveDirectory
-                .resolve("META-INF/persistent-tables.txt")
-                .readLines()
-                .filter(String::isNotBlank)
-                .joinToString("|")
-            val manifest = effectiveDirectory.resolve("META-INF/viaduct-hibernate-reference.tsv")
-            task.args(
-                "--reference-url=${ViaductHibernateDatabase.referenceUrl(manifest)}",
-                "--url=${extension.schemaDiffUrl.get()}",
-                "--username=${extension.schemaDiffUser.get()}",
-                "--password=${extension.schemaDiffPassword.get()}",
-                "--include-objects=table:($tablePattern)",
-                "diff-changelog",
-                "--changelog-file=${destination.absolutePath}",
-            )
-        }
+        task.referenceManifest.set(
+            layout.effectiveRoot.map {
+                it.file("META-INF/viaduct-hibernate-reference.tsv")
+            },
+        )
+        task.persistentTablesFile.set(
+            layout.effectiveRoot.map { it.file("META-INF/persistent-tables.txt") },
+        )
+        task.targetUrl.set(extension.schemaDiffUrl)
+        task.targetUsername.set(extension.schemaDiffUser)
+        task.targetPassword.set(extension.schemaDiffPassword)
+        task.diffFile.set(diffFile)
     }
 }

@@ -78,7 +78,11 @@ class ViaductPersistencePluginTest {
             GradleRunner.create()
                 .withProjectDir(projectDirectory)
                 .withPluginClasspath()
-                .withArguments("buildViaductEffectiveModel", "--stacktrace")
+                .withArguments(
+                    "buildViaductEffectiveModel",
+                    "hibernateSchemaSnapshot",
+                    "--stacktrace",
+                )
                 .build()
 
             val effectiveModel = projectDirectory.resolve(
@@ -98,6 +102,9 @@ class ViaductPersistencePluginTest {
                 generatedMetaInf.listFiles().orEmpty().none {
                     it.name.startsWith("pg-graphql-translation-schema")
                 }
+            )
+            assertTrue(
+                projectDirectory.resolve("build/schema-diff/hibernate-snapshot.json").isFile
             )
         } finally {
             projectDirectory.deleteRecursively()

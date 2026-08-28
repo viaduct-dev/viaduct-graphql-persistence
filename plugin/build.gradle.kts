@@ -13,7 +13,6 @@ dependencies {
     implementation("org.liquibase:liquibase-core:5.0.3")
     implementation("org.liquibase.ext:liquibase-hibernate7:5.0.3")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
-    runtimeOnly("info.picocli:picocli:4.7.7")
     runtimeOnly("org.postgresql:postgresql:42.7.5")
     testImplementation(gradleTestKit())
     testImplementation(kotlin("test"))
