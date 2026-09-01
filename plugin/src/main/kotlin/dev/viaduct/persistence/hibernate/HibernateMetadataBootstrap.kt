@@ -29,19 +29,23 @@ class HibernateMetadataHandle internal constructor(
 }
 
 object HibernateMetadataBootstrap {
-    fun build(manifest: HibernateReferenceManifest): HibernateMetadataHandle {
-        manifest.validate()
+    fun build(configuration: HibernateMetadataConfiguration): HibernateMetadataHandle {
+        configuration.validate()
         val previousContextClassLoader = Thread.currentThread().contextClassLoader
-        val classLoader = createClassLoader(manifest)
+        val classLoader = createClassLoader(configuration)
         Thread.currentThread().contextClassLoader = classLoader
 
         var registry: StandardServiceRegistry? = null
         var handleCreated = false
         try {
-            val currentRegistry = createRegistry(manifest, classLoader)
+            val currentRegistry = createRegistry(configuration, classLoader)
             registry = currentRegistry
-            return buildHandle(manifest, classLoader, currentRegistry, previousContextClassLoader)
-                .also { handleCreated = true }
+            return buildHandle(
+                configuration,
+                classLoader,
+                currentRegistry,
+                previousContextClassLoader,
+            ).also { handleCreated = true }
         } finally {
             if (!handleCreated) {
                 registry?.let(StandardServiceRegistryBuilder::destroy)
@@ -51,9 +55,9 @@ object HibernateMetadataBootstrap {
         }
     }
 
-    private fun createClassLoader(manifest: HibernateReferenceManifest): URLClassLoader =
+    private fun createClassLoader(configuration: HibernateMetadataConfiguration): URLClassLoader =
         URLClassLoader(
-            manifest.classpath
+            configuration.classpath
                 .map(File::toURI)
                 .map { it.toURL() }
                 .toTypedArray(),
@@ -61,23 +65,23 @@ object HibernateMetadataBootstrap {
         )
 
     private fun createRegistry(
-        manifest: HibernateReferenceManifest,
+        configuration: HibernateMetadataConfiguration,
         classLoader: URLClassLoader,
     ): StandardServiceRegistry =
         StandardServiceRegistryBuilder()
-            .applySetting("hibernate.dialect", manifest.dialectClassName)
-            .applySettings(manifest.hibernateSettings)
+            .applySetting("hibernate.dialect", configuration.dialectClassName)
+            .applySettings(configuration.hibernateSettings)
             .applySetting("hibernate.classLoaders", listOf(classLoader))
             .build()
 
     private fun buildHandle(
-        manifest: HibernateReferenceManifest,
+        configuration: HibernateMetadataConfiguration,
         classLoader: URLClassLoader,
         registry: StandardServiceRegistry,
         previousContextClassLoader: ClassLoader?,
     ): HibernateMetadataHandle {
-        val metadata = buildMetadata(manifest, classLoader, registry)
-        validateManagedClasses(manifest, metadata)
+        val metadata = buildMetadata(configuration, classLoader, registry)
+        validateManagedClasses(configuration, metadata)
         return HibernateMetadataHandle(
             metadata = metadata,
             registry = registry,
@@ -87,28 +91,28 @@ object HibernateMetadataBootstrap {
     }
 
     private fun buildMetadata(
-        manifest: HibernateReferenceManifest,
+        configuration: HibernateMetadataConfiguration,
         classLoader: URLClassLoader,
         registry: StandardServiceRegistry,
     ): Metadata {
         val metadataBuilder =
             MetadataSources(registry)
-                .addFile(manifest.mappingFile)
+                .addFile(configuration.mappingFile)
                 .metadataBuilder
                 .applyTempClassLoader(classLoader)
         metadataBuilder.applyImplicitNamingStrategy(
             classLoader.instantiate(
-                manifest.implicitNamingStrategyClassName,
+                configuration.implicitNamingStrategyClassName,
                 ImplicitNamingStrategy::class.java,
             ),
         )
         metadataBuilder.applyPhysicalNamingStrategy(
             classLoader.instantiate(
-                manifest.physicalNamingStrategyClassName,
+                configuration.physicalNamingStrategyClassName,
                 PhysicalNamingStrategy::class.java,
             ),
         )
-        manifest.metadataCustomizerClassNames.forEach { className ->
+        configuration.metadataCustomizerClassNames.forEach { className ->
             classLoader
                 .instantiate(className, HibernateMetadataCustomizer::class.java)
                 .customize(metadataBuilder)
@@ -117,13 +121,13 @@ object HibernateMetadataBootstrap {
     }
 
     private fun validateManagedClasses(
-        manifest: HibernateReferenceManifest,
+        configuration: HibernateMetadataConfiguration,
         metadata: Metadata,
     ) {
         val actualManagedClasses = metadata.entityBindings.mapNotNull { it.className }.toSet()
-        val expectedManagedClasses = manifest.managedClassNames.toSet()
+        val expectedManagedClasses = configuration.managedClassNames.toSet()
         require(actualManagedClasses == expectedManagedClasses) {
-            "Hibernate managed classes differ from the reference manifest: " +
+            "Hibernate managed classes differ from the metadata configuration: " +
                 "missing=${(expectedManagedClasses - actualManagedClasses).sorted()}, " +
                 "unexpected=${(actualManagedClasses - expectedManagedClasses).sorted()}"
         }

@@ -17,6 +17,7 @@ dependencies {
     testImplementation(gradleTestKit())
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testImplementation("com.h2database:h2:2.3.232")
 }
 
 gradlePlugin {

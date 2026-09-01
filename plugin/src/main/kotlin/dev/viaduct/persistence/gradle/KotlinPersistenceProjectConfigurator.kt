@@ -11,7 +11,7 @@ internal class KotlinPersistenceProjectConfigurator(
         val layout = PersistenceBuildLayout(project)
         PersistenceGenerationRegistrar(project, extension, layout).register()
         val effective = EffectiveModelRegistrar(project, extension, layout).register()
-        HibernateSnapshotTaskRegistrar(project, layout).register(effective)
+        HibernateSnapshotTaskRegistrar(project, extension, layout).register(effective)
         HibernateDiffTaskRegistrar(project, extension, layout).register(effective)
     }
 }

@@ -35,9 +35,7 @@ internal class PersistenceGenerationRegistrar(
                 it.includedTypeNames.set(extension.includedTypeNames)
                 it.replacementOrmXml.set(extension.replacementOrmXml)
                 it.associationSchemaName.set(extension.associationSchemaName)
-                it.unidirectionalTargetForeignKeyFields.set(
-                    extension.unidirectionalTargetForeignKeyFields,
-                )
+                it.relationshipConfigFile.from(extension.relationshipConfigFile)
             }
         wireGeneratedSources(validate, generate)
     }

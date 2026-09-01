@@ -20,11 +20,9 @@ internal class EffectiveModelRegistrar(
                 it.description =
                     "Build effective Hibernate metadata and database overlay artifacts."
                 it.dependsOn("classes")
-                it.semanticModelFile.set(
-                    layout.generatedRoot.map {
-                        it.file("resources/META-INF/viaduct-persistence-model.tsv")
-                    },
-                )
+                it.centralSchemaDirectory.set(extension.centralSchemaDirectory)
+                it.includedTypeNames.set(extension.includedTypeNames)
+                it.relationshipConfigFile.from(extension.relationshipConfigFile)
                 it.mappingFile.set(layout.generatedRoot.map { it.file("resources/META-INF/orm.xml") })
                 it.modelClasspath.from(layout.mainSourceSet.runtimeClasspath)
                 it.packageName.set(extension.packageName)

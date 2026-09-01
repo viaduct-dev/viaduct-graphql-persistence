@@ -1,16 +1,12 @@
 package dev.viaduct.persistence.gradle
 
 import dev.viaduct.persistence.hibernate.EffectiveHibernateModelBuilder
-import dev.viaduct.persistence.hibernate.EffectiveHibernateModelWriter
 import dev.viaduct.persistence.hibernate.HibernateMetadataBootstrap
-import dev.viaduct.persistence.hibernate.HibernateReferenceManifest
-import dev.viaduct.persistence.hibernate.HibernateReferenceManifestCodec
+import dev.viaduct.persistence.hibernate.HibernateMetadataConfigurationFactory
+import dev.viaduct.persistence.hibernate.HibernateMetadataConfigurationInput
 import dev.viaduct.persistence.hibernate.ViaductImplicitNamingStrategy
 import dev.viaduct.persistence.hibernate.ViaductPhysicalNamingStrategy
-import dev.viaduct.persistence.hibernate.hibernateMetadataFingerprint
-import dev.viaduct.persistence.io.ensureDirectory
-import dev.viaduct.persistence.model.PersistenceModelCodec
-import dev.viaduct.persistence.model.entityClassName
+import dev.viaduct.persistence.model.PersistenceModel
 import dev.viaduct.persistence.pggraphql.overlay.PgGraphqlOverlay
 import dev.viaduct.persistence.postgresql.PostgresqlOverlay
 import org.gradle.api.DefaultTask
@@ -21,14 +17,22 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 
 abstract class BuildEffectiveHibernateModelTask : DefaultTask() {
-    @get:InputFile
-    abstract val semanticModelFile: RegularFileProperty
+    @get:InputDirectory
+    abstract val centralSchemaDirectory: DirectoryProperty
+
+    @get:Input
+    abstract val includedTypeNames: ListProperty<String>
+
+    @get:InputFiles
+    abstract val relationshipConfigFile: ConfigurableFileCollection
 
     @get:InputFile
     abstract val mappingFile: RegularFileProperty
@@ -55,23 +59,32 @@ abstract class BuildEffectiveHibernateModelTask : DefaultTask() {
 
     init {
         metadataCustomizerClassNames.convention(emptyList())
+        includedTypeNames.convention(emptyList())
     }
 
     @TaskAction
     fun buildEffectiveModel() {
-        val semanticModel = PersistenceModelCodec.read(semanticModelFile.get().asFile)
+        val semanticModel =
+            PersistenceSchemaModelLoader.build(
+                centralSchemaDirectory = centralSchemaDirectory.get().asFile,
+                includedTypeNames = includedTypeNames.get(),
+                relationshipConfigFile = relationshipConfigFile.files.singleOrNull(),
+            )
         val output = outputDirectory.get().asFile
         output.deleteRecursively()
-        val metadataDirectory = output.resolve("META-INF").apply(java.io.File::ensureDirectory)
-        val manifestFile = metadataDirectory.resolve("viaduct-hibernate-reference.tsv")
-        HibernateReferenceManifestCodec.write(
-            HibernateReferenceManifest(
+        val configuration = createMetadataConfiguration(semanticModel)
+        HibernateMetadataBootstrap.build(configuration).use { handle ->
+            writeOutputs(semanticModel, handle, output)
+        }
+    }
+
+    private fun createMetadataConfiguration(semanticModel: PersistenceModel) =
+        HibernateMetadataConfigurationFactory.create(
+            HibernateMetadataConfigurationInput(
                 mappingFile = mappingFile.get().asFile,
                 classpath = modelClasspath.files.toList(),
-                managedClassNames =
-                    semanticModel.entities.map {
-                        "${packageName.get()}.${entityClassName(it.graphqlName)}"
-                    },
+                semanticModel = semanticModel,
+                packageName = packageName.get(),
                 implicitNamingStrategyClassName =
                     implicitNamingStrategyClassName.orNull
                         ?: ViaductImplicitNamingStrategy::class.java.name,
@@ -79,41 +92,35 @@ abstract class BuildEffectiveHibernateModelTask : DefaultTask() {
                     physicalNamingStrategyClassName.orNull
                         ?: ViaductPhysicalNamingStrategy::class.java.name,
                 metadataCustomizerClassNames = metadataCustomizerClassNames.get(),
-                dialectClassName = HibernateReferenceManifest.DEFAULT_DIALECT,
-                hibernateSettings = HibernateReferenceManifest.defaultSettings(),
-                ownershipManifestFile = metadataDirectory.resolve("persistent-tables.txt"),
             ),
-            destination = manifestFile,
         )
-        val manifest = HibernateReferenceManifestCodec.read(manifestFile)
-        HibernateMetadataBootstrap.build(manifest).use { handle ->
-            val effectiveModel =
-                EffectiveHibernateModelBuilder.build(
-                    metadata = handle.metadata,
-                    semanticModel = semanticModel,
-                    packageName = packageName.get(),
-                )
-            EffectiveHibernateModelWriter.write(
-                model = effectiveModel,
-                outputDirectory = output,
-                metadataFingerprint = hibernateMetadataFingerprint(handle.metadata),
+
+    private fun writeOutputs(
+        semanticModel: PersistenceModel,
+        handle: dev.viaduct.persistence.hibernate.HibernateMetadataHandle,
+        output: java.io.File,
+    ) {
+        val effectiveModel =
+            EffectiveHibernateModelBuilder.build(
+                metadata = handle.metadata,
+                semanticModel = semanticModel,
+                packageName = packageName.get(),
             )
-            PostgresqlOverlay.write(effectiveModel, output)
-            PgGraphqlOverlay.write(effectiveModel, output)
-            output.resolve("META-INF/pg-graphql-metadata.sql").writeText(
+        PostgresqlOverlay.write(effectiveModel, output)
+        PgGraphqlOverlay.write(effectiveModel, output)
+        output.resolve("META-INF/pg-graphql-metadata.sql").writeText(
+            PostgresqlOverlay.renderRepeatable(effectiveModel) +
+                PgGraphqlOverlay.render(effectiveModel),
+        )
+        output.resolve("META-INF/pg-graphql.sql").writeText(
+            PostgresqlOverlay.renderPrerequisites(effectiveModel) +
+                PostgresqlOverlay.renderMigration(effectiveModel) +
                 PostgresqlOverlay.renderRepeatable(effectiveModel) +
-                    PgGraphqlOverlay.render(effectiveModel),
-            )
-            output.resolve("META-INF/pg-graphql.sql").writeText(
-                PostgresqlOverlay.renderPrerequisites(effectiveModel) +
-                    PostgresqlOverlay.renderMigration(effectiveModel) +
-                    PostgresqlOverlay.renderRepeatable(effectiveModel) +
-                    PgGraphqlOverlay.render(effectiveModel),
-            )
-            logger.lifecycle(
-                "Built effective Hibernate model for " +
-                    effectiveModel.entities.joinToString { it.graphqlName },
-            )
-        }
+                PgGraphqlOverlay.render(effectiveModel),
+        )
+        logger.lifecycle(
+            "Built effective Hibernate model for " +
+                effectiveModel.entities.joinToString { it.graphqlName },
+        )
     }
 }

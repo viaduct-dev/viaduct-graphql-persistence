@@ -3,7 +3,6 @@ package dev.viaduct.persistence.hibernate
 import dev.viaduct.persistence.io.ensureDirectory
 import dev.viaduct.persistence.model.PersistenceEntity
 import dev.viaduct.persistence.model.PersistenceModel
-import dev.viaduct.persistence.model.PersistenceModelCodec
 import java.io.File
 
 /** Inputs used when generating the Hibernate source and mapping artifacts. */
@@ -50,10 +49,6 @@ class HibernateSchemaModelWriter {
         } else {
             options.replacementOrmXml.copyTo(mappingDestination)
         }
-        PersistenceModelCodec.write(
-            model,
-            resourcesDirectory.resolve("viaduct-persistence-model.tsv"),
-        )
     }
 
     /** Compatibility overload for callers that pass generation options individually. */

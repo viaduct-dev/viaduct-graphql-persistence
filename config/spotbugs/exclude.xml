@@ -38,4 +38,15 @@
             name="~dev\.viaduct\.persistence\.runtime\.(ConnectionShape|EdgeShape|NodeReferenceSelection|PageInfoShape|SubtreeBatchFetcher|SubtreeFetcher)"
         />
     </Match>
+
+    <!--
+        The Statement/ResultSet here are both closed via Kotlin's use{}, which compiles to a
+        standard try/finally; SpotBugs's experimental obligation tracker cannot follow the
+        capture-into-an-outer-val pattern used to return a value out of that block.
+    -->
+    <Match>
+        <Bug pattern="OBL_UNSATISFIED_OBLIGATION"/>
+        <Class name="dev.viaduct.persistence.liquibase.pggraphql.PgGraphqlCommentSnapshotGenerator"/>
+        <Method name="queryConstraintComment"/>
+    </Match>
 </FindBugsFilter>

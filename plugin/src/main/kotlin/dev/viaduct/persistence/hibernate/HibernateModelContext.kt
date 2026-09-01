@@ -1,6 +1,8 @@
 package dev.viaduct.persistence.hibernate
 
+import dev.viaduct.persistence.model.PersistenceAssociation
 import dev.viaduct.persistence.model.PersistenceEntity
+import dev.viaduct.persistence.model.associationEntityClassName
 import dev.viaduct.persistence.model.entityClassName
 import org.hibernate.boot.Metadata
 import org.hibernate.mapping.Collection
@@ -35,6 +37,30 @@ internal class HibernateModelContext(
         val role = "${className(ownerTypeName)}.$fieldName"
         return requireNotNull(metadata.getCollectionBinding(role)) {
             "Hibernate metadata does not contain collection $role"
+        }
+    }
+
+    fun associationFor(
+        ownerTypeName: String,
+        fieldName: String,
+    ): PersistenceAssociation =
+        requireNotNull(
+            semanticModel.associations.singleOrNull {
+                it.ownerTypeName == ownerTypeName && it.fieldName == fieldName
+            },
+        ) {
+            "Semantic model does not contain association $ownerTypeName.$fieldName"
+        }
+
+    fun associationBindingFor(
+        ownerTypeName: String,
+        fieldName: String,
+    ): PersistentClass {
+        val association = associationFor(ownerTypeName, fieldName)
+        val className =
+            "$packageName.${associationEntityClassName(association.ownerTypeName, association.fieldName)}"
+        return requireNotNull(bindingsByClassName[className]) {
+            "Hibernate metadata does not contain generated association $className"
         }
     }
 }

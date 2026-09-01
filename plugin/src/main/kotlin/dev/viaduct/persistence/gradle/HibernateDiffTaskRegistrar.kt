@@ -50,14 +50,15 @@ internal class HibernateDiffTaskRegistrar(
                 val diffFile =
                     project.layout.buildDirectory
                         .file("schema-diff/hibernate-raw-review.postgresql.sql")
-                task.referenceManifest.set(
-                    layout.effectiveRoot.map {
-                        it.file("META-INF/viaduct-hibernate-reference.tsv")
-                    },
-                )
-                task.persistentTablesFile.set(
-                    layout.effectiveRoot.map { it.file("META-INF/persistent-tables.txt") },
-                )
+                task.centralSchemaDirectory.set(extension.centralSchemaDirectory)
+                task.mappingFile.set(layout.generatedRoot.map { it.file("resources/META-INF/orm.xml") })
+                task.modelClasspath.from(layout.mainSourceSet.runtimeClasspath)
+                task.packageName.set(extension.packageName)
+                task.includedTypeNames.set(extension.includedTypeNames)
+                task.relationshipConfigFile.from(extension.relationshipConfigFile)
+                task.implicitNamingStrategyClassName.set(extension.implicitNamingStrategyClassName)
+                task.physicalNamingStrategyClassName.set(extension.physicalNamingStrategyClassName)
+                task.metadataCustomizerClassNames.set(extension.metadataCustomizerClassNames)
                 task.targetUrl.set(extension.schemaDiffUrl)
                 task.targetUsername.set(extension.schemaDiffUser)
                 task.targetPassword.set(extension.schemaDiffPassword)
