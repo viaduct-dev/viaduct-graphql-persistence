@@ -6,7 +6,22 @@ import dev.viaduct.persistence.hibernate.GraphqlNameKind
 
 /** Renders pg_graphql foreign-key naming comments for ordinary relationships. */
 internal object PgGraphqlConstraintRenderer {
-    fun render(model: EffectiveHibernateModel): String {
+    fun render(model: EffectiveHibernateModel): String =
+        buildString {
+            commentsByConstraint(model).forEach { (constraint, comment) ->
+                appendLine(graphqlConstraintComment(constraint, comment))
+            }
+        }
+
+    /** The desired `@graphql({...})` comment text for a single foreign-key column, if any. */
+    fun commentValue(
+        model: EffectiveHibernateModel,
+        schemaName: String,
+        tableName: String,
+        columnName: String,
+    ): String? = commentsByConstraint(model)[ConstraintColumn(schemaName, tableName, columnName)]
+
+    private fun commentsByConstraint(model: EffectiveHibernateModel): Map<ConstraintColumn, String> {
         val namesByConstraint = linkedMapOf<ConstraintColumn, MutableMap<String, String>>()
         model.relationships.forEach { relationship ->
             val names =
@@ -20,12 +35,57 @@ internal object PgGraphqlConstraintRenderer {
                 )
             names[relationship.nameKey()] = relationship.fieldName
         }
-        return buildString {
-            namesByConstraint.forEach { (constraint, names) ->
-                appendLine(graphqlConstraintComment(constraint, names))
-            }
-        }
+        synthesizeAmbiguousLocalNames(model, namesByConstraint)
+        return namesByConstraint.mapValues { (_, names) -> graphqlCommentText(names) }
     }
+
+    /**
+     * pg_graphql derives a reverse-collection name from the source table alone, not the FK
+     * column, so two or more foreign keys from one table to the same target table collide on
+     * that default name unless every affected constraint carries an explicit `local_name`. When
+     * no GraphQL field declares that reverse collection (so [EffectiveHibernateRelationship]
+     * never produces a real [GraphqlNameKind.LOCAL] entry for it), synthesize one instead of
+     * leaving the collision in place.
+     */
+    private fun synthesizeAmbiguousLocalNames(
+        model: EffectiveHibernateModel,
+        namesByConstraint: MutableMap<ConstraintColumn, MutableMap<String, String>>,
+    ) {
+        model.relationships
+            .filter { it.graphqlNameKind == GraphqlNameKind.FOREIGN && it.targetTableName != null }
+            .groupBy {
+                TargetGroup(it.schemaName, it.tableName, it.targetSchemaName.orEmpty(), it.targetTableName.orEmpty())
+            }.values
+            .filter { it.size > 1 }
+            .flatten()
+            .forEach { relationship ->
+                val constraint =
+                    ConstraintColumn(relationship.schemaName, relationship.tableName, relationship.columnName)
+                namesByConstraint.getValue(constraint).putIfAbsent(
+                    "local_name",
+                    synthesizeLocalName(relationship.ownerTypeName, relationship.fieldName),
+                )
+            }
+    }
+
+    private fun synthesizeLocalName(
+        ownerTypeName: String,
+        fieldName: String,
+    ): String =
+        pluralize(ownerTypeName).replaceFirstChar { it.lowercaseChar() } + "By" +
+            fieldName.replaceFirstChar { it.uppercaseChar() }
+
+    private fun pluralize(value: String): String =
+        when {
+            value.endsWith("y") && value.length > 1 && value[value.length - 2].lowercaseChar() !in "aeiou" ->
+                value.dropLast(1) + "ies"
+            value.endsWith("s") ||
+                value.endsWith("x") ||
+                value.endsWith("z") ||
+                value.endsWith("ch") ||
+                value.endsWith("sh") -> value + "es"
+            else -> value + "s"
+        }
 
     private fun EffectiveHibernateRelationship.nameKey(): String =
         when (graphqlNameKind) {
@@ -33,9 +93,19 @@ internal object PgGraphqlConstraintRenderer {
             GraphqlNameKind.LOCAL -> "local_name"
         }
 
+    private data class TargetGroup(
+        val schemaName: String,
+        val tableName: String,
+        val targetSchemaName: String,
+        val targetTableName: String,
+    )
+
+    private fun graphqlCommentText(names: Map<String, String>): String =
+        "@graphql({${names.entries.joinToString(", ") { (name, value) -> "\"$name\": \"$value\"" }}})"
+
     private fun graphqlConstraintComment(
         constraint: ConstraintColumn,
-        names: Map<String, String>,
+        commentText: String,
     ): String =
         """
         DO ${'$'}pg_graphql${'$'}
@@ -59,7 +129,7 @@ internal object PgGraphqlConstraintRenderer {
           EXECUTE format(
             'COMMENT ON CONSTRAINT %I ON ${quoteIdentifier(constraint.schemaName)}.${quoteIdentifier(constraint.tableName)} IS %L',
             constraint_name,
-            '@graphql({${names.entries.joinToString(", ") { (name, value) -> "\"$name\": \"$value\"" }}})'
+            '$commentText'
           );
         END
         ${'$'}pg_graphql${'$'};

@@ -38,6 +38,7 @@ internal class EffectiveHibernateRelationshipProjector(
         when (attribute) {
             is PersistenceToOneAttribute -> {
                 val property = binding.requiredProperty(entity.graphqlName, attribute.name)
+                val targetBinding = context.bindingFor(attribute.targetTypeName)
                 EffectiveHibernateRelationship(
                     ownerTypeName = entity.graphqlName,
                     fieldName = attribute.name,
@@ -45,6 +46,8 @@ internal class EffectiveHibernateRelationshipProjector(
                     tableName = property.value.table.name,
                     columnName = property.singleColumnName(),
                     graphqlNameKind = GraphqlNameKind.FOREIGN,
+                    targetSchemaName = targetBinding.table.schema ?: "public",
+                    targetTableName = targetBinding.table.name,
                 )
             }
             is PersistenceToManyAttribute ->

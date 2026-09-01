@@ -51,6 +51,9 @@ data class EffectiveHibernateRelationship(
     val tableName: String,
     val columnName: String,
     val graphqlNameKind: GraphqlNameKind,
+    /** Populated for [GraphqlNameKind.FOREIGN]: the table the foreign key points at. */
+    val targetSchemaName: String? = null,
+    val targetTableName: String? = null,
 )
 
 data class EffectiveHibernateArray(

@@ -10,12 +10,18 @@ class PersistenceModelBuilder {
         schema: ViaductSchema,
         includedTypeNames: Set<String>,
         unidirectionalTargetForeignKeyFields: Set<String> = emptySet(),
+        inverseFieldOverrides: Map<String, String> = emptyMap(),
     ): PersistenceModel {
         val includedObjects = resolveIncludedObjects(schema, includedTypeNames)
         val modelContext =
             PersistenceModelContext(
                 includedObjects = includedObjects,
+                schemaObjects =
+                    schema.types.values
+                        .filterIsInstance<ViaductSchema.Object>()
+                        .associateBy(ViaductSchema.Object::name),
                 unidirectionalTargetForeignKeyFields = unidirectionalTargetForeignKeyFields,
+                inverseFieldOverrides = inverseFieldOverrides,
             )
         modelValidator.validateTargetForeignKeyFields(modelContext)
         val entities =
