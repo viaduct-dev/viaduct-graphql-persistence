@@ -29,7 +29,7 @@
     <Match>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
         <Class
-            name="~dev\.viaduct\.persistence\.(gradle\.(EffectiveModelRegistrar|HibernateDiffTaskRegistrar|HibernateSnapshotTaskRegistrar|KotlinPersistenceProjectConfigurator|PersistenceBuildLayout|PersistenceGenerationRegistrar|GenerateHibernateSchemaModelTask\$.*)|hibernate\.(HibernateMetadataHandle|OrmAttributeWriter|OrmEntityWriter|RelationshipProjection)|liquibase\.LiquibaseDatabaseSession|model\.(CollectionMappingContext|CollectionMappingResolver|PersistenceModelContext|RelationshipTargetResolverChain))"
+            name="~dev\.viaduct\.persistence\.(gradle\.(EffectiveModelRegistrar|HibernateDiffTaskRegistrar|HibernateSnapshotTaskRegistrar|KotlinPersistenceProjectConfigurator|PersistenceBuildLayout|PersistenceGenerationRegistrar|PersistenceRelationshipConfig|GenerateHibernateSchemaModelTask\$.*)|hibernate\.(HibernateMetadataHandle|OrmAttributeWriter|OrmEntityWriter|RelationshipProjection)|liquibase\.LiquibaseDatabaseSession|model\.(CollectionMappingContext|CollectionMappingResolver|PersistenceModelContext|RelationshipTargetResolverChain))"
         />
     </Match>
     <Match>
