@@ -2,7 +2,6 @@
 
 package dev.viaduct.persistence.runtime
 
-import dev.viaduct.persistence.pggraphql.translation.VIADUCT_NODES_RESPONSE_ALIAS
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -14,16 +13,26 @@ import viaduct.api.types.Query
 internal interface ConnectionResponseField {
     val field: Field<*>
 
-    fun selection(): String?
+    fun selection(path: ConnectionPath): String?
+
+    fun selection(
+        path: ConnectionPath,
+        typeReflection: GeneratedTypeReflection,
+    ): String? = selection(path)
 
     fun value(
         response: JsonObject,
-        context: ResolverExecutionContext<out Query>,
-        typeReflection: GeneratedTypeReflection,
-        nodeResolver: NodeReferenceResolver,
-        connectionFieldName: String,
+        context: ConnectionFieldValueContext,
     ): Any?
 }
+
+internal data class ConnectionFieldValueContext(
+    val executionContext: ResolverExecutionContext<out Query>,
+    val typeReflection: GeneratedTypeReflection,
+    val nodeResolver: NodeReferenceResolver,
+    val connectionFieldName: String,
+    val path: ConnectionPath,
+)
 
 /** Restores a compatibility `nodes` selection from the pg_graphql edge response. */
 internal class NodesResponseField(
@@ -31,41 +40,61 @@ internal class NodesResponseField(
     private val edgeField: CompositeField<*, *>,
     private val edge: EdgeShape,
 ) : ConnectionResponseField {
-    override fun selection(): String = "${VIADUCT_NODES_RESPONSE_ALIAS}: ${edgeField.name} { ${edge.node.selection()} }"
+    override fun selection(path: ConnectionPath): String = "${edgeField.name} { ${edge.node.selection(path)} }"
 
     override fun value(
         response: JsonObject,
-        context: ResolverExecutionContext<out Query>,
-        typeReflection: GeneratedTypeReflection,
-        nodeResolver: NodeReferenceResolver,
-        connectionFieldName: String,
+        context: ConnectionFieldValueContext,
     ): Any =
-        response[field.name]
+        response["nodes"]
             ?.jsonArray
-            ?.mapIndexed { index, node ->
-                val nodeObject = node.jsonObject
-                edge.node.resolve(nodeObject, context, nodeResolver) ?: error(
-                    "Subtree response for '$connectionFieldName' had a null node at index $index",
+            ?.mapIndexed { index, nodeJson ->
+                edge.node.resolveNode(
+                    nodeJson.jsonObject,
+                    context.executionContext,
+                    context.nodeResolver,
+                ) ?: error(
+                    "Subtree response for '${context.connectionFieldName}' had a null node at index $index",
                 )
             }
-            ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'")
+            ?: response[edgeField.name]
+                ?.jsonArray
+                ?.mapIndexed { index, edgeJson ->
+                    edge.node.resolve(
+                        edgeJson.jsonObject,
+                        context.path,
+                        context.executionContext,
+                        context.nodeResolver,
+                    ) ?: error(
+                        "Subtree response for '${context.connectionFieldName}' had a null node at index $index",
+                    )
+                }
+            ?: error(
+                "Subtree response for '${context.connectionFieldName}' did not include " +
+                    "'nodes' or '${edgeField.name}'",
+            )
 }
 
 internal class EdgesResponseField(
     override val field: Field<*>,
     private val edge: EdgeShape,
 ) : ConnectionResponseField {
-    override fun selection(): String {
-        val edgeSelections = edge.fields.joinToString(" ", transform = EdgeResponseField::selection)
+    override fun selection(path: ConnectionPath): String {
+        val edgeSelections = edge.fields.joinToString(" ") { it.selection(path) }
+        return "${field.name} { $edgeSelections }"
+    }
+
+    override fun selection(
+        path: ConnectionPath,
+        typeReflection: GeneratedTypeReflection,
+    ): String {
+        val edgeSelections = edge.fields.joinToString(" ") { it.selection(path, typeReflection) }
         return "${field.name} { $edgeSelections }"
     }
 
     override fun value(
         response: JsonObject,
-        context: ResolverExecutionContext<out Query>,
-        typeReflection: GeneratedTypeReflection,
-        nodeResolver: NodeReferenceResolver,
-        connectionFieldName: String,
+        context: ConnectionFieldValueContext,
     ): Any =
         response[field.name]
             ?.jsonArray
@@ -74,34 +103,34 @@ internal class EdgesResponseField(
                     edgeJson.jsonObject,
                     EdgeBuildContext(
                         index = index,
-                        connectionTypeName = connectionFieldName,
-                        executionContext = context,
-                        typeReflection = typeReflection,
-                        nodeResolver = nodeResolver,
+                        connectionTypeName = context.connectionFieldName,
+                        executionContext = context.executionContext,
+                        typeReflection = context.typeReflection,
+                        nodeResolver = context.nodeResolver,
+                        path = context.path,
                     ),
                 )
             }
-            ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'")
+            ?: error("Subtree response for '${context.connectionFieldName}' did not include '${field.name}'")
 }
 
 internal class PageInfoResponseField(
     override val field: Field<*>,
     private val shape: PageInfoShape,
 ) : ConnectionResponseField {
-    override fun selection(): String? = shape.selection()?.let { "${field.name} { $it }" }
+    override fun selection(path: ConnectionPath): String? = shape.selection()?.let { "${field.name} { $it }" }
 
     override fun value(
         response: JsonObject,
-        context: ResolverExecutionContext<out Query>,
-        typeReflection: GeneratedTypeReflection,
-        nodeResolver: NodeReferenceResolver,
-        connectionFieldName: String,
+        context: ConnectionFieldValueContext,
     ): Any =
         shape.build(
             response[field.name]?.jsonObject
-                ?: error("Subtree response for '$connectionFieldName' did not include '${field.name}'"),
-            context,
-            typeReflection,
-            nodeResolver,
+                ?: error(
+                    "Subtree response for '${context.connectionFieldName}' did not include '${field.name}'",
+                ),
+            context.executionContext,
+            context.typeReflection,
+            context.nodeResolver,
         )
 }

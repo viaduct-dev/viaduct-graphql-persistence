@@ -1,6 +1,7 @@
 package dev.viaduct.persistence.hibernate
 
 import dev.viaduct.persistence.model.PersistenceModel
+import dev.viaduct.persistence.model.associationEntityClassName
 import dev.viaduct.persistence.model.entityClassName
 import org.w3c.dom.Document
 
@@ -32,6 +33,10 @@ internal class PersistenceXmlWriter {
         model.entities.forEach { entity ->
             unit.child("class").textContent =
                 "$packageName.${entityClassName(entity.graphqlName)}"
+        }
+        model.associations.forEach { association ->
+            unit.child("class").textContent =
+                "$packageName.${associationEntityClassName(association.ownerTypeName, association.fieldName)}"
         }
         return document
     }

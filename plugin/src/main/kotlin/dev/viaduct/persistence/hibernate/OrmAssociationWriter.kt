@@ -13,6 +13,13 @@ internal class OrmAssociationWriter {
         attributes: Element,
         attribute: PersistenceToOneAttribute,
         packageName: String,
+    ) = writeToOne(attributes, attribute, packageName, logicalJoinColumnName(attribute.name))
+
+    fun writeToOne(
+        attributes: Element,
+        attribute: PersistenceToOneAttribute,
+        packageName: String,
+        joinColumnName: String,
     ) {
         val association =
             attributes.child("many-to-one").apply {
@@ -22,7 +29,7 @@ internal class OrmAssociationWriter {
                 setAttribute("fetch", "LAZY")
             }
         association.child("join-column").apply {
-            setAttribute("name", logicalJoinColumnName(attribute.name))
+            setAttribute("name", joinColumnName)
             setAttribute("nullable", attribute.nullable.toString())
             setAttribute("column-definition", "uuid")
         }

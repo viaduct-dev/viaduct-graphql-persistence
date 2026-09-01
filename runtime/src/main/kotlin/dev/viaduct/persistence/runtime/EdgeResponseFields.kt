@@ -2,6 +2,7 @@
 
 package dev.viaduct.persistence.runtime
 
+import dev.viaduct.persistence.pggraphql.translation.PgGraphqlTranslation
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -19,9 +20,19 @@ import viaduct.api.types.Query
 internal class NodeResponseField(
     override val field: CompositeField<*, *>,
 ) : EdgeResponseField {
-    override fun selection(): String = "${field.name} { uuidId }"
+    override fun selection(path: ConnectionPath): String = "${field.name} { ${path.nodeSelection()} }"
 
     fun resolve(
+        edge: JsonObject,
+        path: ConnectionPath,
+        context: ResolverExecutionContext<out Query>,
+        nodeResolver: NodeReferenceResolver,
+    ): NodeObject? =
+        path.targetNode(edge)?.let { node ->
+            resolveNode(node, context, nodeResolver)
+        }
+
+    fun resolveNode(
         node: JsonObject,
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
@@ -39,25 +50,23 @@ internal class NodeResponseField(
         response: JsonObject,
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
+        path: ConnectionPath,
     ) {
-        val node =
-            response[field.name]
-                ?.takeUnless { it is JsonNull }
-                ?.jsonObject
-        builder.set(field, node?.let { resolve(it, context, nodeResolver) })
+        builder.set(field, resolve(response, path, context, nodeResolver))
     }
 }
 
 internal class CursorResponseField(
     override val field: Field<*>,
 ) : EdgeResponseField {
-    override fun selection(): String = field.name
+    override fun selection(path: ConnectionPath): String = field.name
 
     override fun write(
         builder: GeneratedBuilder,
         response: JsonObject,
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
+        path: ConnectionPath,
     ) {
         builder.set(
             field,
@@ -73,15 +82,16 @@ internal class CursorResponseField(
 internal class JsonEdgeResponseField(
     override val field: Field<*>,
 ) : EdgeResponseField {
-    override fun selection(): String = field.name
+    override fun selection(path: ConnectionPath): String = "node { ${field.name} }"
 
     override fun write(
         builder: GeneratedBuilder,
         response: JsonObject,
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
+        path: ConnectionPath,
     ) {
-        builder.setJson(field, response[field.name])
+        builder.setJson(field, response.edgeValue(field.name, path))
     }
 }
 
@@ -89,16 +99,18 @@ internal class JsonEdgeResponseField(
 internal class NodeEdgeResponseField(
     override val field: CompositeField<*, *>,
 ) : EdgeResponseField {
-    override fun selection(): String = "${field.name} { uuidId }"
+    override fun selection(path: ConnectionPath): String = "node { ${field.name} { uuidId } }"
 
     override fun write(
         builder: GeneratedBuilder,
         response: JsonObject,
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
+        path: ConnectionPath,
     ) {
         val internalId =
-            response[field.name]
+            response
+                .edgeValue(field.name, path)
                 ?.takeUnless { it is JsonNull }
                 ?.jsonObject
                 ?.get("uuidId")
@@ -113,15 +125,21 @@ internal class CompositeJsonEdgeResponseField(
     override val field: CompositeField<*, *>,
     private val selections: SelectionSet<*>,
 ) : EdgeResponseField {
-    override fun selection(): String = "${field.name} { ${selections.selectionText()} }"
+    override fun selection(path: ConnectionPath): String = "node { ${field.name} { ${selections.selectionText()} } }"
+
+    override fun selection(
+        path: ConnectionPath,
+        typeReflection: GeneratedTypeReflection,
+    ): String = "node { ${field.name} { ${selections.selectionText(typeReflection)} } }"
 
     override fun write(
         builder: GeneratedBuilder,
         response: JsonObject,
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
+        path: ConnectionPath,
     ) {
-        val value = response[field.name]?.takeUnless { it is JsonNull }
+        val value = response.edgeValue(field.name, path)?.takeUnless { it is JsonNull }
         if (value == null) {
             builder.set(field, null)
             return
@@ -167,3 +185,30 @@ private fun SelectionSet<*>.selectionText(): String {
         graphql.language.AstPrinter.printAstCompact(it)
     }
 }
+
+private fun SelectionSet<*>.selectionText(typeReflection: GeneratedTypeReflection): String {
+    val fragment = toFragment()
+    val translated =
+        PgGraphqlTranslation.translateSelectionDocument(
+            fragment.document,
+            typeReflection.translationSchema(type),
+            allowInternalResponseAlias = true,
+        )
+    val definition =
+        graphql.parser
+            .Parser()
+            .parseDocument(translated)
+            .definitions
+            .filterIsInstance<graphql.language.FragmentDefinition>()
+            .single()
+    return definition.selectionSet.selections.joinToString(" ") {
+        graphql.language.AstPrinter.printAstCompact(it)
+    }
+}
+
+private fun ConnectionPath.nodeSelection(): String = if (isAssociationBacked) "node { uuidId }" else "uuidId"
+
+private fun JsonObject.edgeValue(
+    fieldName: String,
+    path: ConnectionPath,
+) = path.edgeValue(this, fieldName)

@@ -80,7 +80,10 @@ internal class InternalNodeSelectionCounter(
         children: (SelectionSet, Unit) -> Int,
     ): Int {
         val isInternalNodes =
-            selection.alias == VIADUCT_NODES_RESPONSE_ALIAS &&
+            (
+                selection.alias == VIADUCT_NODES_RESPONSE_ALIAS ||
+                    selection.alias?.startsWith(VIADUCT_ASSOCIATION_NODES_ALIAS_PREFIX) == true
+            ) &&
                 selection.name == "edges" &&
                 selection.selectionSet?.selections?.any { it is Field && it.name == "node" } == true
         return (if (isInternalNodes) 1 else 0) +

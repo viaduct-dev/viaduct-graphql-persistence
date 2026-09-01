@@ -87,6 +87,7 @@ internal class OrmAttributeWriter(
                 attribute.kotlinType == "java.util.UUID" ->
                 "uuid default gen_random_uuid()"
             entity.generatedGlobalId && attribute.name == "id" -> "text"
+            attribute.columnDefinition != null -> attribute.columnDefinition
             else -> null
         }
 }

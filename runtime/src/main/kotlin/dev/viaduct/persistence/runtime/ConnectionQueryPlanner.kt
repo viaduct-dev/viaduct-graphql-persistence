@@ -52,21 +52,20 @@ internal class ConnectionQueryPlanner {
 
     fun nested(request: NestedConnectionPageRequest): GraphqlQuery {
         val definitions =
-            "\$parentIds: [UUID!]!, " +
-                "\$first: Int, \$after: String, \$last: Int, \$before: String"
-        val variables =
+            listOf(
+                "\$parentIds: [UUID!]!, " +
+                    "\$first: Int, \$after: String, \$last: Int, \$before: String",
+                request.child.additionalVariableDefinitions,
+            ).filter(String::isNotBlank).joinToString(", ")
+        val variables = connectionVariables(request.child).let { childVariables ->
             buildJsonObject {
-                put(
-                    "parentIds",
-                    buildJsonArray {
-                        request.parentIds.distinct().forEach { add(JsonPrimitive(it)) }
-                    },
-                )
-                request.child.first?.let { put("first", it) }
-                request.child.after?.let { put("after", it) }
-                request.child.last?.let { put("last", it) }
-                request.child.before?.let { put("before", it) }
+                put("parentIds", buildJsonArray {
+                    request.parentIds.distinct().forEach { add(JsonPrimitive(it)) }
+                })
+                childVariables.forEach { (name, value) -> put(name, value) }
             }
+        }
+        val childArguments = connectionArguments(request.child)
         return GraphqlQuery(
             text =
                 """
@@ -75,7 +74,7 @@ internal class ConnectionQueryPlanner {
                     edges {
                       node {
                         uuidId
-                        ${request.child.collectionField}(first: ${'$'}first, after: ${'$'}after, last: ${'$'}last, before: ${'$'}before) {
+                        ${request.child.collectionField}$childArguments {
                           edges { cursor node { uuidId } }
                           pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                         }

@@ -31,6 +31,9 @@ internal class SelectionDocumentTranslator(
                     )
                 definition.transform { builder ->
                     builder.selectionSet(selections)
+                    schema.associationRowType(sourceType)?.let { associationType ->
+                        builder.typeCondition(TypeName(associationType))
+                    }
                     if (rewriteCollectionTypes) {
                         schema.collectionNodeType(sourceType)?.let { elementType ->
                             builder.typeCondition(TypeName("${elementType}Connection"))

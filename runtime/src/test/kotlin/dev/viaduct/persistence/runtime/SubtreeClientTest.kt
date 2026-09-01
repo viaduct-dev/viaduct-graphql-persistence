@@ -14,6 +14,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import viaduct.api.context.ExecutionContext
+import viaduct.api.context.ResolverExecutionContext
 import viaduct.api.reflect.CompositeField
 import viaduct.api.reflect.Field
 import viaduct.api.reflect.Type
@@ -23,6 +24,7 @@ import viaduct.api.select.SelectionSet
 import viaduct.api.types.CompositeOutput
 import viaduct.api.types.GRT
 import viaduct.api.types.NodeObject
+import viaduct.api.types.Query
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -213,6 +215,39 @@ class SubtreeClientTest {
             assertEquals(false, pages.getValue("group-2").pageInfo.hasNextPage)
         }
 
+    @Test
+    fun `forwards nested connection filters ordering and variables`() =
+        runBlocking {
+            val requests = mutableListOf<String>()
+            val client = nestedConnectionClient(requests)
+            val request =
+                NestedConnectionPageRequest(
+                    parentCollectionField = "groupCollection",
+                    parentIds = listOf("group-1"),
+                    child =
+                        ConnectionPageRequest(
+                            collectionField = "members",
+                            first = 2,
+                            additionalArguments =
+                                "filter: {status: {eq: \$status}}, orderBy: [CREATED_AT_ASC]",
+                            additionalVariableDefinitions = "\$status: String!",
+                            additionalVariables =
+                                Json.parseToJsonElement("""{"status":"ACTIVE"}""").jsonObject,
+                        ),
+                )
+
+            client.fetchNestedUuidConnections(mockk<ExecutionContext>(), request)
+
+            assertEquals(1, requests.size)
+            assertContains(requests.single(), "\$status: String!")
+            assertContains(
+                requests.single(),
+                "members(first: \$first, after: \$after, last: \$last, before: \$before, " +
+                    "filter: {status: {eq: \$status}}, orderBy: [CREATED_AT_ASC])",
+            )
+            assertContains(requests.single(), "\"status\":\"ACTIVE\"")
+        }
+
     private fun nestedConnectionClient(requests: MutableList<String>): SubtreeClient =
         SubtreeClient(
             httpClient =
@@ -316,6 +351,83 @@ class SubtreeClientTest {
     }
 
     @Test
+    fun `derives association-backed connections from reflected edge fields`() {
+        val schema = GeneratedTypeReflection().translationSchema(FixtureTypes.node)
+
+        assertEquals(true, schema.isAssociationConnection("FixtureNode", "members"))
+    }
+
+    @Test
+    fun `derives association-backed storage for a plain mutual connection`() {
+        val reflection = GeneratedTypeReflection()
+        val schema = reflection.translationSchema(FixtureTypes.plainGroup)
+        val shape =
+            reflection.connection(
+                FixtureTypes.plainPersonConnection,
+                ownerType = FixtureTypes.plainGroup,
+            )
+
+        assertEquals(true, schema.isAssociationConnection("FixturePlainGroup", "members"))
+        assertEquals(true, shape?.edge?.isAssociationBacked)
+        assertEquals("membersAssociations", shape?.path("members")?.requestFieldName)
+    }
+
+    @Test
+    fun `keeps a single unidirectional connection on the target relationship`() {
+        val shape =
+            GeneratedTypeReflection().connection(
+                FixtureTypes.directConnection,
+                ownerType = FixtureTypes.directOwner,
+            )
+
+        assertEquals(false, shape?.edge?.isAssociationBacked)
+        assertEquals("members", shape?.path("members")?.requestFieldName)
+    }
+
+    @Test
+    fun `translates association-backed connections in ordinary subtree queries`() {
+        val selections = mockk<SelectionSet<FixtureNode>>()
+        every { selections.type } returns FixtureTypes.node
+        every { selections.toFragment() } returns
+            OutputSelectionFragment(
+                "Main",
+                "fragment Main on FixtureNode { members { edges { cursor node { uuidId } weight } } }",
+                emptyMap(),
+            )
+
+        val query =
+            SubtreeQueryPlanner(GeneratedTypeReflection()).plan(
+                root = SubtreeRoot("group"),
+                selections = selections,
+            )
+
+        assertContains(query.text, "membersAssociations")
+        assertContains(query.text, "_viaduct_association_node_node:node{uuidId}")
+        assertContains(query.text, "weight")
+    }
+
+    @Test
+    fun `translates plain mutual connections in ordinary subtree queries`() {
+        val selections = mockk<SelectionSet<FixturePlainGroup>>()
+        every { selections.type } returns FixtureTypes.plainGroup
+        every { selections.toFragment() } returns
+            OutputSelectionFragment(
+                "Main",
+                "fragment Main on FixturePlainGroup { members { edges { cursor node { uuidId } } } }",
+                emptyMap(),
+            )
+
+        val query =
+            SubtreeQueryPlanner(GeneratedTypeReflection()).plan(
+                root = SubtreeRoot("group"),
+                selections = selections,
+            )
+
+        assertContains(query.text, "membersAssociations")
+        assertContains(query.text, "_viaduct_association_node_node:node{uuidId}")
+    }
+
+    @Test
     fun `does not inspect scalar types for generated fields`() {
         assertEquals(null, GeneratedTypeReflection().connection(FixtureTypes.cursor))
     }
@@ -332,10 +444,11 @@ class SubtreeClientTest {
                 connection = connection,
             )
 
-        assertContains(selection.upstreamSelection, "members {")
-        assertContains(selection.upstreamSelection, "edges { cursor node { uuidId }")
+        assertContains(selection.upstreamSelection, "membersAssociations {")
+        assertContains(selection.upstreamSelection, "edges { cursor node { node { uuidId }")
         assertContains(selection.upstreamSelection, "owner { uuidId }")
-        assertContains(selection.upstreamSelection, "weight")
+        assertContains(selection.upstreamSelection, "node { owner { uuidId } }")
+        assertContains(selection.upstreamSelection, "node { weight }")
         assertContains(
             selection.upstreamSelection,
             "pageInfo { hasNextPage hasPreviousPage startCursor endCursor state totalCount }",
@@ -343,6 +456,32 @@ class SubtreeClientTest {
         assertEquals(listOf("edges", "pageInfo"), connection.fields.map { it.field.name })
         assertContains(connection.edge.fields.map { it.field.name }, "owner")
         assertContains(connection.edge.fields.map { it.field.name }, "weight")
+    }
+
+    @Test
+    fun `reads restored direct nodes when building a connection reference`() {
+        val context = mockk<ResolverExecutionContext<out Query>>(relaxed = true)
+        val nodeResolver = mockk<NodeReferenceResolver>()
+        val node = mockk<FixtureNode>()
+        every { nodeResolver.resolve(context, FixtureTypes.node, "member") } returns node
+        val responseField =
+            NodesResponseField(
+                field = FixtureCompositeField("nodes", FixtureTypes.connection, FixtureTypes.node),
+                edgeField = FixtureConnection.Fields.edges,
+                edge = EdgeShape(FixtureTypes.edge, NodeResponseField(FixtureEdge.Fields.node), null),
+            )
+        val valueContext =
+            ConnectionFieldValueContext(
+                executionContext = context,
+                typeReflection = GeneratedTypeReflection(),
+                nodeResolver = nodeResolver,
+                connectionFieldName = "members",
+                path = ConnectionPath("members"),
+            )
+
+        val response = Json.parseToJsonElement("""{"nodes":[{"uuidId":"member"}]}""").jsonObject
+
+        assertEquals(listOf(node), responseField.value(response, valueContext))
     }
 
     @Test
@@ -370,6 +509,7 @@ class SubtreeClientTest {
     @Test
     fun `supports non-node composite edge associations`() {
         val selections = mockk<SelectionSet<FixtureAssociation>>()
+        every { selections.type } returns FixtureTypes.association
         every { selections.toFragment() } returns
             OutputSelectionFragment(
                 "Association",
@@ -385,7 +525,32 @@ class SubtreeClientTest {
 
         val responseField = customEdgeResponseField(field, selections)
 
-        assertContains(responseField.selection(), "association { label }")
+        assertContains(responseField.selection(), "node { association { label } }")
+    }
+
+    @Test
+    fun `translates nested connections on composite edge fields`() {
+        val selections = mockk<SelectionSet<FixtureAssociation>>()
+        every { selections.type } returns FixtureTypes.association
+        every { selections.toFragment() } returns
+            OutputSelectionFragment(
+                "Association",
+                "fragment Association on FixtureAssociation { related { nodes { uuidId } } }",
+                emptyMap(),
+            )
+        val field =
+            FixtureCompositeField<FixtureEdge, FixtureAssociation>(
+                "association",
+                FixtureTypes.edge,
+                FixtureTypes.association,
+            )
+
+        val responseField = customEdgeResponseField(field, selections)
+
+        assertContains(
+            responseField.selection(ConnectionPath("membersAssociations", "node"), GeneratedTypeReflection()),
+            "relatedAssociations",
+        )
     }
 
     @Test
@@ -418,9 +583,9 @@ class SubtreeClientTest {
 
         assertContains(
             reference.upstreamSelection,
-            "members(first:2,after:\"after-cursor\",last:3,before:\"before-cursor\")",
+            "membersAssociations(first:2,after:\"after-cursor\",last:3,before:\"before-cursor\")",
         )
-        assertContains(reference.upstreamSelection, "edges { cursor node { uuidId }")
+        assertContains(reference.upstreamSelection, "edges { cursor node { node { uuidId }")
         assertContains(reference.upstreamSelection, "pageInfo { hasNextPage hasPreviousPage")
     }
 
@@ -508,6 +673,86 @@ class SubtreeClientTest {
 }
 
 /** Minimal generated-type-shaped fixtures for exercising SubtreeClient reflection. */
+class FixtureDirectOwner : NodeObject {
+    object Fields {
+        val members: CompositeField<FixtureDirectOwner, FixtureDirectConnection> =
+            FixtureCompositeField("members", FixtureTypes.directOwner, FixtureTypes.directConnection)
+    }
+}
+
+class FixtureDirectPerson : NodeObject {
+    object Fields
+}
+
+class FixtureDirectConnection : CompositeOutput {
+    object Fields {
+        val edges: CompositeField<FixtureDirectConnection, FixtureDirectEdge> =
+            FixtureCompositeField("edges", FixtureTypes.directConnection, FixtureTypes.directEdge)
+    }
+}
+
+class FixtureDirectEdge : CompositeOutput {
+    object Fields {
+        val node: CompositeField<FixtureDirectEdge, FixtureDirectPerson> =
+            FixtureCompositeField("node", FixtureTypes.directEdge, FixtureTypes.directPerson)
+        val cursor: Field<FixtureDirectEdge> = FixtureField("cursor", FixtureTypes.directEdge)
+    }
+}
+
+class FixturePlainGroup : NodeObject {
+    object Fields {
+        val members: CompositeField<FixturePlainGroup, FixturePlainPersonConnection> =
+            FixtureCompositeField("members", FixtureTypes.plainGroup, FixtureTypes.plainPersonConnection)
+    }
+}
+
+class FixturePlainPerson : NodeObject {
+    object Fields {
+        val groups: CompositeField<FixturePlainPerson, FixturePlainGroupConnection> =
+            FixtureCompositeField("groups", FixtureTypes.plainPerson, FixtureTypes.plainGroupConnection)
+    }
+}
+
+class FixturePlainPersonConnection : CompositeOutput {
+    object Fields {
+        val edges: CompositeField<FixturePlainPersonConnection, FixturePlainPersonEdge> =
+            FixtureCompositeField(
+                "edges",
+                FixtureTypes.plainPersonConnection,
+                FixtureTypes.plainPersonEdge,
+            )
+    }
+}
+
+class FixturePlainGroupConnection : CompositeOutput {
+    object Fields {
+        val edges: CompositeField<FixturePlainGroupConnection, FixturePlainGroupEdge> =
+            FixtureCompositeField(
+                "edges",
+                FixtureTypes.plainGroupConnection,
+                FixtureTypes.plainGroupEdge,
+            )
+    }
+}
+
+class FixturePlainPersonEdge : CompositeOutput {
+    object Fields {
+        val node: CompositeField<FixturePlainPersonEdge, FixturePlainPerson> =
+            FixtureCompositeField("node", FixtureTypes.plainPersonEdge, FixtureTypes.plainPerson)
+        val cursor: Field<FixturePlainPersonEdge> =
+            FixtureField("cursor", FixtureTypes.plainPersonEdge)
+    }
+}
+
+class FixturePlainGroupEdge : CompositeOutput {
+    object Fields {
+        val node: CompositeField<FixturePlainGroupEdge, FixturePlainGroup> =
+            FixtureCompositeField("node", FixtureTypes.plainGroupEdge, FixtureTypes.plainGroup)
+        val cursor: Field<FixturePlainGroupEdge> =
+            FixtureField("cursor", FixtureTypes.plainGroupEdge)
+    }
+}
+
 class FixtureConnection : CompositeOutput {
     object Fields {
         val edges: CompositeField<FixtureConnection, FixtureEdge> =
@@ -566,6 +811,8 @@ class FixtureDomain : CompositeOutput {
 class FixtureAssociation : CompositeOutput {
     object Fields {
         val label: Field<FixtureAssociation> = FixtureField("label", FixtureTypes.association)
+        val related: CompositeField<FixtureAssociation, FixtureConnection> =
+            FixtureCompositeField("related", FixtureTypes.association, FixtureTypes.connection)
     }
 }
 
@@ -584,6 +831,18 @@ private enum class FixtureSort {
 }
 
 private object FixtureTypes {
+    val directOwner = FixtureType("FixtureDirectOwner", FixtureDirectOwner::class)
+    val directPerson = FixtureType("FixtureDirectPerson", FixtureDirectPerson::class)
+    val directConnection = FixtureType("FixtureDirectConnection", FixtureDirectConnection::class)
+    val directEdge = FixtureType("FixtureDirectEdge", FixtureDirectEdge::class)
+    val plainGroup = FixtureType("FixturePlainGroup", FixturePlainGroup::class)
+    val plainPerson = FixtureType("FixturePlainPerson", FixturePlainPerson::class)
+    val plainPersonConnection =
+        FixtureType("FixturePlainPersonConnection", FixturePlainPersonConnection::class)
+    val plainGroupConnection =
+        FixtureType("FixturePlainGroupConnection", FixturePlainGroupConnection::class)
+    val plainPersonEdge = FixtureType("FixturePlainPersonEdge", FixturePlainPersonEdge::class)
+    val plainGroupEdge = FixtureType("FixturePlainGroupEdge", FixturePlainGroupEdge::class)
     val connection = FixtureType("FixtureConnection", FixtureConnection::class)
     val edge = FixtureType("FixtureEdge", FixtureEdge::class)
     val node = FixtureType("FixtureNode", FixtureNode::class)

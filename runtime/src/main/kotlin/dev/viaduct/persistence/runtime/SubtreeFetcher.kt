@@ -17,6 +17,7 @@ import viaduct.api.types.Query
 internal class SubtreeFetcher(
     private val transport: PgGraphqlTransport,
     private val queryPlanner: SubtreeQueryPlanner,
+    private val typeReflection: GeneratedTypeReflection,
     private val nodeReferencePlanner: NodeReferencePlanner,
     private val nodeReferenceHydrator: NodeReferenceHydrator,
 ) {
@@ -47,7 +48,7 @@ internal class SubtreeFetcher(
                 context = context,
                 root = subtree.root,
                 selections = ownedSelections,
-                referenceSelections = references.map(NodeReferenceSelection::upstreamSelection),
+                referenceSelections = references.map { it.upstreamSelection(typeReflection) },
             )
         return nodeReferenceHydrator.hydrate(
             base = response,

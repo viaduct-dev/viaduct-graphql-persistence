@@ -50,6 +50,7 @@ class SubtreeClient(
         SubtreeFetcher(
             transport = transport,
             queryPlanner = queryPlanner,
+            typeReflection = typeReflection,
             nodeReferencePlanner = nodeReferencePlanner,
             nodeReferenceHydrator = nodeReferenceHydrator,
         )
@@ -57,6 +58,7 @@ class SubtreeClient(
         SubtreeBatchFetcher(
             transport = transport,
             queryPlanner = queryPlanner,
+            typeReflection = typeReflection,
             nodeReferencePlanner = nodeReferencePlanner,
             nodeReferenceHydrator = nodeReferenceHydrator,
         )

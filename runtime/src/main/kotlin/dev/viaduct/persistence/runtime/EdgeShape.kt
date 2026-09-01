@@ -14,6 +14,7 @@ internal data class EdgeShape(
     val node: NodeResponseField,
     val cursor: CursorResponseField?,
     val customFields: List<EdgeResponseField> = emptyList(),
+    val isAssociationBacked: Boolean = false,
 ) {
     val fields: List<EdgeResponseField> = listOfNotNull(cursor, node) + customFields
 
@@ -32,6 +33,7 @@ internal data class EdgeShape(
                 edge,
                 context.executionContext,
                 context.nodeResolver,
+                context.path,
             )
         }
         return try {
@@ -52,17 +54,26 @@ internal data class EdgeBuildContext(
     val executionContext: ResolverExecutionContext<out Query>,
     val typeReflection: GeneratedTypeReflection,
     val nodeResolver: NodeReferenceResolver,
+    val path: ConnectionPath,
 )
 
 internal interface EdgeResponseField {
     val field: Field<*>
 
-    fun selection(): String
+    fun selection(path: ConnectionPath): String
+
+    fun selection(
+        path: ConnectionPath,
+        typeReflection: GeneratedTypeReflection,
+    ): String = selection(path)
+
+    fun selection(): String = selection(ConnectionPath(requestFieldName = ""))
 
     fun write(
         builder: GeneratedBuilder,
         response: JsonObject,
         context: ResolverExecutionContext<out Query>,
         nodeResolver: NodeReferenceResolver,
+        path: ConnectionPath,
     )
 }

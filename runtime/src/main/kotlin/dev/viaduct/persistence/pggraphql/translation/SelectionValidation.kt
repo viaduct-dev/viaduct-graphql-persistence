@@ -42,8 +42,14 @@ internal class SelectionValidatorChain(
         context: SelectionValidationContext,
         children: (SelectionSet, SelectionValidationContext) -> Unit,
     ) {
-        require(context.allowInternalResponseAlias || selection.alias != VIADUCT_NODES_RESPONSE_ALIAS) {
-            "Selection '${context.path}' uses reserved alias '$VIADUCT_NODES_RESPONSE_ALIAS'"
+        require(
+            context.allowInternalResponseAlias ||
+                (
+                    selection.alias != VIADUCT_NODES_RESPONSE_ALIAS &&
+                        !isInternalAssociationAlias(selection.alias)
+                ),
+        ) {
+            "Selection '${context.path}' uses a reserved alias for an internal response field"
         }
         val targetType = context.schema.fieldType(context.parentType, selection.name)
         selection.selectionSet?.let { nested ->

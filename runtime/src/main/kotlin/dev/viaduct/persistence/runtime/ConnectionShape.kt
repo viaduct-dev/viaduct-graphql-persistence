@@ -14,14 +14,21 @@ internal data class ConnectionShape(
     val nodesField: CompositeField<*, *>?,
     val pageInfoField: CompositeField<*, *>?,
     val pageInfo: PageInfoShape?,
+    val pathResolver: ConnectionPathResolver = PgGraphqlConnectionPathResolver,
     val requestedFieldNames: Set<String>? = null,
 ) {
     val edgeType: Type<*> get() = edge.type
     val nodeField: CompositeField<*, *> get() = edge.node.field
     val cursorField: Field<*>? get() = edge.cursor?.field
 
+    fun path(fieldName: String): ConnectionPath = pathResolver.resolve(fieldName, this)
+
+    /** Compatibility view used by reflection tests and diagnostics. */
+    val fields: List<ConnectionResponseField>
+        get() = fields()
+
     /** Fields are selected and restored by their reflected GraphQL field types. */
-    val fields: List<ConnectionResponseField> =
+    fun fields(): List<ConnectionResponseField> =
         buildList {
             if ("nodes" in requestedFieldNames.orEmpty()) {
                 nodesField?.let { add(NodesResponseField(it, edgeField, edge)) }
@@ -39,8 +46,13 @@ internal data class ConnectionShape(
     fun upstreamSelection(
         fieldName: String,
         arguments: ConnectionPaginationArguments = ConnectionPaginationArguments.none(),
+        typeReflection: GeneratedTypeReflection? = null,
     ): String {
-        val selections = fields.mapNotNull(ConnectionResponseField::selection)
-        return "$fieldName${arguments.render()} { ${selections.joinToString(" ")} }"
+        val path = path(fieldName)
+        val selections =
+            fields().mapNotNull { field ->
+                typeReflection?.let { field.selection(path, it) } ?: field.selection(path)
+            }
+        return "${path.requestFieldName}${arguments.render()} { ${selections.joinToString(" ")} }"
     }
 }

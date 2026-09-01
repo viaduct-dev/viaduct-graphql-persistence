@@ -28,7 +28,7 @@ internal class NodeReferencePlanner(
             .mapNotNull { it as? CompositeField<T, *> }
             .filter { requestedSelections.contains(it) }
             .mapNotNull { field ->
-                val connection = typeReflection.connection(field.type)
+                val connection = typeReflection.connection(field.type, ownerType = ownedSelections.type)
                 val fieldSelections =
                     connection?.let {
                         childSelections(requestedSelections, field)
@@ -37,6 +37,7 @@ internal class NodeReferencePlanner(
                     field,
                     paginationArguments[field.name] ?: ConnectionPaginationArguments.none(),
                     fieldSelections,
+                    ownedSelections.type,
                 )
             }.distinctBy(NodeReferenceSelection::fieldName)
             .toList()
@@ -55,8 +56,9 @@ internal class NodeReferencePlanner(
         field: CompositeField<*, *>,
         paginationArguments: ConnectionPaginationArguments,
         requestedFieldSelections: SelectionSet<*>?,
+        ownerType: Type<*>,
     ): NodeReferenceSelection? {
-        val connection = typeReflection.connection(field.type, requestedFieldSelections)
+        val connection = typeReflection.connection(field.type, requestedFieldSelections, ownerType)
         val collectionElementType = typeReflection.legacyCollectionNodeType(field.type)
         return when {
             connection != null ->
@@ -108,15 +110,17 @@ internal data class NodeReferenceSelection(
         if (kind.isCollection) setOf(fieldName) else setOf(responseAlias)
 
     val upstreamSelection: String
-        get() =
-            when (kind) {
-                NodeReferenceKind.CONNECTION ->
-                    checkNotNull(connection) {
-                        "Connection reference '$fieldName' has no reflected connection shape"
-                    }.upstreamSelection(fieldName, connectionArguments)
-                NodeReferenceKind.LEGACY_COLLECTION ->
-                    "$fieldName { nodes { uuidId } }"
-                NodeReferenceKind.TO_ONE ->
-                    "$responseAlias: ${fieldName}Id"
-            }
+        get() = upstreamSelection(null)
+
+    fun upstreamSelection(typeReflection: GeneratedTypeReflection?): String =
+        when (kind) {
+            NodeReferenceKind.CONNECTION ->
+                checkNotNull(connection) {
+                    "Connection reference '$fieldName' has no reflected connection shape"
+                }.upstreamSelection(fieldName, connectionArguments, typeReflection)
+            NodeReferenceKind.LEGACY_COLLECTION ->
+                "$fieldName { nodes { uuidId } }"
+            NodeReferenceKind.TO_ONE ->
+                "$responseAlias: ${fieldName}Id"
+        }
 }

@@ -6,6 +6,7 @@ import org.w3c.dom.Document
 /** Creates the ORM mapping document for generated entities and associations. */
 internal class OrmXmlWriter {
     private val entityWriter = OrmEntityWriter()
+    private val associationEntityWriter = OrmAssociationEntityWriter()
 
     fun document(
         model: PersistenceModel,
@@ -26,6 +27,9 @@ internal class OrmXmlWriter {
                 child("access").textContent = "FIELD"
             }
         model.entities.forEach { entityWriter.write(mappings, it, packageName, associationSchemaName) }
+        model.associations.forEach {
+            associationEntityWriter.write(mappings, it, packageName, associationSchemaName)
+        }
         return document
     }
 }

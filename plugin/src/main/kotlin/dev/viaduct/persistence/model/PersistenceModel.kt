@@ -6,6 +6,19 @@ class PersistenceModel(
 ) {
     val entities: List<PersistenceEntity> = java.util.List.copyOf(entities)
     val enums: List<PersistenceEnum> = java.util.List.copyOf(enums)
+    val associations: List<PersistenceAssociation> =
+        java.util.List.copyOf(
+            this.entities
+                .flatMap { entity ->
+                    entity.attributes
+                        .filterIsInstance<PersistenceToManyAttribute>()
+                        .mapNotNull { attribute ->
+                            attribute.edgeMapping?.let { mapping ->
+                                PersistenceAssociation.from(entity.graphqlName, attribute, mapping)
+                            }
+                        }
+                }.flatMap(::nestedAssociations),
+        )
 
     override fun equals(other: Any?): Boolean {
         val candidate = other as? PersistenceModel ?: return false
@@ -66,6 +79,22 @@ sealed interface PersistenceAttribute {
     val nullable: Boolean
 }
 
+class PersistenceEdgeMapping(
+    val typeName: String,
+    attributes: List<PersistenceAttribute>,
+) {
+    val attributes: List<PersistenceAttribute> = java.util.List.copyOf(attributes)
+
+    override fun equals(other: Any?): Boolean =
+        other is PersistenceEdgeMapping &&
+            typeName == other.typeName &&
+            attributes == other.attributes
+
+    override fun hashCode(): Int = 31 * typeName.hashCode() + attributes.hashCode()
+
+    override fun toString(): String = "PersistenceEdgeMapping(typeName=$typeName, attributes=$attributes)"
+}
+
 data class PersistenceBasicAttribute(
     override val name: String,
     override val nullable: Boolean,
@@ -73,6 +102,7 @@ data class PersistenceBasicAttribute(
     val enumTypeName: String? = null,
     val collection: Boolean = false,
     val elementNullable: Boolean = false,
+    val columnDefinition: String? = null,
 ) : PersistenceAttribute
 
 data class PersistenceToOneAttribute(
@@ -88,7 +118,55 @@ data class PersistenceToManyAttribute(
     val inverseFieldName: String?,
     val storage: PersistenceToManyStorage = PersistenceToManyStorage.TARGET_FOREIGN_KEY,
     val joinTableName: String? = null,
+    val edgeMapping: PersistenceEdgeMapping? = null,
 ) : PersistenceAttribute
+
+data class PersistenceAssociation(
+    val typeName: String,
+    val ownerTypeName: String,
+    val fieldName: String,
+    val targetTypeName: String,
+    val tableName: String,
+    val ownerColumnName: String,
+    val targetColumnName: String,
+    val edgeMapping: PersistenceEdgeMapping,
+) {
+    companion object {
+        fun from(
+            ownerTypeName: String,
+            attribute: PersistenceToManyAttribute,
+            edgeMapping: PersistenceEdgeMapping,
+        ): PersistenceAssociation {
+            require(attribute.storage == PersistenceToManyStorage.JOIN_TABLE_OWNER) {
+                "Association-backed edge $ownerTypeName.${attribute.name} must own its join table"
+            }
+            val selfReferential = ownerTypeName == attribute.targetTypeName
+            return PersistenceAssociation(
+                typeName = associationTypeName(ownerTypeName, attribute.name),
+                ownerTypeName = ownerTypeName,
+                fieldName = attribute.name,
+                targetTypeName = attribute.targetTypeName,
+                tableName = requireNotNull(attribute.joinTableName),
+                ownerColumnName = associationJoinColumnName(ownerTypeName, "owner", selfReferential),
+                targetColumnName = associationJoinColumnName(attribute.targetTypeName, "target", selfReferential),
+                edgeMapping = edgeMapping,
+            )
+        }
+    }
+}
+
+private fun nestedAssociations(association: PersistenceAssociation): List<PersistenceAssociation> =
+    listOf(association) +
+        association.edgeMapping.attributes
+            .filterIsInstance<PersistenceToManyAttribute>()
+            .flatMap { attribute ->
+                attribute.edgeMapping
+                    ?.let { mapping ->
+                        nestedAssociations(
+                            PersistenceAssociation.from(association.typeName, attribute, mapping),
+                        )
+                    }.orEmpty()
+            }
 
 enum class PersistenceToManyStorage {
     TARGET_FOREIGN_KEY,

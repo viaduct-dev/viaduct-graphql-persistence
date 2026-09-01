@@ -184,6 +184,220 @@ class PgGraphqlTranslationTest {
     }
 
     @Test
+    fun `keeps a single unidirectional connection on its direct relationship`() {
+        val translated =
+            PgGraphqlTranslation.translateSelectionDocument(
+                "fragment Main on Group { members { edges { cursor node { id } } } }",
+                PgGraphqlTranslationSchema(
+                    collectionElementTypes = emptyMap(),
+                    fieldTypes =
+                        mapOf(
+                            PgGraphqlFieldCoordinate("Group", "members") to "PersonConnection",
+                            PgGraphqlFieldCoordinate("PersonConnection", "edges") to "PersonEdge",
+                            PgGraphqlFieldCoordinate("PersonEdge", "node") to "Person",
+                        ),
+                ),
+            )
+
+        assertContains(translated, "members{edges{cursor node{id}}}")
+        assertFalse(translated.contains("membersAssociations"))
+    }
+
+    @Test
+    fun `rewrites association-backed connections to real relationships`() {
+        val translated =
+            PgGraphqlTranslation.translateSelectionDocument(
+                """
+                fragment Main on Group {
+                  members(first: 2) {
+                    nodes { id }
+                    edges { cursor node { id } role }
+                    pageInfo { hasNextPage }
+                  }
+                }
+                """.trimIndent(),
+                associationSchema(),
+            )
+
+        assertContains(
+            translated,
+            "_viaduct_association_connection_members:membersAssociations(first:2)",
+        )
+        assertContains(translated, "_viaduct_association_nodes_nodes:edges")
+        assertContains(translated, "_viaduct_association_edges_edges:edges")
+        assertContains(translated, "node{_viaduct_association_node_node:node{id}role}")
+    }
+
+    @Test
+    fun `rewrites plain mutual connections to real relationships`() {
+        val translated =
+            PgGraphqlTranslation.translateSelectionDocument(
+                "fragment Main on Group { members { edges { cursor node { id } } } }",
+                plainAssociationSchema(),
+            )
+
+        assertContains(translated, "_viaduct_association_connection_members:membersAssociations")
+        assertContains(translated, "_viaduct_association_edges_edges:edges")
+        assertContains(translated, "node{_viaduct_association_node_node:node{id}}")
+    }
+
+    @Test
+    fun `restores association rows and nested node selections`() {
+        assertEquals(
+            expectedAssociationResponse(),
+            PgGraphqlTranslation.restoreViaductResponseShape(associationResponse()),
+        )
+    }
+
+    @Test
+    fun `preserves aliases while translating association connections`() {
+        val translated =
+            PgGraphqlTranslation.translateSelectionDocument(
+                "fragment Main on Group { people: members { links: edges { c: cursor target: node { id } r: role } } }",
+                associationSchema(),
+            )
+
+        assertContains(translated, "_viaduct_association_connection_people:membersAssociations")
+        assertContains(translated, "_viaduct_association_edges_links:edges")
+        assertContains(translated, "_viaduct_association_node_target:node{id}")
+    }
+
+    @Test
+    fun `rewrites nested association-backed connections recursively`() {
+        val schema =
+            associationSchema(
+                fieldTypes =
+                    mapOf(
+                        PgGraphqlFieldCoordinate("Group", "members") to "PersonConnection",
+                        PgGraphqlFieldCoordinate("PersonConnection", "edges") to "PersonEdge",
+                        PgGraphqlFieldCoordinate("PersonEdge", "node") to "Person",
+                        PgGraphqlFieldCoordinate("PersonEdge", "role") to "Role",
+                        PgGraphqlFieldCoordinate("Person", "groups") to "GroupConnection",
+                        PgGraphqlFieldCoordinate("GroupConnection", "edges") to "GroupEdge",
+                        PgGraphqlFieldCoordinate("GroupEdge", "node") to "Group",
+                        PgGraphqlFieldCoordinate("GroupEdge", "label") to "String",
+                    ),
+            )
+
+        val translated =
+            PgGraphqlTranslation.translateSelectionDocument(
+                "fragment Main on Group { members { edges { node { groups { edges { node { id } label } } } role } } }",
+                schema,
+            )
+
+        assertContains(translated, "membersAssociations")
+        assertContains(translated, "groupsAssociations")
+        assertContains(translated, "_viaduct_association_node_node")
+    }
+
+    @Test
+    fun `rewrites edge fragments for the association row type`() {
+        val translated =
+            PgGraphqlTranslation.translateSelectionDocument(
+                """
+                fragment Main on Group { members { edges { ...PersonEdgeFields } } }
+                fragment PersonEdgeFields on PersonEdge { cursor node { id } role }
+                """.trimIndent(),
+                associationSchema(),
+            )
+
+        assertContains(translated, "fragment PersonEdgeFields on GroupMembersAssociation")
+        assertContains(translated, "_viaduct_association_node_node:node{id}")
+        assertContains(translated, "node{...PersonEdgeFields}")
+    }
+
+    private fun associationSchema(
+        fieldTypes: Map<PgGraphqlFieldCoordinate, String> =
+            mapOf(
+                PgGraphqlFieldCoordinate("Group", "members") to "PersonConnection",
+                PgGraphqlFieldCoordinate("PersonConnection", "edges") to "PersonEdge",
+                PgGraphqlFieldCoordinate("PersonConnection", "pageInfo") to "PageInfo",
+                PgGraphqlFieldCoordinate("PersonEdge", "node") to "Person",
+                PgGraphqlFieldCoordinate("PersonEdge", "role") to "String",
+            ),
+    ) = PgGraphqlTranslationSchema(
+        collectionElementTypes = emptyMap(),
+        fieldTypes = fieldTypes,
+    )
+
+    private fun plainAssociationSchema() =
+        PgGraphqlTranslationSchema(
+            collectionElementTypes = emptyMap(),
+            fieldTypes =
+                mapOf(
+                    PgGraphqlFieldCoordinate("Group", "members") to "PersonConnection",
+                    PgGraphqlFieldCoordinate("PersonConnection", "edges") to "PersonEdge",
+                    PgGraphqlFieldCoordinate("PersonEdge", "node") to "Person",
+                    PgGraphqlFieldCoordinate("Person", "groups") to "GroupConnection",
+                    PgGraphqlFieldCoordinate("GroupConnection", "edges") to "GroupEdge",
+                    PgGraphqlFieldCoordinate("GroupEdge", "node") to "Group",
+                ),
+            associationConnections =
+                setOf(
+                    PgGraphqlFieldCoordinate("Group", "members"),
+                ),
+        )
+
+    private fun associationResponse() =
+        Json.parseToJsonElement(
+            """
+            {
+              "_viaduct_association_connection_members": {
+                "_viaduct_association_nodes_nodes": [
+                  {"node": {"_viaduct_association_node_nodes": {"id": "1"}}}
+                ],
+                "_viaduct_association_edges_edges": [
+                  {
+                    "cursor": "cursor-1",
+                    "node": {
+                      "_viaduct_association_node_node": {
+                        "id": "1",
+                        "_viaduct_association_connection_groups": {
+                          "_viaduct_association_edges_edges": [
+                            {
+                              "node": {
+                                "_viaduct_association_node_node": {"id": "2"},
+                                "label": "child"
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "role": "admin"
+                    }
+                  }
+                ],
+                "pageInfo": {"hasNextPage": false}
+              }
+            }
+            """.trimIndent(),
+        )
+
+    private fun expectedAssociationResponse() =
+        Json.parseToJsonElement(
+            """
+            {
+              "members": {
+                "nodes": [{"id": "1"}],
+                "edges": [
+                  {
+                    "cursor": "cursor-1",
+                    "node": {
+                      "id": "1",
+                      "groups": {
+                        "edges": [{"node": {"id": "2"}, "label": "child"}]
+                      }
+                    },
+                    "role": "admin"
+                  }
+                ],
+                "pageInfo": {"hasNextPage": false}
+              }
+            }
+            """.trimIndent(),
+        )
+
+    @Test
     fun `rewrites nodes selected on a standard connection`() {
         val connectionSchema =
             PgGraphqlTranslationSchema(

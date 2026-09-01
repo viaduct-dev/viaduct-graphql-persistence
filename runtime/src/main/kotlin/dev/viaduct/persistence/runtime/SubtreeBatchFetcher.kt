@@ -19,6 +19,7 @@ import viaduct.api.types.Query
 internal class SubtreeBatchFetcher(
     private val transport: PgGraphqlTransport,
     private val queryPlanner: SubtreeQueryPlanner,
+    private val typeReflection: GeneratedTypeReflection,
     private val nodeReferencePlanner: NodeReferencePlanner,
     private val nodeReferenceHydrator: NodeReferenceHydrator,
 ) {
@@ -46,7 +47,7 @@ internal class SubtreeBatchFetcher(
             queryPlanner.plan(
                 root = root,
                 selections = ownedSelections,
-                referenceSelections = references.map(NodeReferenceSelection::upstreamSelection) + "uuidId",
+                referenceSelections = references.map { it.upstreamSelection(typeReflection) } + "uuidId",
             )
         val nodes =
             SubtreeResponseReader.nodes(

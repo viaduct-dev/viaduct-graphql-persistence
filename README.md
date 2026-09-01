@@ -226,10 +226,14 @@ type PersonEdge @edge {
 
 `Group.members` is therefore modeled as a to-many relationship to `Person`; the connection and
 edge types do not produce separate entity tables. `pageInfo`, cursors, and connection arguments
-are API fields and do not change the persistence mapping. Connection selections already use
-pg_graphql's `edges { node }` shape, so the runtime passes them through without connection-specific
-translation metadata. Custom fields on an edge need separate persistence modeling if they must be
-stored.
+are API fields and do not change the persistence mapping. Scalar and object fields on an edge are
+persisted on the association row when the relationship uses a join table.
+
+For every join-table-backed connection, including an edge containing only `node` and `cursor`, the
+pg_graphql adapter reads the real `membersAssociations` connection, applies pagination to those
+association rows, selects the row's `node` relationship, and unwraps each row into the authored
+Viaduct edge. A single unidirectional connection uses the target table directly and is passed
+through without this association-row translation. No view or SQL function is generated.
 
 Relationships do not need to be bidirectional. The generated mappings preserve the authored
 relationship names used by Viaduct:
@@ -240,10 +244,15 @@ relationship names used by Viaduct:
   is created.
 - A mutual list relationship uses one deterministic join table.
 - Multiple unidirectional lists or connections to the same target use separate join tables.
-- Join-table relationships are exposed through generated pg_graphql computed functions.
+- Association-backed relationships are exposed through pg_graphql's ordinary foreign-key
+  relationship from the owner to the real association table. The generated relationship name is
+  `<fieldName>Associations` (for example, `membersAssociations`).
 
-Join tables are created in the non-exposed `viaduct_internal` schema by default. Self-referential
-relationships use distinct owner and target columns. Override the internal schema when needed:
+Join tables are created in the `viaduct_internal` schema by default. Because pg_graphql must read
+association rows directly, that schema must be included in the provider's exposed schemas and its
+tables must have suitable `SELECT` and RLS policies. The persistence plugin does not silently hide
+the schema or manufacture a view/function to bypass that requirement. Self-referential
+relationships use distinct owner and target columns. Override the schema when needed:
 
 ```kotlin
 viaductPersistence {
@@ -266,7 +275,10 @@ Supported scalar mappings are:
 | `Time` | `LocalTime` |
 | `Boolean` | `Boolean` |
 | `Byte`, `Short`, `Int`, `Long` | Matching integer type |
-| `Float`, `Double` | `Double` |
+| `Float` | `Double` |
+| `BigDecimal` | `java.math.BigDecimal` |
+| `BigInteger` | `java.math.BigInteger` |
+| `JSON` | `String`, stored as `jsonb` |
 | GraphQL enum | Generated Kotlin enum |
 | One-dimensional scalar list | PostgreSQL array |
 
@@ -299,7 +311,7 @@ viaductPersistence {
 | Task | Purpose |
 | --- | --- |
 | `validateViaductPersistenceSchema` | Validate subtree and persistence constraints |
-| `generateViaductPersistenceModel` | Generate plain entities, `orm.xml`, and semantic metadata |
+| `generateViaductPersistenceModel` | Generate plain entities and `orm.xml` from the assembled schema |
 | `buildViaductEffectiveModel` | Compile the model through Hibernate and generate database overlays |
 | `hibernateSchemaSnapshot` | Write a reviewable Liquibase JSON snapshot |
 | `hibernateSchemaDiff` | Compare the generated model with a PostgreSQL database |
@@ -317,22 +329,19 @@ build/generated/viaduct-persistence/
   kotlin/...
   resources/META-INF/orm.xml
   resources/META-INF/persistence.xml
-  resources/META-INF/viaduct-persistence-model.tsv
 
 build/generated/viaduct-effective-model/META-INF/
-  hibernate-metadata-fingerprint.tsv
-  persistent-tables.txt
   pg-graphql.sql
   pg-graphql-metadata.sql
   pg-graphql-overlay.sql
   postgresql-migration.sql
   postgresql-prerequisites.sql
   postgresql-repeatable.sql
-  viaduct-effective-model.tsv
-  viaduct-hibernate-reference.tsv
 ```
 
-The effective-model directory is packaged into the application JAR.
+The effective SQL directory is packaged into the application JAR. The effective model and
+Liquibase reference metadata are rebuilt from the assembled schema, generated mapping, classpath,
+and naming configuration; no metadata descriptor is packaged or passed between tasks.
 
 ## Use pg_graphql as a Subtree Backend
 
@@ -431,7 +440,11 @@ from generated Viaduct reflection and recognizes a collection structurally: a ge
 records through `edges { node }`. Translation rewrites recognized `nodes` selections to that shape
 and marks the generated edge selections with an internal alias. The response restorer changes the
 alias back to `nodes` recursively, including for nested collections, while ordinary domain fields
-named `nodes` or `edges` pass through unchanged.
+named `nodes` or `edges` pass through unchanged. When reflection finds custom fields on a
+connection edge, translation uses the real `<fieldName>Associations` relationship, moves edge
+fields into the association row, and restores the row to the authored edge shape. This convention
+also applies recursively to nested connections; no generated descriptor, view, or SQL function is
+needed.
 
 Translation is included in the runtime library. The runtime owns GraphQL request construction,
 upstream error handling, response-shape restoration, Viaduct GRT mapping, and node-reference
@@ -499,7 +512,7 @@ The combined `pg-graphql.sql` overlay:
 - Enables row-level security on generated entity tables.
 - Preserves authored GraphQL type and relationship names with pg_graphql comments.
 - Enforces non-null scalar-array elements.
-- Creates computed relationship functions for join tables.
+- Names the ordinary foreign-key relationships used to read real association tables.
 
 ## Customize Hibernate
 
@@ -555,15 +568,17 @@ replacement is supported but is not the recommended default.
 
 ## Liquibase Database Driver
 
-The plugin library registers a Liquibase reference database with this URL form:
+The plugin library registers a Liquibase reference database with an opaque, in-process URL:
 
 ```text
-hibernate:viaduct:/absolute/path/to/viaduct-hibernate-reference.tsv
+hibernate:viaduct:<opaque-token>
 ```
 
-The driver reads the generated manifest, creates an isolated classloader from its recorded
-classpath, applies the configured Hibernate naming strategies and metadata customizers, and
-returns the same metadata used by `buildViaductEffectiveModel`.
+The token points to an in-memory `HibernateMetadataConfiguration` registered by the current JVM.
+The driver creates an isolated classloader from that configuration, applies the configured
+Hibernate naming strategies and metadata customizers, and returns the same metadata used by
+`buildViaductEffectiveModel`. No descriptor file or serialization is involved. The Gradle tasks
+register and release the configuration automatically.
 
 Add the driver when using it outside the plugin tasks:
 
@@ -577,52 +592,47 @@ dependencies {
 }
 ```
 
-Programmatic usage:
+Programmatic usage in the same JVM:
 
 ```kotlin
 import java.io.File
 import liquibase.database.DatabaseFactory
 import liquibase.resource.ClassLoaderResourceAccessor
+import dev.viaduct.persistence.hibernate.HibernateMetadataConfiguration
 import dev.viaduct.persistence.liquibase.ViaductHibernateDatabase
 
-val manifest = File(
-    "build/generated/viaduct-effective-model/" +
-        "META-INF/viaduct-hibernate-reference.tsv"
+val configuration = HibernateMetadataConfiguration(
+    mappingFile = File("build/generated/viaduct-persistence/resources/META-INF/orm.xml"),
+    classpath = listOf(File("build/classes/kotlin/main")),
+    managedClassNames = listOf("example.generated.Group"),
+    implicitNamingStrategyClassName = "dev.viaduct.persistence.hibernate.ViaductImplicitNamingStrategy",
+    physicalNamingStrategyClassName = "dev.viaduct.persistence.hibernate.ViaductPhysicalNamingStrategy",
+    metadataCustomizerClassNames = emptyList(),
+    dialectClassName = HibernateMetadataConfiguration.DEFAULT_DIALECT,
+    hibernateSettings = HibernateMetadataConfiguration.defaultSettings(),
 )
 val accessor = ClassLoaderResourceAccessor(
     ViaductHibernateDatabase::class.java.classLoader
 )
-val database = DatabaseFactory.getInstance().openDatabase(
-    ViaductHibernateDatabase.referenceUrl(manifest),
-    null,
-    null,
-    null,
-    accessor,
-)
-
-try {
-    // Use as a Liquibase snapshot or diff reference database.
-} finally {
-    database.close()
-    accessor.close()
+ViaductHibernateDatabase.reference(configuration).use { reference ->
+    val database = DatabaseFactory.getInstance().openDatabase(
+        reference.url,
+        null,
+        null,
+        null,
+        accessor,
+    )
+    try {
+        // Use as a Liquibase snapshot or diff reference database.
+    } finally {
+        database.close()
+    }
 }
+accessor.close()
 ```
 
-Equivalent Liquibase CLI arguments are:
-
-```bash
-liquibase \
-  --reference-url=hibernate:viaduct:/absolute/path/to/viaduct-hibernate-reference.tsv \
-  --url=jdbc:postgresql://127.0.0.1:5432/application \
-  --username=postgres \
-  --password=postgres \
-  diff-changelog \
-  --changelog-file=build/schema-diff/review.sql
-```
-
-The CLI classpath must contain `dev.viaduct.persistence:plugin` and its transitive dependencies.
-The manifest paths are absolute and build-specific; regenerate the effective model after moving
-or rebuilding the application.
+Because the token is held in memory, a standalone Liquibase CLI process cannot use this URL. Use
+the Gradle tasks or register the configuration from a program in the same JVM.
 
 This driver is a Liquibase reference database, not a JDBC driver and not an application runtime
 ORM. Applications using pg_graphql do not need Hibernate in their production runtime. Tests or

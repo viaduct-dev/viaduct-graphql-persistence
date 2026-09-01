@@ -3,7 +3,9 @@ package dev.viaduct.persistence.postgresql
 import dev.viaduct.persistence.hibernate.EffectiveHibernateArray
 import dev.viaduct.persistence.hibernate.EffectiveHibernateComputedRelationship
 import dev.viaduct.persistence.hibernate.EffectiveHibernateEntity
+import dev.viaduct.persistence.hibernate.EffectiveHibernateJoinTable
 import dev.viaduct.persistence.hibernate.EffectiveHibernateModel
+import dev.viaduct.persistence.hibernate.EffectiveHibernateTable
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
@@ -85,16 +87,15 @@ class PostgresqlOverlayTest {
                         EffectiveHibernateComputedRelationship(
                             ownerTypeName = "Person",
                             fieldName = "friends",
-                            ownerSchemaName = "public",
-                            ownerTableName = "persons",
-                            ownerIdColumnName = "id",
-                            targetSchemaName = "public",
-                            targetTableName = "persons",
-                            targetIdColumnName = "id",
-                            joinSchemaName = "viaduct_internal",
-                            joinTableName = "person_friends_associations",
-                            joinOwnerColumnName = "owner_person_id",
-                            joinTargetColumnName = "target_person_id",
+                            owner = EffectiveHibernateTable("public", "persons", "id"),
+                            target = EffectiveHibernateTable("public", "persons", "id"),
+                            join =
+                                EffectiveHibernateJoinTable(
+                                    "viaduct_internal",
+                                    "person_friends_associations",
+                                    "owner_person_id",
+                                    "target_person_id",
+                                ),
                         ),
                     ),
                 arrays = emptyList(),

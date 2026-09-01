@@ -1,12 +1,14 @@
 package dev.viaduct.persistence.hibernate
 
 import dev.viaduct.persistence.io.ensureDirectory
+import dev.viaduct.persistence.model.PersistenceAssociation
 import dev.viaduct.persistence.model.PersistenceBasicAttribute
 import dev.viaduct.persistence.model.PersistenceEntity
 import dev.viaduct.persistence.model.PersistenceEnum
 import dev.viaduct.persistence.model.PersistenceModel
 import dev.viaduct.persistence.model.PersistenceToManyAttribute
 import dev.viaduct.persistence.model.PersistenceToOneAttribute
+import dev.viaduct.persistence.model.associationEntityClassName
 import dev.viaduct.persistence.model.entityClassName
 import dev.viaduct.persistence.model.enumClassName
 import java.io.File
@@ -30,6 +32,12 @@ internal class GeneratedEntitySourceWriter {
                 .resolve("${entityClassName(entity.graphqlName)}.kt")
                 .writeText(renderEntity(entity, packageName))
         }
+        model.associations.forEach { association ->
+            directory
+                .resolve(
+                    "${associationEntityClassName(association.ownerTypeName, association.fieldName)}.kt",
+                ).writeText(renderAssociation(association, packageName))
+        }
     }
 
     fun renderEntity(
@@ -50,6 +58,40 @@ internal class GeneratedEntitySourceWriter {
                     }
                 appendLine()
                 appendLine("    open var ${attribute.name}: $nullableType = ${attribute.defaultValue(type)}")
+            }
+            appendLine("}")
+        }
+
+    private fun renderAssociation(
+        association: PersistenceAssociation,
+        packageName: String,
+    ): String =
+        buildString {
+            appendLine("package $packageName")
+            appendLine()
+            appendLine(
+                "open class ${associationEntityClassName(association.ownerTypeName, association.fieldName)} {",
+            )
+            appendLine()
+            appendLine("    open var internalId: java.util.UUID = java.util.UUID(0, 0)")
+            appendLine()
+            appendLine(
+                "    open var owner: ${entityClassName(association.ownerTypeName)} = " +
+                    "${entityClassName(association.ownerTypeName)}()",
+            )
+            appendLine()
+            appendLine(
+                "    open var node: ${entityClassName(association.targetTypeName)} = " +
+                    "${entityClassName(association.targetTypeName)}()",
+            )
+            association.edgeMapping.attributes.forEach { attribute ->
+                val type = attribute.kotlinType()
+                val nullableType = if (attribute.nullable) "$type?" else type
+                appendLine()
+                appendLine(
+                    "    open var ${attribute.name}: $nullableType = " +
+                        attribute.defaultValue(type),
+                )
             }
             appendLine("}")
         }
@@ -99,6 +141,8 @@ private fun scalarDefaultValue(type: String): String =
         "Int" to "0",
         "Long" to "0",
         "Double" to "0.0",
+        "java.math.BigDecimal" to "java.math.BigDecimal.ZERO",
+        "java.math.BigInteger" to "java.math.BigInteger.ZERO",
         "java.util.UUID" to "java.util.UUID(0, 0)",
         "java.time.LocalDate" to "java.time.LocalDate.MIN",
         "java.time.LocalTime" to "java.time.LocalTime.MIN",

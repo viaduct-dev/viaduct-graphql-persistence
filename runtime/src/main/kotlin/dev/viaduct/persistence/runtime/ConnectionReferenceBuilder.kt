@@ -41,15 +41,21 @@ internal class ConnectionReferenceBuilder(
                 ResolvedEngineObjectData.Builder(graphQlType).build(),
             )
 
-        shape.fields.forEach { field ->
+        val path = shape.path(reference.fieldName)
+        val valueContext =
+            ConnectionFieldValueContext(
+                executionContext = context,
+                typeReflection = typeReflection,
+                nodeResolver = nodeResolver,
+                connectionFieldName = reference.fieldName,
+                path = path,
+            )
+        shape.fields().forEach { field ->
             connectionBuilder.set(
                 field.field,
                 field.value(
                     response = response,
-                    context = context,
-                    typeReflection = typeReflection,
-                    nodeResolver = nodeResolver,
-                    connectionFieldName = reference.fieldName,
+                    context = valueContext,
                 ),
             )
         }

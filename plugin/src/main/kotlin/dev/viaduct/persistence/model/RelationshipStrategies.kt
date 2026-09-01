@@ -5,6 +5,7 @@ import viaduct.graphql.schema.ViaductSchema
 internal data class PersistenceRelationshipTarget(
     val targetName: String,
     val collection: Boolean,
+    val edgeTypeName: String? = null,
 )
 
 internal interface RelationshipTargetResolver {
@@ -44,20 +45,36 @@ private class ConnectionRelationshipTargetResolver : RelationshipTargetResolver 
         includedObjects: Map<String, ViaductSchema.Object>,
     ): PersistenceRelationshipTarget? =
         (field.type.baseTypeDef as? ViaductSchema.Object)
-            ?.let(::connectionNodeType)
-            ?.takeIf { it.name in includedObjects }
-            ?.let { PersistenceRelationshipTarget(it.name, collection = true) }
+            ?.let(::connectionTypes)
+            ?.takeIf { it.node.name in includedObjects }
+            ?.let {
+                PersistenceRelationshipTarget(
+                    targetName = it.node.name,
+                    collection = true,
+                    edgeTypeName = it.edge.name,
+                )
+            }
 
-    private fun connectionNodeType(connectionType: ViaductSchema.Object): ViaductSchema.Object? =
-        connectionType.fields
-            .singleOrNull { it.name == "edges" }
-            ?.type
-            ?.baseTypeDef
-            ?.let { it as? ViaductSchema.Object }
-            ?.fields
-            ?.singleOrNull { it.name == "node" }
-            ?.type
-            ?.baseTypeDef as? ViaductSchema.Object
+    private fun connectionTypes(connectionType: ViaductSchema.Object): ConnectionTypes? {
+        val edge =
+            connectionType.fields
+                .singleOrNull { it.name == "edges" }
+                ?.type
+                ?.baseTypeDef
+                ?.let { it as? ViaductSchema.Object }
+        val node =
+            edge
+                ?.fields
+                ?.singleOrNull { it.name == "node" }
+                ?.type
+                ?.baseTypeDef as? ViaductSchema.Object
+        return edge?.let { edgeType -> node?.let { nodeType -> ConnectionTypes(edgeType, nodeType) } }
+    }
+
+    private data class ConnectionTypes(
+        val edge: ViaductSchema.Object,
+        val node: ViaductSchema.Object,
+    )
 }
 
 private class NodesCollectionRelationshipTargetResolver : RelationshipTargetResolver {
@@ -102,6 +119,9 @@ internal data class CollectionMappingContext(
     val inverseToOneFields: List<ViaductSchema.Field>,
     val inverseCollections: List<ViaductSchema.Field>,
     val unidirectionalTargetForeignKeyFields: Set<String>,
+    val hasPersistedEdgeFields: Boolean = false,
+    val sourceEdgeMappings: Map<String, PersistenceEdgeMapping?> = emptyMap(),
+    val inverseEdgeMappings: Map<String, PersistenceEdgeMapping?> = emptyMap(),
 )
 
 internal interface CollectionMappingStrategy {
@@ -111,6 +131,7 @@ internal interface CollectionMappingStrategy {
 internal class CollectionMappingResolver(
     private val strategies: List<CollectionMappingStrategy> =
         listOf(
+            EdgeCollectionMappingStrategy(),
             InverseToOneCollectionMappingStrategy(),
             MutualCollectionMappingStrategy(),
             AmbiguousInverseCollectionStrategy(),
@@ -128,45 +149,91 @@ internal class CollectionMappingResolver(
 
 private class InverseToOneCollectionMappingStrategy : CollectionMappingStrategy {
     override fun resolve(context: CollectionMappingContext): PersistenceCollectionMapping? {
+        if (context.hasPersistedEdgeFields) return null
         require(context.inverseToOneFields.size <= 1) {
-            "Relationship ${context.source.name} -> ${context.target.name} is ambiguous because " +
+            val coordinate = "${context.source.name}.${context.sourceField.name}"
+            val candidates = context.inverseToOneFields.joinToString { it.name }
+            "Relationship $coordinate -> ${context.target.name} is ambiguous because " +
                 "${context.target.name} has multiple references back to ${context.source.name}: " +
-                context.inverseToOneFields.joinToString { it.name }
+                "$candidates. Specify which one $coordinate is the inverse of by adding " +
+                "an inverseFieldOverrides entry to your relationship config YAML " +
+                "(viaductPersistence.relationshipConfigFile), e.g.:\n" +
+                "inverseFieldOverrides:\n  $coordinate: <fieldName>\n" +
+                "using one of: $candidates."
         }
-        val inverse = context.inverseToOneFields.singleOrNull() ?: return null
-        require(context.sourceCollections.size == 1) {
-            "Relationship ${context.source.name} -> ${context.target.name} is ambiguous because " +
-                "multiple collections would share ${context.target.name}.${inverse.name}: " +
-                context.sourceCollections.joinToString { it.name }
+        return context.inverseToOneFields.singleOrNull()?.let { inverse ->
+            require(context.sourceCollections.size == 1) {
+                "Relationship ${context.source.name} -> ${context.target.name} is ambiguous because " +
+                    "multiple collections would share ${context.target.name}.${inverse.name}: " +
+                    context.sourceCollections.joinToString { it.name }
+            }
+            PersistenceCollectionMapping(
+                inverseFieldName = inverse.name,
+                storage = PersistenceToManyStorage.TARGET_FOREIGN_KEY,
+            )
         }
-        return PersistenceCollectionMapping(
-            inverseFieldName = inverse.name,
-            storage = PersistenceToManyStorage.TARGET_FOREIGN_KEY,
-        )
+    }
+}
+
+private class EdgeCollectionMappingStrategy : CollectionMappingStrategy {
+    override fun resolve(context: CollectionMappingContext): PersistenceCollectionMapping? {
+        val sourceHasEdgeFields =
+            context.hasPersistedEdgeFields || context.sourceEdgeMappings[context.sourceField.name] != null
+        val inverseEdgeFields =
+            context.inverseCollections.filter { context.inverseEdgeMappings[it.name] != null }
+        return when {
+            !sourceHasEdgeFields && inverseEdgeFields.isEmpty() -> null
+            sourceHasEdgeFields ->
+                PersistenceCollectionMapping(
+                    inverseFieldName = null,
+                    storage = PersistenceToManyStorage.JOIN_TABLE_OWNER,
+                    joinTableName = associationJoinTableName(context.source.name, context.sourceField.name),
+                )
+            else -> {
+                require(inverseEdgeFields.size == 1) {
+                    "Relationship ${context.source.name}.${context.sourceField.name} is ambiguous because " +
+                        "${context.target.name} has multiple association-backed collections back: " +
+                        inverseEdgeFields.joinToString { it.name }
+                }
+                val inverse = inverseEdgeFields.single()
+                PersistenceCollectionMapping(
+                    inverseFieldName = inverse.name,
+                    storage = PersistenceToManyStorage.JOIN_TABLE_INVERSE,
+                    joinTableName = associationJoinTableName(context.target.name, inverse.name),
+                )
+            }
+        }
     }
 }
 
 private class MutualCollectionMappingStrategy : CollectionMappingStrategy {
     override fun resolve(context: CollectionMappingContext): PersistenceCollectionMapping? {
-        if (context.sourceCollections.size != 1 || context.inverseCollections.size != 1) {
-            return null
+        val hasEdgeFields =
+            context.sourceEdgeMappings.values.any { it != null } ||
+                context.inverseEdgeMappings.values.any { it != null }
+        return when {
+            hasEdgeFields ||
+                context.sourceCollections.size != 1 ||
+                context.inverseCollections.size != 1 -> null
+            else -> {
+                val inverseField = context.inverseCollections.single()
+                val sourceKey = "${context.source.name}.${context.sourceField.name}"
+                val targetKey = "${context.target.name}.${inverseField.name}"
+                val sourceOwns = sourceKey <= targetKey
+                val ownerType = if (sourceOwns) context.source else context.target
+                val ownerField = if (sourceOwns) context.sourceField else inverseField
+                PersistenceCollectionMapping(
+                    inverseFieldName = if (sourceOwns) null else inverseField.name,
+                    storage =
+                        if (sourceOwns) {
+                            PersistenceToManyStorage.JOIN_TABLE_OWNER
+                        } else {
+                            PersistenceToManyStorage.JOIN_TABLE_INVERSE
+                        },
+                    joinTableName = associationJoinTableName(ownerType.name, ownerField.name),
+                )
+            }
         }
-        val inverseField = context.inverseCollections.single()
-        val sourceKey = "${context.source.name}.${context.sourceField.name}"
-        val targetKey = "${context.target.name}.${inverseField.name}"
-        val sourceOwns = sourceKey <= targetKey
-        val ownerType = if (sourceOwns) context.source else context.target
-        val ownerField = if (sourceOwns) context.sourceField else inverseField
-        return PersistenceCollectionMapping(
-            inverseFieldName = if (sourceOwns) null else inverseField.name,
-            storage =
-                if (sourceOwns) {
-                    PersistenceToManyStorage.JOIN_TABLE_OWNER
-                } else {
-                    PersistenceToManyStorage.JOIN_TABLE_INVERSE
-                },
-            joinTableName = associationJoinTableName(ownerType.name, ownerField.name),
-        )
     }
 }
 
@@ -186,6 +253,10 @@ private class ConfiguredTargetForeignKeyStrategy : CollectionMappingStrategy {
     override fun resolve(context: CollectionMappingContext): PersistenceCollectionMapping? {
         val sourceKey = "${context.source.name}.${context.sourceField.name}"
         if (sourceKey !in context.unidirectionalTargetForeignKeyFields) return null
+        require(!context.hasPersistedEdgeFields) {
+            "Configured target-foreign-key relationship $sourceKey cannot persist custom edge fields; " +
+                "remove the configuration so an association table can be used"
+        }
         require(context.sourceCollections.size == 1) {
             "Configured target-foreign-key relationship $sourceKey must be the only collection " +
                 "from ${context.source.name} to ${context.target.name}"
@@ -199,10 +270,16 @@ private class ConfiguredTargetForeignKeyStrategy : CollectionMappingStrategy {
 
 private class SingleUnidirectionalCollectionStrategy : CollectionMappingStrategy {
     override fun resolve(context: CollectionMappingContext): PersistenceCollectionMapping? =
-        if (context.sourceCollections.size == 1) {
+        if (context.sourceCollections.size == 1 && !context.hasPersistedEdgeFields) {
             PersistenceCollectionMapping(
                 inverseFieldName = null,
                 storage = PersistenceToManyStorage.TARGET_FOREIGN_KEY,
+            )
+        } else if (context.sourceCollections.size == 1) {
+            PersistenceCollectionMapping(
+                inverseFieldName = null,
+                storage = PersistenceToManyStorage.JOIN_TABLE_OWNER,
+                joinTableName = associationJoinTableName(context.source.name, context.sourceField.name),
             )
         } else {
             null

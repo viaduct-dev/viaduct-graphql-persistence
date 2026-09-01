@@ -6,12 +6,11 @@ import graphql.language.Selection
 import graphql.language.SelectionSet
 import graphql.language.TypeName
 
-internal const val VIADUCT_NODES_RESPONSE_ALIAS = "_viaduct_nodes"
-
 internal data class SelectionTransformContext(
     val parentType: String,
     val schema: PgGraphqlTranslationSchema,
     val rewriteCollectionTypes: Boolean,
+    val associationEdge: Boolean = false,
 )
 
 internal class SelectionTransformerChain(
@@ -19,6 +18,8 @@ internal class SelectionTransformerChain(
 ) : SelectionTransformVisitor<SelectionTransformContext> {
     private val fieldTransformations: List<FieldTransformation> =
         listOf(
+            AssociationEdgeFieldTransformation(),
+            AssociationConnectionFieldTransformation(),
             CollectionNodesFieldTransformation(),
             NestedFieldTransformation(),
             PassthroughFieldTransformation(),
@@ -32,7 +33,13 @@ internal class SelectionTransformerChain(
     ): SelectionSet =
         walker.transform(
             selectionSet = selectionSet,
-            context = SelectionTransformContext(parentType, schema, rewriteCollectionTypes),
+            context =
+                SelectionTransformContext(
+                    parentType = parentType,
+                    schema = schema,
+                    rewriteCollectionTypes = rewriteCollectionTypes,
+                    associationEdge = schema.associationRowType(parentType) != null,
+                ),
             visitor = this,
         )
 
@@ -58,6 +65,11 @@ internal class SelectionTransformerChain(
             )
         return selection.transform {
             it.selectionSet(transformedSelectionSet)
+            if (context.associationEdge && selection.typeCondition != null) {
+                context.schema.associationRowType(fragmentType)?.let { associationType ->
+                    it.typeCondition(TypeName(associationType))
+                }
+            }
             if (context.rewriteCollectionTypes && selection.typeCondition != null) {
                 context.schema.collectionNodeType(fragmentType)?.let { elementType ->
                     it.typeCondition(TypeName("${elementType}Connection"))
@@ -72,7 +84,7 @@ internal class SelectionTransformerChain(
     ): Selection<*> = selection
 }
 
-private interface FieldTransformation {
+internal interface FieldTransformation {
     fun supports(
         field: Field,
         context: SelectionTransformContext,

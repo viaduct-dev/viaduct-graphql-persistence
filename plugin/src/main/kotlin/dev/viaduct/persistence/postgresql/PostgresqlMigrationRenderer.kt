@@ -12,5 +12,10 @@ internal object PostgresqlMigrationRenderer {
             model.arrays.filterNot { it.elementNullable }.forEach {
                 appendLine(ArrayConstraintMigrationRenderer.render(it))
             }
+            model.computedRelationships.forEach { relationship ->
+                relationship.edgeFields.forEach { field ->
+                    appendLine(EdgeFieldMigrationRenderer.render(relationship, field))
+                }
+            }
         }
 }

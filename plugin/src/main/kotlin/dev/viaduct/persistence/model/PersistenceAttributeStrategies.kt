@@ -15,8 +15,12 @@ private val SCALAR_KOTLIN_TYPES =
         "Int" to "Int",
         "Long" to "Long",
         "Float" to "Double",
-        "Double" to "Double",
+        "BigDecimal" to "java.math.BigDecimal",
+        "BigInteger" to "java.math.BigInteger",
+        "JSON" to "String",
     )
+
+private const val JSON_COLUMN_DEFINITION = "jsonb"
 
 internal data class PersistenceAttributeContext(
     val source: ViaductSchema.Object,
@@ -47,7 +51,14 @@ internal class ToManyAttributeStrategy : PersistenceAttributeStrategy {
             ?.takeIf { it.collection }
             ?.let { relationship ->
                 val target = context.modelContext.includedObjects.getValue(relationship.targetName)
-                val mapping = context.modelContext.collectionMapping(context.source, context.field, target)
+                val edgeMapping = context.modelContext.edgeMapping(relationship.edgeTypeName)
+                val mapping =
+                    context.modelContext.collectionMapping(
+                        context.source,
+                        context.field,
+                        target,
+                        hasPersistedEdgeFields = edgeMapping != null,
+                    )
                 PersistenceAttributeDecision.Add(
                     PersistenceToManyAttribute(
                         name = context.field.name,
@@ -56,6 +67,7 @@ internal class ToManyAttributeStrategy : PersistenceAttributeStrategy {
                         inverseFieldName = mapping.inverseFieldName,
                         storage = mapping.storage,
                         joinTableName = mapping.joinTableName,
+                        edgeMapping = edgeMapping,
                     ),
                 )
             }
@@ -131,6 +143,12 @@ internal class BasicAttributeStrategy : PersistenceAttributeStrategy {
                 enumTypeName = enumTypeName,
                 collection = context.field.type.isList,
                 elementNullable = context.field.type.isList && context.field.type.baseTypeNullable,
+                columnDefinition =
+                    if (baseType is ViaductSchema.Scalar && baseType.name == "JSON") {
+                        JSON_COLUMN_DEFINITION
+                    } else {
+                        null
+                    },
             ),
         )
     }

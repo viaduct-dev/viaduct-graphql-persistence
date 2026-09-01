@@ -8,11 +8,14 @@ data class PgGraphqlFieldCoordinate(
 class PgGraphqlTranslationSchema(
     collectionElementTypes: Map<String, String>,
     fieldTypes: Map<PgGraphqlFieldCoordinate, String>,
+    associationConnections: Set<PgGraphqlFieldCoordinate> = emptySet(),
 ) {
     private val collectionElementTypeValues =
         java.util.Collections.unmodifiableMap(java.util.LinkedHashMap(collectionElementTypes))
     private val fieldTypeValues =
         java.util.Collections.unmodifiableMap(java.util.LinkedHashMap(fieldTypes))
+    private val associationConnectionValues =
+        java.util.Collections.unmodifiableSet(java.util.LinkedHashSet(associationConnections))
 
     val collectionElementTypes: Map<String, String>
         get() = collectionElementTypeValues
@@ -40,22 +43,34 @@ class PgGraphqlTranslationSchema(
         fieldName: String,
     ): String? = fieldTypes[PgGraphqlFieldCoordinate(parentType, fieldName)]
 
-    /**
-     * Returns true for any structural connection, regardless of whether the schema author called
-     * it `Connection`, `Page`, `List`, or something else. A connection is identified by an
-     * `edges` object whose edge object has a `node` field.
-     */
-    fun isConnectionType(typeName: String): Boolean = connectionNodeType(typeName) != null
+    fun isAssociationConnection(
+        parentType: String,
+        fieldName: String,
+    ): Boolean =
+        PgGraphqlAssociationConvention.isAssociationConnection(
+            fieldTypes,
+            parentType,
+            fieldName,
+            associationConnectionValues,
+        )
+
+    fun associationRowType(edgeType: String): String? =
+        PgGraphqlAssociationConvention.rowType(fieldTypes, edgeType, associationConnectionValues)
+
+    fun associationConnectionType(connectionType: String): String? =
+        PgGraphqlAssociationConvention.connectionType(fieldTypes, connectionType, associationConnectionValues)
 
     override fun equals(other: Any?): Boolean =
         other is PgGraphqlTranslationSchema &&
             collectionElementTypes == other.collectionElementTypes &&
-            fieldTypes == other.fieldTypes
+            fieldTypes == other.fieldTypes &&
+            associationConnectionValues == other.associationConnectionValues
 
-    override fun hashCode(): Int = 31 * collectionElementTypes.hashCode() + fieldTypes.hashCode()
+    override fun hashCode(): Int = listOf(collectionElementTypes, fieldTypes, associationConnectionValues).hashCode()
 
     override fun toString(): String =
         "PgGraphqlTranslationSchema(" +
             "collectionElementTypes=$collectionElementTypes, " +
-            "fieldTypes=$fieldTypes)"
+            "fieldTypes=$fieldTypes, " +
+            "associationConnections=$associationConnectionValues)"
 }

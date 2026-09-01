@@ -12,8 +12,11 @@ import viaduct.api.reflect.Type
 /** Reflection helpers for the generated Viaduct types used by the persistence runtime. */
 internal class GeneratedTypeReflection {
     internal val fieldReflection = GeneratedFieldReflection()
-    private val connectionShapeFactory = ConnectionShapeFactory(fieldReflection)
-    private val translationSchemaFactory = GeneratedTranslationSchemaFactory(this, fieldReflection)
+    private val storageClassifier =
+        ConnectionStorageClassifier(fieldReflection, ::legacyCollectionNodeType)
+    private val connectionShapeFactory = ConnectionShapeFactory(fieldReflection, storageClassifier)
+    private val translationSchemaFactory =
+        GeneratedTranslationSchemaFactory(this, fieldReflection, storageClassifier)
 
     /**
      * Returns the element type of the compatibility `nodes` field on a generated Viaduct
@@ -47,7 +50,8 @@ internal class GeneratedTypeReflection {
     fun connection(
         type: Type<*>,
         requestedSelections: viaduct.api.select.SelectionSet<*>? = null,
-    ): ConnectionShape? = connectionShapeFactory.create(type, requestedSelections)
+        ownerType: Type<*>? = null,
+    ): ConnectionShape? = connectionShapeFactory.create(type, requestedSelections, ownerType)
 
     private fun isConnectionBuilder(type: Type<*>): Boolean =
         runCatching {

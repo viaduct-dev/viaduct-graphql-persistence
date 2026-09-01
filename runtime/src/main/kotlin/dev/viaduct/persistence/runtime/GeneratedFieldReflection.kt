@@ -18,6 +18,11 @@ internal class GeneratedFieldReflection {
         name: String,
     ): CompositeField<*, *>? = allFields(type).singleOrNull { it.name == name } as? CompositeField<*, *>
 
+    fun structuralConnectionNodeType(type: Type<*>): Type<*>? {
+        val edgeType = field(type, "edges")?.type ?: return null
+        return field(edgeType, "node")?.type
+    }
+
     fun anyField(
         type: Type<*>,
         name: String,

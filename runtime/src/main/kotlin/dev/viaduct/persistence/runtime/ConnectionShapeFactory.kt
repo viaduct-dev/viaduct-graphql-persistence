@@ -7,14 +7,17 @@ import viaduct.api.types.CompositeOutput
 /** Discovers the structural Viaduct connection descriptor for a generated type. */
 internal class ConnectionShapeFactory(
     private val reflection: GeneratedFieldReflection,
+    private val storageClassifier: ConnectionStorageClassifier = ConnectionStorageClassifier(reflection),
+    private val pathResolver: ConnectionPathResolver = PgGraphqlConnectionPathResolver,
 ) {
     fun create(
         type: Type<*>,
         requestedSelections: viaduct.api.select.SelectionSet<*>?,
+        ownerType: Type<*>? = null,
     ): ConnectionShape? =
         reflection.field(type, "edges")?.let { edgeField ->
             reflection.field(edgeField.type, "node")?.let { nodeField ->
-                createShape(type, edgeField, nodeField, requestedSelections)
+                createShape(type, edgeField, nodeField, requestedSelections, ownerType)
             }
         }
 
@@ -23,6 +26,7 @@ internal class ConnectionShapeFactory(
         edgeField: viaduct.api.reflect.CompositeField<*, *>,
         nodeField: viaduct.api.reflect.CompositeField<*, *>,
         requestedSelections: viaduct.api.select.SelectionSet<*>?,
+        ownerType: Type<*>?,
     ): ConnectionShape {
         val edgeType = edgeField.type
         val pageInfoField = reflection.field(type, "pageInfo")
@@ -50,6 +54,9 @@ internal class ConnectionShapeFactory(
                 node = NodeResponseField(nodeField),
                 cursor = reflection.anyField(edgeType, "cursor")?.let(::CursorResponseField),
                 customFields = customEdgeFields(edgeType, edgeSelections, selectedEdgeFields),
+                isAssociationBacked =
+                    ownerType?.let { storageClassifier.isAssociationBacked(it, type) }
+                        ?: hasCustomEdgeFields(edgeType),
             )
         return ConnectionShape(
             type = type,
@@ -68,9 +75,13 @@ internal class ConnectionShapeFactory(
                     )
                 },
             pageInfoField = pageInfoField,
+            pathResolver = pathResolver,
             requestedFieldNames = selectedConnectionFields,
         )
     }
+
+    private fun hasCustomEdgeFields(edgeType: Type<*>): Boolean =
+        reflection.allFields(edgeType).any { it.name !in setOf("node", "cursor", "__typename") }
 
     private fun customEdgeFields(
         edgeType: Type<*>,

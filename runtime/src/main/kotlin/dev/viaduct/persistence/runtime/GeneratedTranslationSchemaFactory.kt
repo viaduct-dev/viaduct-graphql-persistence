@@ -10,11 +10,14 @@ import viaduct.api.types.CompositeOutput
 internal class GeneratedTranslationSchemaFactory(
     private val reflection: GeneratedTypeReflection,
     private val fieldReflection: GeneratedFieldReflection,
+    private val storageClassifier: ConnectionStorageClassifier =
+        ConnectionStorageClassifier(fieldReflection),
 ) {
     fun build(rootType: Type<*>): PgGraphqlTranslationSchema {
         val visited = mutableSetOf<String>()
         val collections = linkedMapOf<String, String>()
         val fieldTypes = linkedMapOf<PgGraphqlFieldCoordinate, String>()
+        val associationConnections = linkedSetOf<PgGraphqlFieldCoordinate>()
         val pending = ArrayDeque<Type<*>>().apply { add(rootType) }
 
         while (pending.isNotEmpty()) {
@@ -25,12 +28,16 @@ internal class GeneratedTranslationSchemaFactory(
             }
             fieldReflection.allFields(type).forEach { field ->
                 val composite = field as? CompositeField<*, *> ?: return@forEach
-                fieldTypes[PgGraphqlFieldCoordinate(type.name, field.name)] = composite.type.name
+                val coordinate = PgGraphqlFieldCoordinate(type.name, field.name)
+                fieldTypes[coordinate] = composite.type.name
+                if (storageClassifier.isAssociationBacked(type, composite.type)) {
+                    associationConnections += coordinate
+                }
                 if (CompositeOutput::class.java.isAssignableFrom(composite.type.kcls.java)) {
                     pending += composite.type
                 }
             }
         }
-        return PgGraphqlTranslationSchema(collections, fieldTypes)
+        return PgGraphqlTranslationSchema(collections, fieldTypes, associationConnections)
     }
 }

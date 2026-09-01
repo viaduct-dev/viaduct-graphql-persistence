@@ -7,10 +7,14 @@ import java.io.File
 object PgGraphqlOverlay {
     fun render(model: EffectiveHibernateModel): String =
         buildString {
-            for (schemaName in model.entities
-                .map { it.schemaName }
-                .distinct()
-                .sorted()) {
+            for (
+            schemaName in
+            (
+                model.entities.map { it.schemaName } +
+                    model.computedRelationships.map { it.joinSchemaName }
+            ).distinct()
+                .sorted()
+            ) {
                 appendLine(
                     """COMMENT ON SCHEMA ${quoteIdentifier(schemaName)} """ +
                         """IS E'@graphql({"inflect_names": true})';""",
@@ -23,7 +27,7 @@ object PgGraphqlOverlay {
                 )
             }
             append(PgGraphqlConstraintRenderer.render(model))
-            append(PgGraphqlComputedRelationshipRenderer.render(model))
+            append(PgGraphqlAssociationRelationshipRenderer.render(model))
         }
 
     fun write(

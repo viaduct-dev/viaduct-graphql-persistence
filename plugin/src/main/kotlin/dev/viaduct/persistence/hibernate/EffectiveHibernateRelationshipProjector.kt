@@ -1,6 +1,7 @@
 package dev.viaduct.persistence.hibernate
 
 import dev.viaduct.persistence.model.PersistenceAttribute
+import dev.viaduct.persistence.model.PersistenceBasicAttribute
 import dev.viaduct.persistence.model.PersistenceEntity
 import dev.viaduct.persistence.model.PersistenceToManyAttribute
 import dev.viaduct.persistence.model.PersistenceToManyStorage
@@ -93,23 +94,146 @@ internal class EffectiveHibernateRelationshipProjector(
             EffectiveHibernateComputedRelationship(
                 ownerTypeName = entity.graphqlName,
                 fieldName = attribute.name,
-                ownerSchemaName = binding.table.schema ?: "public",
-                ownerTableName = binding.table.name,
-                ownerIdColumnName = binding.identifier.singleColumnName(ownerClassName),
-                targetSchemaName = targetBinding.table.schema ?: "public",
-                targetTableName = targetBinding.table.name,
-                targetIdColumnName = targetBinding.identifier.singleColumnName(targetClassName),
-                joinSchemaName = collection.collectionTable.schema ?: "public",
-                joinTableName = collection.collectionTable.name,
-                joinOwnerColumnName =
-                    collection.key.singleColumnName(
-                        "$ownerClassName.${attribute.name}",
+                owner =
+                    EffectiveHibernateTable(
+                        schemaName = binding.table.schema ?: "public",
+                        tableName = binding.table.name,
+                        idColumnName = binding.identifier.singleColumnName(ownerClassName),
                     ),
-                joinTargetColumnName =
-                    element.singleColumnName(
-                        "$ownerClassName.${attribute.name}",
+                target =
+                    EffectiveHibernateTable(
+                        schemaName = targetBinding.table.schema ?: "public",
+                        tableName = targetBinding.table.name,
+                        idColumnName = targetBinding.identifier.singleColumnName(targetClassName),
                     ),
+                join =
+                    EffectiveHibernateJoinTable(
+                        schemaName = collection.collectionTable.schema ?: "public",
+                        tableName = collection.collectionTable.name,
+                        ownerColumnName =
+                            collection.key.singleColumnName(
+                                "$ownerClassName.${attribute.name}",
+                            ),
+                        targetColumnName =
+                            element.singleColumnName(
+                                "$ownerClassName.${attribute.name}",
+                            ),
+                    ),
+                edgeFields = projectEdgeFields(entity, attribute),
             )
         return null
+    }
+
+    private fun projectEdgeFields(
+        entity: PersistenceEntity,
+        attribute: PersistenceToManyAttribute,
+    ): List<EffectiveHibernateEdgeField> {
+        if (attribute.edgeMapping == null) return emptyList()
+        val association = context.associationFor(entity.graphqlName, attribute.name)
+        val binding = context.associationBindingFor(entity.graphqlName, attribute.name)
+        return association.edgeMapping.attributes.map { edgeAttribute ->
+            val property = binding.requiredProperty(association.typeName, edgeAttribute.name)
+            val column =
+                property.value.columns.singleOrNull()
+                    ?: error(
+                        "Hibernate edge property ${association.typeName}.${edgeAttribute.name} " +
+                            "must map to exactly one column",
+                    )
+            when (edgeAttribute) {
+                is PersistenceBasicAttribute ->
+                    EffectiveHibernateEdgeField(
+                        name = edgeAttribute.name,
+                        columnName = column.name,
+                        sqlType = column.getSqlType(context.metadata),
+                        nullable = edgeAttribute.nullable,
+                    )
+                is PersistenceToOneAttribute -> {
+                    val target = context.bindingFor(edgeAttribute.targetTypeName)
+                    EffectiveHibernateEdgeField(
+                        name = edgeAttribute.name,
+                        columnName = column.name,
+                        sqlType = column.getSqlType(context.metadata),
+                        nullable = edgeAttribute.nullable,
+                        targetSchemaName = target.table.schema ?: "public",
+                        targetTableName = target.table.name,
+                        targetIdColumnName =
+                            target.identifier.singleColumnName(
+                                context.className(edgeAttribute.targetTypeName),
+                            ),
+                    )
+                }
+                is PersistenceToManyAttribute -> projectEdgeCollection(association, edgeAttribute)
+            }
+        }
+    }
+
+    private fun projectEdgeCollection(
+        association: dev.viaduct.persistence.model.PersistenceAssociation,
+        attribute: PersistenceToManyAttribute,
+    ): EffectiveHibernateEdgeField {
+        val collection = context.collectionFor(association.typeName, attribute.name)
+        val targetBinding = context.bindingFor(attribute.targetTypeName)
+        val targetClassName = context.className(attribute.targetTypeName)
+        val targetIdColumn =
+            targetBinding.identifier.columns.singleOrNull()
+                ?: error("Hibernate identifier for ${attribute.targetTypeName} must map to one column")
+        val target =
+            EffectiveHibernateTable(
+                schemaName = targetBinding.table.schema ?: "public",
+                tableName = targetBinding.table.name,
+                idColumnName = targetBinding.identifier.singleColumnName(targetClassName),
+            )
+        val ownerColumn =
+            collection.key.singleColumnName(
+                "${context.className(association.typeName)}.${attribute.name}",
+            )
+        return EffectiveHibernateEdgeField(
+            name = attribute.name,
+            columnName = ownerColumn,
+            sqlType = targetIdColumn.getSqlType(context.metadata),
+            nullable = attribute.nullable,
+            targetSchemaName = target.schemaName,
+            targetTableName = target.tableName,
+            targetIdColumnName = target.idColumnName,
+            collection = projectEdgeCollectionRelation(association, attribute, collection, target),
+        )
+    }
+
+    private fun projectEdgeCollectionRelation(
+        association: dev.viaduct.persistence.model.PersistenceAssociation,
+        attribute: PersistenceToManyAttribute,
+        collection: org.hibernate.mapping.Collection,
+        target: EffectiveHibernateTable,
+    ): EffectiveHibernateEdgeCollection {
+        val ownerColumn =
+            collection.key.singleColumnName("${context.className(association.typeName)}.${attribute.name}")
+        return when (attribute.storage) {
+            PersistenceToManyStorage.TARGET_FOREIGN_KEY ->
+                EffectiveHibernateEdgeCollection(target = target, ownerColumnName = ownerColumn)
+            PersistenceToManyStorage.JOIN_TABLE_OWNER,
+            PersistenceToManyStorage.JOIN_TABLE_INVERSE,
+            -> {
+                val element =
+                    collection.element as? ManyToOne
+                        ?: error(
+                            "Hibernate mapping for ${association.typeName}.${attribute.name} " +
+                                "must use a many-to-many join table",
+                        )
+                EffectiveHibernateEdgeCollection(
+                    target = target,
+                    ownerColumnName = ownerColumn,
+                    join =
+                        EffectiveHibernateJoinTable(
+                            schemaName = collection.collectionTable.schema ?: "public",
+                            tableName = collection.collectionTable.name,
+                            ownerColumnName = ownerColumn,
+                            targetColumnName =
+                                element.singleColumnName(
+                                    "${context.className(association.typeName)}.${attribute.name}",
+                                ),
+                        ),
+                )
+            }
+        }
     }
 }

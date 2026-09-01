@@ -2,7 +2,7 @@
 
 The runtime executes Viaduct-owned subtree selections against a pg_graphql endpoint. It derives
 translation information from the generated Viaduct reflection types at request time; it does not
-load a generated TSV, JSON, or YAML translation descriptor.
+load a generated translation descriptor.
 
 ```kotlin
 dependencies {
@@ -37,3 +37,10 @@ query translation, transport execution, GraphQL error propagation, response rest
 mapping, and node-reference hydration. A generated `ConnectionBuilder` with a compatibility
 `nodes` field or an `edges { node }` shape is recognized structurally, so nested connections and
 ordinary domain fields named `nodes` remain schema-safe without translation metadata.
+
+When a connection uses a join table, the pg_graphql path resolver uses the real
+`<fieldName>Associations` relationship (for example, `membersAssociations`), even when the edge
+contains only `node` and `cursor`. Pagination, filters, and ordering are applied to association
+rows. Each response row is then unwrapped from `association.node` into the Viaduct edge node while
+the remaining association columns become edge fields; a single unidirectional connection uses the
+target relationship directly. No edge view or SQL function is required.
