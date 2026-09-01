@@ -5,14 +5,14 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 
-/** Reads the pg_graphql edge envelope used by filtered subtree roots. */
-internal object SubtreeResponseReader {
+/** Reads the pg_graphql edge envelope used by filtered db roots. */
+internal object DbResponseReader {
     fun firstNode(
         data: JsonObject,
         responseKey: String,
     ): JsonObject =
         nodes(data).firstOrNull()
-            ?: error("Subtree response for '$responseKey' matched no rows")
+            ?: error("Db response for '$responseKey' matched no rows")
 
     fun nodes(data: JsonObject): List<JsonObject> =
         data["edges"]
@@ -22,5 +22,5 @@ internal object SubtreeResponseReader {
                     ?.takeUnless { it is JsonNull }
                     ?.jsonObject
             }
-            ?: error("Subtree response did not include 'edges' while reading a filtered collection")
+            ?: error("Db response did not include 'edges' while reading a filtered collection")
 }

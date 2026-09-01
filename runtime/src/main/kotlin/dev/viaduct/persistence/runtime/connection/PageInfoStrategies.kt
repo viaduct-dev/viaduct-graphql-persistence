@@ -170,4 +170,4 @@ private fun JsonObject.requiredBoolean(fieldName: String): Boolean =
         ?.jsonPrimitive
         ?.content
         ?.toBooleanStrictOrNull()
-        ?: error("Subtree response pageInfo did not include '$fieldName'")
+        ?: error("Db response pageInfo did not include '$fieldName'")

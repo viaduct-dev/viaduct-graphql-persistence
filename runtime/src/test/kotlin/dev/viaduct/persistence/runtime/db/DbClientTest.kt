@@ -44,7 +44,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class SubtreeClientTest {
+class DbClientTest {
     @Test
     fun `fetches UUIDs and applies request headers`() =
         runBlocking {
@@ -60,11 +60,11 @@ class SubtreeClientTest {
                     )
                 }
             val client =
-                SubtreeClient(
+                DbClient(
                     httpClient = HttpClient(engine),
                     endpoint = "https://example.test/graphql/v1",
                     requestHeaders =
-                        SubtreeRequestHeaders {
+                        DbRequestHeaders {
                             mapOf(
                                 HttpHeaders.Authorization to "Bearer token",
                                 "apikey" to "anon-key",
@@ -107,7 +107,7 @@ class SubtreeClientTest {
                     )
                 }
             val client =
-                SubtreeClient(
+                DbClient(
                     httpClient = HttpClient(engine),
                     endpoint = "https://example.test/graphql/v1",
                 )
@@ -166,8 +166,8 @@ class SubtreeClientTest {
             )
         }
 
-    private fun backwardConnectionClient(requests: MutableList<JsonObject>): SubtreeClient =
-        SubtreeClient(
+    private fun backwardConnectionClient(requests: MutableList<JsonObject>): DbClient =
+        DbClient(
             httpClient =
                 HttpClient(
                     MockEngine { request ->
@@ -261,8 +261,8 @@ class SubtreeClientTest {
             assertContains(requests.single(), "\"status\":\"ACTIVE\"")
         }
 
-    private fun nestedConnectionClient(requests: MutableList<String>): SubtreeClient =
-        SubtreeClient(
+    private fun nestedConnectionClient(requests: MutableList<String>): DbClient =
+        DbClient(
             httpClient =
                 HttpClient(
                     MockEngine { request ->
@@ -327,7 +327,7 @@ class SubtreeClientTest {
                     )
                 }
             val client =
-                SubtreeClient(
+                DbClient(
                     httpClient = HttpClient(engine),
                     endpoint = "https://example.test/graphql/v1",
                 )
@@ -398,7 +398,7 @@ class SubtreeClientTest {
     }
 
     @Test
-    fun `translates association-backed connections in ordinary subtree queries`() {
+    fun `translates association-backed connections in ordinary db queries`() {
         val selections = mockk<SelectionSet<FixtureNode>>()
         every { selections.type } returns FixtureTypes.node
         every { selections.toFragment() } returns
@@ -409,8 +409,8 @@ class SubtreeClientTest {
             )
 
         val query =
-            SubtreeQueryPlanner(GeneratedTypeReflection()).plan(
-                root = SubtreeRoot("group"),
+            DbQueryPlanner(GeneratedTypeReflection()).plan(
+                root = DbRoot("group"),
                 selections = selections,
             )
 
@@ -420,7 +420,7 @@ class SubtreeClientTest {
     }
 
     @Test
-    fun `translates plain mutual connections in ordinary subtree queries`() {
+    fun `translates plain mutual connections in ordinary db queries`() {
         val selections = mockk<SelectionSet<FixturePlainGroup>>()
         every { selections.type } returns FixtureTypes.plainGroup
         every { selections.toFragment() } returns
@@ -431,8 +431,8 @@ class SubtreeClientTest {
             )
 
         val query =
-            SubtreeQueryPlanner(GeneratedTypeReflection()).plan(
-                root = SubtreeRoot("group"),
+            DbQueryPlanner(GeneratedTypeReflection()).plan(
+                root = DbRoot("group"),
                 selections = selections,
             )
 
@@ -685,7 +685,7 @@ class SubtreeClientTest {
     }
 }
 
-/** Minimal generated-type-shaped fixtures for exercising SubtreeClient reflection. */
+/** Minimal generated-type-shaped fixtures for exercising DbClient reflection. */
 class FixtureDirectOwner : NodeObject {
     object Fields {
         val members: CompositeField<FixtureDirectOwner, FixtureDirectConnection> =

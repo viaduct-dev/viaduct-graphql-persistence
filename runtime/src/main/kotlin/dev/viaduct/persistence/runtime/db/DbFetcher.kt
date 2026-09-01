@@ -17,40 +17,40 @@ import viaduct.api.types.CompositeOutput
 import viaduct.api.types.NodeObject
 import viaduct.api.types.Query
 
-/** Executes typed subtree reads and hydrates requested node references. */
-internal class SubtreeFetcher(
+/** Executes typed db reads and hydrates requested node references. */
+internal class DbFetcher(
     private val transport: PgGraphqlTransport,
-    private val queryPlanner: SubtreeQueryPlanner,
+    private val queryPlanner: DbQueryPlanner,
     private val typeReflection: GeneratedTypeReflection,
     private val nodeReferencePlanner: NodeReferencePlanner,
     private val nodeReferenceHydrator: NodeReferenceHydrator,
 ) {
     suspend fun <T : CompositeOutput> fetch(
         context: ExecutionContext,
-        subtree: Subtree,
+        dbRead: DbRead,
         selections: SelectionSet<T>,
     ): T {
         if (selections.isEmpty()) {
             return buildJsonObject { put("__typename", selections.type.name) }
                 .toGRT(context, selections)
         }
-        val response = fetchJson(context, subtree.root, selections)
+        val response = fetchJson(context, dbRead.root, selections)
         return response.toGRT(context, selections)
     }
 
     suspend fun <T> fetchNode(
         context: ResolverExecutionContext<out Query>,
-        subtree: Subtree,
+        dbRead: DbRead,
         ownedSelections: SelectionSet<T>,
         requestedSelections: SelectionSet<T>,
     ): T where T : CompositeOutput, T : NodeObject {
         val references = nodeReferencePlanner.plan(requestedSelections, ownedSelections)
-        if (references.isEmpty()) return fetch(context, subtree, ownedSelections)
+        if (references.isEmpty()) return fetch(context, dbRead, ownedSelections)
 
         val response =
             fetchJson(
                 context = context,
-                root = subtree.root,
+                root = dbRead.root,
                 selections = ownedSelections,
                 referenceSelections = references.map { it.upstreamSelection(typeReflection) },
             )
@@ -64,7 +64,7 @@ internal class SubtreeFetcher(
 
     private suspend fun <T : CompositeOutput> fetchJson(
         context: ExecutionContext,
-        root: SubtreeRoot,
+        root: DbRoot,
         selections: SelectionSet<T>,
         referenceSelections: List<String> = emptyList(),
     ): kotlinx.serialization.json.JsonObject {
@@ -75,7 +75,7 @@ internal class SubtreeFetcher(
                     transport.execute(context, query),
                 ).jsonObject
         return if (root.singleViaFilteredCollection) {
-            SubtreeResponseReader.firstNode(data, root.responseKey)
+            DbResponseReader.firstNode(data, root.responseKey)
         } else {
             data
         }

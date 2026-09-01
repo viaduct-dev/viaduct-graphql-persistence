@@ -20,6 +20,6 @@ internal object RootQueryBuilder {
             } else {
                 "$field$arguments { ...Main } }"
             }
-        return "query ViaductSubtree$variables { $rootSelection $fragmentDocument"
+        return "query ViaductDb$variables { $rootSelection $fragmentDocument"
     }
 }

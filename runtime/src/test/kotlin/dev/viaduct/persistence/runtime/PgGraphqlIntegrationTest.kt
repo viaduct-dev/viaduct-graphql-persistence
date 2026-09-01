@@ -1,6 +1,6 @@
 package dev.viaduct.persistence.runtime
-import dev.viaduct.persistence.runtime.db.SubtreeClient
-import dev.viaduct.persistence.runtime.db.SubtreeRequestHeaders
+import dev.viaduct.persistence.runtime.db.DbClient
+import dev.viaduct.persistence.runtime.db.DbRequestHeaders
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.header
@@ -97,14 +97,14 @@ class PgGraphqlIntegrationTest {
         httpClient: HttpClient,
         config: PgGraphqlTestConfig,
     ) {
-        val subtreeClient =
-            SubtreeClient(
+        val dbClient =
+            DbClient(
                 httpClient = httpClient,
                 endpoint = config.endpoint,
-                requestHeaders = SubtreeRequestHeaders { mapOf("apikey" to config.apiKey) },
+                requestHeaders = DbRequestHeaders { mapOf("apikey" to config.apiKey) },
             )
         val ids =
-            subtreeClient.fetchUuidIds(
+            dbClient.fetchUuidIds(
                 ctx = mockk<ExecutionContext>(),
                 collectionField = config.collectionField,
                 arguments = "(first: 1)",

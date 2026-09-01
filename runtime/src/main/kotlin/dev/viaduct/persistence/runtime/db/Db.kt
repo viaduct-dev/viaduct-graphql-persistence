@@ -4,8 +4,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 
-/** Describes the pg_graphql root field used for one subtree read. */
-class SubtreeRoot(
+/** Describes the pg_graphql root field used for one db read. */
+class DbRoot(
     val field: String,
     val arguments: String = "",
     val variableDefinitions: String = "",
@@ -20,6 +20,6 @@ class SubtreeRoot(
         get() = JsonObject(variableValues)
 }
 
-data class Subtree(
-    val root: SubtreeRoot,
+data class DbRead(
+    val root: DbRoot,
 )

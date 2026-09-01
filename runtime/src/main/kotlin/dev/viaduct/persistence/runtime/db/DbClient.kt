@@ -21,27 +21,27 @@ import viaduct.api.types.NodeObject
 import viaduct.api.types.Query
 
 /**
- * Supplies provider-specific headers for each subtree request.
+ * Supplies provider-specific headers for each db request.
  *
  * The callback is evaluated for every request so applications can derive authorization from the
  * current execution context instead of storing request credentials in the runtime client.
  */
-fun interface SubtreeRequestHeaders {
+fun interface DbRequestHeaders {
     suspend fun forContext(context: ExecutionContext): Map<String, String>
 }
 
 /**
- * Executes Viaduct-owned selections against a pg_graphql subtree.
+ * Executes Viaduct-owned selections against a pg_graphql db.
  *
  * The client derives translation conventions from the generated Viaduct types supplied by each
  * selection set. Applications own endpoint selection, HTTP-client lifecycle, and provider-specific
  * request headers.
  */
-class SubtreeClient(
+class DbClient(
     private val httpClient: HttpClient,
     private val endpoint: String,
-    private val requestHeaders: SubtreeRequestHeaders =
-        SubtreeRequestHeaders { emptyMap() },
+    private val requestHeaders: DbRequestHeaders =
+        DbRequestHeaders { emptyMap() },
 ) {
     private val typeReflection = GeneratedTypeReflection()
     private val transport =
@@ -50,19 +50,19 @@ class SubtreeClient(
             endpoint = endpoint,
             requestHeaders = requestHeaders,
         )
-    private val queryPlanner = SubtreeQueryPlanner(typeReflection)
+    private val queryPlanner = DbQueryPlanner(typeReflection)
     private val nodeReferencePlanner = NodeReferencePlanner(typeReflection)
     private val nodeReferenceHydrator = NodeReferenceHydrator(typeReflection)
-    private val subtreeFetcher =
-        SubtreeFetcher(
+    private val dbFetcher =
+        DbFetcher(
             transport = transport,
             queryPlanner = queryPlanner,
             typeReflection = typeReflection,
             nodeReferencePlanner = nodeReferencePlanner,
             nodeReferenceHydrator = nodeReferenceHydrator,
         )
-    private val subtreeBatchFetcher =
-        SubtreeBatchFetcher(
+    private val dbBatchFetcher =
+        DbBatchFetcher(
             transport = transport,
             queryPlanner = queryPlanner,
             typeReflection = typeReflection,
@@ -73,19 +73,19 @@ class SubtreeClient(
 
     suspend fun <T : CompositeOutput> fetch(
         ctx: ExecutionContext,
-        subtree: Subtree,
+        dbRead: DbRead,
         selections: SelectionSet<T>,
-    ): T = subtreeFetcher.fetch(ctx, subtree, selections)
+    ): T = dbFetcher.fetch(ctx, dbRead, selections)
 
     suspend fun <T> fetchNode(
         ctx: ResolverExecutionContext<out Query>,
-        subtree: Subtree,
+        dbRead: DbRead,
         ownedSelections: SelectionSet<T>,
         requestedSelections: SelectionSet<T>,
     ): T where T : CompositeOutput, T : NodeObject =
-        subtreeFetcher.fetchNode(
+        dbFetcher.fetchNode(
             ctx,
-            subtree,
+            dbRead,
             ownedSelections,
             requestedSelections,
         )
@@ -99,9 +99,9 @@ class SubtreeClient(
     ): T where T : CompositeOutput, T : NodeObject =
         fetchNode(
             ctx,
-            Subtree(
+            DbRead(
                 root =
-                    SubtreeRoot(
+                    DbRoot(
                         field = collectionField,
                         arguments = "(filter: {uuidId: {eq: \$id}})",
                         variableDefinitions = "\$id: UUID!",
@@ -124,7 +124,7 @@ class SubtreeClient(
         ownedSelections: SelectionSet<T>,
         requestedSelections: SelectionSet<T> = ownedSelections,
     ): Map<String, T> where T : CompositeOutput, T : NodeObject =
-        subtreeBatchFetcher.fetchByUuids(
+        dbBatchFetcher.fetchByUuids(
             ctx,
             collectionField,
             ids,

@@ -19,9 +19,9 @@ import viaduct.api.types.NodeObject
 import viaduct.api.types.Query
 
 /** Hydrates a batch of node references with one filtered pg_graphql request. */
-internal class SubtreeBatchFetcher(
+internal class DbBatchFetcher(
     private val transport: PgGraphqlTransport,
-    private val queryPlanner: SubtreeQueryPlanner,
+    private val queryPlanner: DbQueryPlanner,
     private val typeReflection: GeneratedTypeReflection,
     private val nodeReferencePlanner: NodeReferencePlanner,
     private val nodeReferenceHydrator: NodeReferenceHydrator,
@@ -36,7 +36,7 @@ internal class SubtreeBatchFetcher(
         if (ids.isEmpty()) return emptyMap()
         val references = nodeReferencePlanner.plan(requestedSelections, ownedSelections)
         val root =
-            SubtreeRoot(
+            DbRoot(
                 field = collectionField,
                 arguments = "(filter: {uuidId: {in: \$ids}})",
                 variableDefinitions = "\$ids: [UUID!]!",
@@ -53,7 +53,7 @@ internal class SubtreeBatchFetcher(
                 referenceSelections = references.map { it.upstreamSelection(typeReflection) } + "uuidId",
             )
         val nodes =
-            SubtreeResponseReader.nodes(
+            DbResponseReader.nodes(
                 PgGraphqlTranslation
                     .restoreViaductResponseShape(
                         transport.execute(context, query),
@@ -63,7 +63,7 @@ internal class SubtreeBatchFetcher(
             nodes.associate { response ->
                 val id =
                     response["uuidId"]?.jsonPrimitive?.content
-                        ?: error("Subtree response for '$collectionField' had a node with no 'uuidId'")
+                        ?: error("Db response for '$collectionField' had a node with no 'uuidId'")
                 id to
                     nodeReferenceHydrator.hydrate(
                         base = response,
@@ -74,7 +74,7 @@ internal class SubtreeBatchFetcher(
             }
         return ids.distinct().associateWith { id ->
             hydrated[id] ?: error(
-                "Subtree response for '$collectionField' did not include requested UUID '$id'",
+                "Db response for '$collectionField' did not include requested UUID '$id'",
             )
         }
     }

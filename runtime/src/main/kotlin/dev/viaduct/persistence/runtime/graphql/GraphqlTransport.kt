@@ -1,5 +1,5 @@
 package dev.viaduct.persistence.runtime.graphql
-import dev.viaduct.persistence.runtime.db.SubtreeRequestHeaders
+import dev.viaduct.persistence.runtime.db.DbRequestHeaders
 import io.ktor.client.HttpClient
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -21,11 +21,11 @@ internal data class GraphqlQuery(
     val responseKey: String,
 )
 
-/** Sends GraphQL operations and converts provider envelopes into subtree JSON objects. */
+/** Sends GraphQL operations and converts provider envelopes into db JSON objects. */
 internal class PgGraphqlTransport(
     private val httpClient: HttpClient,
     private val endpoint: String,
-    private val requestHeaders: SubtreeRequestHeaders,
+    private val requestHeaders: DbRequestHeaders,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -51,9 +51,9 @@ internal class PgGraphqlTransport(
                 )
             }
         val envelope = json.parseToJsonElement(response.bodyAsText()).jsonObject
-        envelope["errors"]?.let { error("Subtree fetch failed: $it") }
+        envelope["errors"]?.let { error("Db fetch failed: $it") }
         return envelope["data"]?.jsonObject?.get(query.responseKey)?.jsonObject
-            ?: error("Subtree response did not include '${query.responseKey}'")
+            ?: error("Db response did not include '${query.responseKey}'")
     }
 }
 

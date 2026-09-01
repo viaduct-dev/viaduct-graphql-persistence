@@ -17,8 +17,8 @@ internal object ConnectionResponseDecoder {
                 ?.get("uuidId")
                 ?.jsonPrimitive
                 ?.content
-                ?: error("Subtree response for '$collectionField' had an edge with no 'uuidId'")
-        } ?: error("Subtree response for '$collectionField' did not include 'edges'")
+                ?: error("Db response for '$collectionField' had an edge with no 'uuidId'")
+        } ?: error("Db response for '$collectionField' did not include 'edges'")
 
     fun page(
         data: JsonObject,
@@ -26,10 +26,10 @@ internal object ConnectionResponseDecoder {
     ): UuidConnectionPage {
         val edges =
             data["edges"]?.jsonArray
-                ?: error("Subtree response for '$collectionField' did not include 'edges'")
+                ?: error("Db response for '$collectionField' did not include 'edges'")
         val pageInfo =
             data["pageInfo"]?.jsonObject
-                ?: error("Subtree response for '$collectionField' did not include 'pageInfo'")
+                ?: error("Db response for '$collectionField' did not include 'pageInfo'")
         return UuidConnectionPage(
             edges =
                 edges.mapIndexed { index, value ->
@@ -42,13 +42,13 @@ internal object ConnectionResponseDecoder {
                                 ?.jsonPrimitive
                                 ?.content
                                 ?: error(
-                                    "Subtree response for '$collectionField' had an edge at " +
+                                    "Db response for '$collectionField' had an edge at " +
                                         "index $index with no 'uuidId'",
                                 ),
                         cursor =
                             edge["cursor"]?.takeUnless { it is JsonNull }?.jsonPrimitive?.content
                                 ?: error(
-                                    "Subtree response for '$collectionField' had an edge at " +
+                                    "Db response for '$collectionField' had an edge at " +
                                         "index $index with no 'cursor'",
                                 ),
                     )
@@ -72,7 +72,7 @@ internal object ConnectionResponseDecoder {
             ?.jsonPrimitive
             ?.content
             ?.toBooleanStrictOrNull()
-            ?: error("Subtree response for '$collectionField' pageInfo did not include '$fieldName'")
+            ?: error("Db response for '$collectionField' pageInfo did not include '$fieldName'")
 
     private fun JsonObject.optionalCursor(fieldName: String): String? =
         this[fieldName]?.takeUnless { it is JsonNull }?.jsonPrimitive?.content

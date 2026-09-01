@@ -138,7 +138,7 @@ class PgGraphqlTranslationTest {
     }
 
     @Test
-    fun `builds a filtered collection query for a single subtree result`() {
+    fun `builds a filtered collection query for a single db result`() {
         val query =
             PgGraphqlTranslation.buildRootQuery(
                 field = "groupCollection",
@@ -148,7 +148,7 @@ class PgGraphqlTranslationTest {
                 singleViaFilteredCollection = true,
             )
 
-        assertContains(query, "query ViaductSubtree(\$id: UUID!)")
+        assertContains(query, "query ViaductDb(\$id: UUID!)")
         assertContains(
             query,
             "groupCollection(filter: {uuidId: {eq: \$id}}) " +

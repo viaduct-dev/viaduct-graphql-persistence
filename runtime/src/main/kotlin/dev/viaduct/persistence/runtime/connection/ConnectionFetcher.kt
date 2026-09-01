@@ -48,7 +48,7 @@ internal class ConnectionFetcher(
         val parents =
             data["edges"]?.jsonArray
                 ?: error(
-                    "Subtree response for '${request.parentCollectionField}' did not include 'edges'",
+                    "Db response for '${request.parentCollectionField}' did not include 'edges'",
                 )
         return parents
             .mapNotNull { edge ->
@@ -57,7 +57,7 @@ internal class ConnectionFetcher(
                 val child =
                     node[request.child.collectionField]?.jsonObject
                         ?: error(
-                            "Subtree response for '${request.parentCollectionField}' parent '$parentId' " +
+                            "Db response for '${request.parentCollectionField}' parent '$parentId' " +
                                 "did not include '${request.child.collectionField}'",
                         )
                 parentId to ConnectionResponseDecoder.page(child, request.child.collectionField)

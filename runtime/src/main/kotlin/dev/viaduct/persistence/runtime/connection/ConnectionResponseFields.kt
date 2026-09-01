@@ -55,7 +55,7 @@ internal class NodesResponseField(
                     context.executionContext,
                     context.nodeResolver,
                 ) ?: error(
-                    "Subtree response for '${context.connectionFieldName}' had a null node at index $index",
+                    "Db response for '${context.connectionFieldName}' had a null node at index $index",
                 )
             }
             ?: response[edgeField.name]
@@ -67,11 +67,11 @@ internal class NodesResponseField(
                         context.executionContext,
                         context.nodeResolver,
                     ) ?: error(
-                        "Subtree response for '${context.connectionFieldName}' had a null node at index $index",
+                        "Db response for '${context.connectionFieldName}' had a null node at index $index",
                     )
                 }
             ?: error(
-                "Subtree response for '${context.connectionFieldName}' did not include " +
+                "Db response for '${context.connectionFieldName}' did not include " +
                     "'nodes' or '${edgeField.name}'",
             )
 }
@@ -112,7 +112,7 @@ internal class EdgesResponseField(
                     ),
                 )
             }
-            ?: error("Subtree response for '${context.connectionFieldName}' did not include '${field.name}'")
+            ?: error("Db response for '${context.connectionFieldName}' did not include '${field.name}'")
 }
 
 internal class PageInfoResponseField(
@@ -128,7 +128,7 @@ internal class PageInfoResponseField(
         shape.build(
             response[field.name]?.jsonObject
                 ?: error(
-                    "Subtree response for '${context.connectionFieldName}' did not include '${field.name}'",
+                    "Db response for '${context.connectionFieldName}' did not include '${field.name}'",
                 ),
             context.executionContext,
             context.typeReflection,

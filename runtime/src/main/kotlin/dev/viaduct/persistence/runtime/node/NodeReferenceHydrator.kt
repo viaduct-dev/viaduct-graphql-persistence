@@ -17,7 +17,7 @@ import viaduct.api.types.CompositeOutput
 import viaduct.api.types.NodeObject
 import viaduct.api.types.Query
 
-/** Adds reference-backed fields to the object decoded from the owned subtree selections. */
+/** Adds reference-backed fields to the object decoded from the owned db selections. */
 internal class NodeReferenceHydrator(
     private val typeReflection: GeneratedTypeReflection,
 ) {
@@ -102,7 +102,7 @@ private class NodeReferenceValueBuilder(
         val nodes =
             collection["nodes"]?.jsonArray
                 ?: error(
-                    "Subtree response for '${reference.fieldName}' did not include 'nodes'",
+                    "Db response for '${reference.fieldName}' did not include 'nodes'",
                 )
         val nodeValues =
             nodes.mapIndexed { index, node ->
@@ -110,7 +110,7 @@ private class NodeReferenceValueBuilder(
                 val internalId =
                     nodeObject["uuidId"]?.jsonPrimitive?.content
                         ?: error(
-                            "Subtree response for '${reference.fieldName}' had an item " +
+                            "Db response for '${reference.fieldName}' had an item " +
                                 "at index $index with no 'uuidId'",
                         )
                 nodeResolver.resolve(context, reference.nodeType, internalId)
@@ -128,6 +128,6 @@ private class NodeReferenceValueBuilder(
     ): JsonObject =
         response[fieldName]?.jsonObject
             ?: error(
-                "Subtree response did not include $kind '$fieldName' while hydrating node references",
+                "Db response did not include $kind '$fieldName' while hydrating node references",
             )
 }

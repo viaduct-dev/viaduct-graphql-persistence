@@ -11,11 +11,11 @@ import viaduct.api.select.SelectionSet
 import graphql.language.SelectionSet as GraphqlSelectionSet
 
 /** Converts a Viaduct selection into one executable pg_graphql operation. */
-internal class SubtreeQueryPlanner(
+internal class DbQueryPlanner(
     private val typeReflection: GeneratedTypeReflection,
 ) {
     fun plan(
-        root: SubtreeRoot,
+        root: DbRoot,
         selections: SelectionSet<*>,
         referenceSelections: List<String> = emptyList(),
     ): GraphqlQuery {
