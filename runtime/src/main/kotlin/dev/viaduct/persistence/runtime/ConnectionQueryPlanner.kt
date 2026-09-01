@@ -57,14 +57,18 @@ internal class ConnectionQueryPlanner {
                     "\$first: Int, \$after: String, \$last: Int, \$before: String",
                 request.child.additionalVariableDefinitions,
             ).filter(String::isNotBlank).joinToString(", ")
-        val variables = connectionVariables(request.child).let { childVariables ->
-            buildJsonObject {
-                put("parentIds", buildJsonArray {
-                    request.parentIds.distinct().forEach { add(JsonPrimitive(it)) }
-                })
-                childVariables.forEach { (name, value) -> put(name, value) }
+        val variables =
+            connectionVariables(request.child).let { childVariables ->
+                buildJsonObject {
+                    put(
+                        "parentIds",
+                        buildJsonArray {
+                            request.parentIds.distinct().forEach { add(JsonPrimitive(it)) }
+                        },
+                    )
+                    childVariables.forEach { (name, value) -> put(name, value) }
+                }
             }
-        }
         val childArguments = connectionArguments(request.child)
         return GraphqlQuery(
             text =
