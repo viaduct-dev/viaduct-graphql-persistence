@@ -1,6 +1,6 @@
 # Runtime
 
-The runtime executes Viaduct-owned subtree selections against a pg_graphql endpoint. It derives
+The runtime executes Viaduct-owned db selections against a pg_graphql endpoint. It derives
 translation information from the generated Viaduct reflection types at request time; it does not
 load a generated translation descriptor.
 
@@ -11,10 +11,10 @@ dependencies {
 ```
 
 ```kotlin
-val client = SubtreeClient(
+val client = DbClient(
     httpClient = httpClient,
     endpoint = "$supabaseUrl/graphql/v1",
-    requestHeaders = SubtreeRequestHeaders { context ->
+    requestHeaders = DbRequestHeaders { context ->
         mapOf(
             "Authorization" to "Bearer ${accessTokenFor(context)}",
             "apikey" to supabaseAnonKey,
@@ -23,9 +23,9 @@ val client = SubtreeClient(
 )
 ```
 
-`SubtreeClient` provides:
+`DbClient` provides:
 
-- `fetch` for an explicit subtree root and owned selection set.
+- `fetch` for an explicit db root and owned selection set.
 - `fetchNode` for results that also need requested node references.
 - `fetchByUuid` for the common filtered-collection node lookup.
 - `fetchUuidIds` for collection resolvers that return Viaduct node references.

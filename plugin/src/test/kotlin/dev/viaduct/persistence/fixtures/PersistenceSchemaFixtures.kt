@@ -4,13 +4,13 @@ object PersistenceSchemaFixtures {
     val relationshipsAndArrays: String =
         """
         directive @resolver on FIELD_DEFINITION
-        directive @subtree on OBJECT
+        directive @db on OBJECT
 
         interface Node {
           id: ID!
         }
 
-        type Group implements Node @subtree {
+        type Group implements Node @db {
           id: ID!
           name: String!
           labels: [String!]

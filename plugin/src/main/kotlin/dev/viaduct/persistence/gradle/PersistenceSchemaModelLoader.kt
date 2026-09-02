@@ -3,7 +3,7 @@ package dev.viaduct.persistence.gradle
 import dev.viaduct.persistence.model.PersistenceModel
 import dev.viaduct.persistence.model.PersistenceModelBuilder
 import dev.viaduct.persistence.model.discoverPersistentTypeNames
-import dev.viaduct.persistence.model.validatePgGraphqlSubtrees
+import dev.viaduct.persistence.model.validatePgGraphqlDbs
 import viaduct.graphql.schema.graphqljava.extensions.ViaductSchemaFactory
 import java.io.File
 
@@ -16,7 +16,7 @@ internal object PersistenceSchemaModelLoader {
     ): PersistenceModel {
         val schemaFiles = schemaFiles(centralSchemaDirectory)
         val schema = ViaductSchemaFactory.fromTypeDefinitionRegistry(schemaFiles)
-        validatePgGraphqlSubtrees(schema)
+        validatePgGraphqlDbs(schema)
         val persistentTypeNames =
             includedTypeNames.toSet().ifEmpty { discoverPersistentTypeNames(schemaFiles) }
         val relationshipConfig = PersistenceRelationshipConfig.load(relationshipConfigFile)

@@ -14,7 +14,7 @@ internal class PersistenceGenerationRegistrar(
         val validate =
             project.tasks.register(
                 "validateViaductPersistenceSchema",
-                ValidatePgGraphqlSubtreesTask::class.java,
+                ValidatePgGraphqlDbsTask::class.java,
             ) {
                 it.group = "verification"
                 it.centralSchemaDirectory.set(extension.centralSchemaDirectory)
@@ -41,7 +41,7 @@ internal class PersistenceGenerationRegistrar(
     }
 
     private fun wireGeneratedSources(
-        validate: TaskProvider<ValidatePgGraphqlSubtreesTask>,
+        validate: TaskProvider<ValidatePgGraphqlDbsTask>,
         generate: TaskProvider<GenerateHibernateSchemaModelTask>,
     ) {
         val generatedKotlin =

@@ -116,14 +116,14 @@ The plugin never applies these changes automatically.
 
 ### 6. Configure the runtime
 
-Create a `SubtreeClient` with the application's HTTP client, `pg_graphql` endpoint, and
+Create a `DbClient` with the application's HTTP client, `pg_graphql` endpoint, and
 request-specific authentication headers:
 
 ```kotlin
-val subtreeClient = SubtreeClient(
+val dbClient = DbClient(
     httpClient = httpClient,
     endpoint = "$supabaseUrl/graphql/v1",
-    requestHeaders = SubtreeRequestHeaders { context ->
+    requestHeaders = DbRequestHeaders { context ->
         mapOf(
             "Authorization" to "Bearer ${accessTokenFor(context)}",
             "apikey" to supabaseAnonKey,
@@ -133,7 +133,7 @@ val subtreeClient = SubtreeClient(
 ```
 
 Inject this client into Viaduct resolvers that load persistent types. See
-[Use pg_graphql as a Subtree Backend](#use-pg_graphql-as-a-subtree-backend) for resolver examples
+[Use pg_graphql as a Db Backend](#use-pg_graphql-as-a-db-backend) for resolver examples
 and [Create or Update a Database](#create-or-update-a-database) for the complete migration
 workflow.
 
@@ -166,7 +166,7 @@ The two public libraries use the `dev.viaduct.persistence` Maven group:
 
 | Coordinate | Purpose |
 | --- | --- |
-| `dev.viaduct.persistence:runtime` | Viaduct subtree runtime, pg_graphql translation, and client |
+| `dev.viaduct.persistence:runtime` | Viaduct db runtime, pg_graphql translation, and client |
 | `dev.viaduct.persistence:plugin` | Gradle plugin, persistence model generation, overlays, and Liquibase integration |
 
 The Gradle plugin ID is `dev.viaduct.graphql-persistence`.
@@ -283,8 +283,8 @@ Supported scalar mappings are:
 | One-dimensional scalar list | PostgreSQL array |
 
 Resolver-backed fields that do not form relationships between included persistent types are not
-persisted. A type reachable from a `@subtree` root cannot contain a transitively reachable
-`@resolver` field because pg_graphql must resolve the complete subtree.
+persisted. A type reachable from a `@db` root cannot contain a transitively reachable
+`@resolver` field because pg_graphql must resolve the complete db.
 
 ### Excluding Types
 
@@ -310,7 +310,7 @@ viaductPersistence {
 
 | Task | Purpose |
 | --- | --- |
-| `validateViaductPersistenceSchema` | Validate subtree and persistence constraints |
+| `validateViaductPersistenceSchema` | Validate db and persistence constraints |
 | `generateViaductPersistenceModel` | Generate plain entities and `orm.xml` from the assembled schema |
 | `buildViaductEffectiveModel` | Compile the model through Hibernate and generate database overlays |
 | `hibernateSchemaSnapshot` | Write a reviewable Liquibase JSON snapshot |
@@ -343,7 +343,7 @@ The effective SQL directory is packaged into the application JAR. The effective 
 Liquibase reference metadata are rebuilt from the assembled schema, generated mapping, classpath,
 and naming configuration; no metadata descriptor is packaged or passed between tasks.
 
-## Use pg_graphql as a Subtree Backend
+## Use pg_graphql as a Db Backend
 
 `buildViaductEffectiveModel` produces repeatable SQL that maps the generated PostgreSQL schema to
 the authored GraphQL names. Apply this file after the relational tables and constraints exist:
@@ -373,7 +373,7 @@ Content-Type: application/json
 The overlay enables row-level security but does not invent authorization policies. Define and
 migrate the PostgreSQL RLS policies required by the application.
 
-Viaduct subtree selections and pg_graphql use different collection shapes:
+Viaduct db selections and pg_graphql use different collection shapes:
 
 ```graphql
 # Viaduct
@@ -399,13 +399,13 @@ Configure the endpoint and provider-specific headers. Header resolution runs for
 credentials can come from the current execution context and are not frozen into CRaC checkpoints:
 
 ```kotlin
-import dev.viaduct.persistence.runtime.SubtreeClient
-import dev.viaduct.persistence.runtime.SubtreeRequestHeaders
+import dev.viaduct.persistence.runtime.db.DbClient
+import dev.viaduct.persistence.runtime.db.DbRequestHeaders
 
-val subtreeClient = SubtreeClient(
+val dbClient = DbClient(
     httpClient = httpClient,
     endpoint = "$supabaseUrl/graphql/v1",
-    requestHeaders = SubtreeRequestHeaders { context ->
+    requestHeaders = DbRequestHeaders { context ->
         mapOf(
             "Authorization" to "Bearer ${accessTokenFor(context)}",
             "apikey" to supabaseAnonKey,
@@ -417,7 +417,7 @@ val subtreeClient = SubtreeClient(
 Node resolvers can then hydrate their owned selections from a filtered pg_graphql collection:
 
 ```kotlin
-return subtreeClient.fetchByUuid(
+return dbClient.fetchByUuid(
     ctx = ctx,
     collectionField = "groupCollection",
     id = ctx.id.internalID,
@@ -426,7 +426,7 @@ return subtreeClient.fetchByUuid(
 )
 ```
 
-The runtime also exposes `fetch` for an explicit `Subtree`, `fetchNode` when requested node
+The runtime also exposes `fetch` for an explicit `DbRead`, `fetchNode` when requested node
 references must be attached, and `fetchUuidIds` for collection resolvers that return node
 references. For connection-backed collection resolvers, `fetchUuidConnection` accepts Viaduct's
 standard `first`/`after` and `last`/`before` arguments and returns UUID references together with
@@ -451,9 +451,9 @@ upstream error handling, response-shape restoration, Viaduct GRT mapping, and no
 hydration. The application still owns the `HttpClient` lifecycle, endpoint, and authentication
 policy.
 
-Every `@subtree` type is validated during generation. A transitively reachable `@resolver` field
+Every `@db` type is validated during generation. A transitively reachable `@resolver` field
 is rejected because pg_graphql cannot resolve that field from the database. Types or fields
-backed by external services should remain outside that subtree, usually in a
+backed by external services should remain outside that db, usually in a
 `.notable.graphqls` file.
 
 ## Create or Update a Database
@@ -508,7 +508,7 @@ and database-owned constraints remain explicit manual migration work.
 
 The combined `pg-graphql.sql` overlay:
 
-- Creates self-contained generated global ID columns for supported Viaduct `Node` subtree types.
+- Creates self-contained generated global ID columns for supported Viaduct `Node` db types.
 - Enables row-level security on generated entity tables.
 - Preserves authored GraphQL type and relationship names with pg_graphql comments.
 - Enforces non-null scalar-array elements.
@@ -706,7 +706,7 @@ artifacts are not release artifacts and do not require PGP signing.
 
 | Module | Responsibility |
 | --- | --- |
-| `runtime` | Subtree transport, Viaduct GRT mapping, and node-reference hydration |
+| `runtime` | Db transport, Viaduct GRT mapping, and node-reference hydration |
 | `plugin` | Persistence model generation, overlays, Liquibase integration, and Gradle orchestration |
 
 Application schemas remain external compatibility consumers and are not copied into this

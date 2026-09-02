@@ -2,14 +2,14 @@ package dev.viaduct.persistence.model
 
 import viaduct.graphql.schema.ViaductSchema
 
-fun validatePgGraphqlSubtrees(schema: ViaductSchema) {
+fun validatePgGraphqlDbs(schema: ViaductSchema) {
     val objectTypes =
         schema.types.values
             .filterIsInstance<ViaductSchema.Object>()
             .associateBy { it.name }
 
-    for (root in objectTypes.values.filter { it.hasAppliedDirective("subtree") }) {
-        validatePgGraphqlSubtree(
+    for (root in objectTypes.values.filter { it.hasAppliedDirective("db") }) {
+        validatePgGraphqlDb(
             type = root,
             objectTypes = objectTypes,
             path = listOf(root.name),
@@ -18,7 +18,7 @@ fun validatePgGraphqlSubtrees(schema: ViaductSchema) {
     }
 }
 
-private fun validatePgGraphqlSubtree(
+private fun validatePgGraphqlDb(
     type: ViaductSchema.Object,
     objectTypes: Map<String, ViaductSchema.Object>,
     path: List<String>,
@@ -30,13 +30,13 @@ private fun validatePgGraphqlSubtree(
         if (field.hasAppliedDirective("resolver") && !isResolverBackedConnection(field)) {
             val fieldPath = (path + field.name).joinToString(".")
             error(
-                "@subtree type '${path.first()}' transitively reaches '$fieldPath', which is " +
-                    "annotated with @resolver. @subtree fields must be resolvable by pg_graphql.",
+                "@db type '${path.first()}' transitively reaches '$fieldPath', which is " +
+                    "annotated with @resolver. @db fields must be resolvable by pg_graphql.",
             )
         }
         val target = field.type.baseTypeDef as? ViaductSchema.Object
         objectTypes[target?.name]?.let {
-            validatePgGraphqlSubtree(it, objectTypes, path + field.name, visited)
+            validatePgGraphqlDb(it, objectTypes, path + field.name, visited)
         }
     }
 }

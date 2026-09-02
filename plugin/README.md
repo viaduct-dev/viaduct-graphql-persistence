@@ -4,7 +4,7 @@ The `dev.viaduct.graphql-persistence` plugin generates a Hibernate and PostgreSQ
 model from an assembled Viaduct GraphQL schema.
 
 The plugin is the build-time half of the persistence integration. Pair it with
-`dev.viaduct.persistence:runtime` to execute generated subtree mappings at runtime.
+`dev.viaduct.persistence:runtime` to execute generated db mappings at runtime.
 
 ```kotlin
 plugins {

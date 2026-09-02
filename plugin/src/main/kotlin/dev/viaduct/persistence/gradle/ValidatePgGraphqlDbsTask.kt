@@ -1,13 +1,13 @@
 package dev.viaduct.persistence.gradle
 
-import dev.viaduct.persistence.model.validatePgGraphqlSubtrees
+import dev.viaduct.persistence.model.validatePgGraphqlDbs
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.TaskAction
 import viaduct.graphql.schema.graphqljava.extensions.ViaductSchemaFactory
 
-abstract class ValidatePgGraphqlSubtreesTask : DefaultTask() {
+abstract class ValidatePgGraphqlDbsTask : DefaultTask() {
     @get:InputDirectory
     abstract val centralSchemaDirectory: DirectoryProperty
 
@@ -24,7 +24,7 @@ abstract class ValidatePgGraphqlSubtreesTask : DefaultTask() {
             "No assembled Viaduct schema files found in $schemaDirectory"
         }
 
-        validatePgGraphqlSubtrees(
+        validatePgGraphqlDbs(
             ViaductSchemaFactory.fromTypeDefinitionRegistry(schemaFiles),
         )
     }
