@@ -3,7 +3,10 @@ package dev.viaduct.persistence.hibernate
 import org.hibernate.MappingException
 import org.hibernate.mapping.PersistentClass
 import org.hibernate.mapping.Property
+import org.hibernate.mapping.Table
 import org.hibernate.mapping.Value
+
+internal fun Table.schemaOrPublic(): String = schema ?: "public"
 
 internal fun Property.singleColumnName(): String =
     columns.singleOrNull()?.name

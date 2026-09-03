@@ -17,7 +17,7 @@ internal class EffectiveHibernateArrayProjector(
                     EffectiveHibernateArray(
                         ownerTypeName = entity.graphqlName,
                         fieldName = attribute.name,
-                        schemaName = property.value.table.schema ?: "public",
+                        schemaName = property.value.table.schemaOrPublic(),
                         tableName = property.value.table.name,
                         columnName = property.singleColumnName(),
                         elementNullable = attribute.elementNullable,

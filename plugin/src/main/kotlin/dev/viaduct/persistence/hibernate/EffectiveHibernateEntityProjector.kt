@@ -11,7 +11,7 @@ internal class EffectiveHibernateEntityProjector(
         val table = binding.table
         return EffectiveHibernateEntity(
             graphqlName = entity.graphqlName,
-            schemaName = table.schema ?: "public",
+            schemaName = table.schemaOrPublic(),
             tableName = table.name,
             generatedGlobalId = entity.generatedGlobalId,
             internalIdColumnName =
