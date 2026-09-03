@@ -105,12 +105,11 @@ private class IdOfRelationshipTargetResolver : RelationshipTargetResolver {
         field: ViaductSchema.Field,
         includedObjects: Map<String, ViaductSchema.Object>,
     ): PersistenceRelationshipTarget? {
-        if (field.type.isList) return null
         val baseType = field.type.baseTypeDef
-        if (baseType !is ViaductSchema.Scalar || baseType.name != "ID") return null
-        val targetName = field.idOfTypeName() ?: return null
-        return includedObjects[targetName]?.let {
-            PersistenceRelationshipTarget(targetName = targetName, collection = false, idOfDirected = true)
+        val isScalarId = !field.type.isList && baseType is ViaductSchema.Scalar && baseType.name == "ID"
+        val targetName = if (isScalarId) field.idOfTypeName() else null
+        return targetName?.takeIf { it in includedObjects }?.let {
+            PersistenceRelationshipTarget(targetName = it, collection = false, idOfDirected = true)
         }
     }
 }

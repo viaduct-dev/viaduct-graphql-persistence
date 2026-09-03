@@ -46,7 +46,10 @@ fun discoverPersistentTypeNames(
         .mapTo(linkedSetOf()) { it.name }
 }
 
-private fun ViaductSchema.isNodeObject(typeName: String): Boolean = (types[typeName] as? ViaductSchema.Object)?.let(::isNode) == true
+private fun ViaductSchema.isNodeObject(typeName: String): Boolean {
+    val typeDef = types[typeName] as? ViaductSchema.Object ?: return false
+    return isNode(typeDef)
+}
 
 private fun isNode(typeDef: ViaductSchema.TypeDef): Boolean =
     (typeDef.name == "Node" && typeDef is ViaductSchema.Interface) ||
