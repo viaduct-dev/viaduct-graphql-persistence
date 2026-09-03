@@ -69,17 +69,17 @@ viaductPersistence {
 
 ### 3. Define the data model
 
-Write ordinary Viaduct GraphQL types. An object with an `id: ID` field is persistent by default,
-and object references describe relationships:
+Write ordinary Viaduct GraphQL types. An object that implements the framework-provided `Node`
+interface is persistent by default, and object references describe relationships:
 
 ```graphql
-type Group {
+type Group implements Node {
   id: ID!
   name: String!
   members: [GroupMember!]!
 }
 
-type GroupMember {
+type GroupMember implements Node {
   id: ID!
   group: Group!
   displayName: String!
@@ -220,12 +220,12 @@ Relay-style connections use the same relationship rules as lists. A connection w
 persistent entity; the persistence model follows `edges.node` to identify the target collection:
 
 ```graphql
-type Group {
+type Group implements Node {
   id: ID!
   members: PersonConnection!
 }
 
-type Person {
+type Person implements Node {
   id: ID!
 }
 
@@ -432,7 +432,7 @@ val dbClient = DbClient(
 Node resolvers can then hydrate their owned selections from a filtered pg_graphql collection:
 
 ```kotlin
-return dbClient.fetchByUuid(
+return dbClient.fetchByInternalId(
     ctx = ctx,
     collectionField = "groupCollection",
     id = ctx.id.internalID,
