@@ -2,15 +2,16 @@ package dev.viaduct.persistence.model
 
 import graphql.language.Definition
 import graphql.language.NamedNode
-import graphql.language.NonNullType
 import graphql.language.ObjectTypeDefinition
 import graphql.language.SDLExtensionDefinition
-import graphql.language.Type
-import graphql.language.TypeName
 import graphql.parser.Parser
+import viaduct.graphql.schema.ViaductSchema
 import java.io.File
 
-fun discoverPersistentTypeNames(schemaFiles: List<File>): Set<String> {
+fun discoverPersistentTypeNames(
+    schemaFiles: List<File>,
+    schema: ViaductSchema,
+): Set<String> {
     val documents =
         schemaFiles
             .sortedBy(File::getPath)
@@ -41,9 +42,15 @@ fun discoverPersistentTypeNames(schemaFiles: List<File>): Set<String> {
         .filterNot(SchemaDocument::notable)
         .flatMap(SchemaDocument::definitions)
         .filterIsInstance<ObjectTypeDefinition>()
-        .filter(::hasIdField)
+        .filter { schema.isNodeObject(it.name) }
         .mapTo(linkedSetOf()) { it.name }
 }
+
+private fun ViaductSchema.isNodeObject(typeName: String): Boolean = (types[typeName] as? ViaductSchema.Object)?.let(::isNode) == true
+
+private fun isNode(typeDef: ViaductSchema.TypeDef): Boolean =
+    (typeDef.name == "Node" && typeDef is ViaductSchema.Interface) ||
+        (typeDef is ViaductSchema.OutputRecord && typeDef.supers.any { isNode(it) })
 
 private fun validateNotableFiles(documents: List<SchemaDocument>) {
     documents
@@ -78,18 +85,6 @@ private fun validateOrdinaryDefinitions(
             )
         }
 }
-
-private fun hasIdField(type: ObjectTypeDefinition): Boolean =
-    type.fieldDefinitions.any { field ->
-        field.name == "id" && field.type.baseTypeName() == "ID"
-    }
-
-private fun Type<*>.baseTypeName(): String =
-    when (this) {
-        is NonNullType -> type.baseTypeName()
-        is TypeName -> requireNotNull(name)
-        else -> error("An entity id must be a scalar ID, but found $this")
-    }
 
 private data class SchemaDocument(
     val file: File,

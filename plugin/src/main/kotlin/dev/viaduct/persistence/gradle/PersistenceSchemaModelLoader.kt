@@ -18,7 +18,7 @@ internal object PersistenceSchemaModelLoader {
         val schema = ViaductSchemaFactory.fromTypeDefinitionRegistry(schemaFiles)
         validatePgGraphqlDbs(schema)
         val persistentTypeNames =
-            includedTypeNames.toSet().ifEmpty { discoverPersistentTypeNames(schemaFiles) }
+            includedTypeNames.toSet().ifEmpty { discoverPersistentTypeNames(schemaFiles, schema) }
         val relationshipConfig = PersistenceRelationshipConfig.load(relationshipConfigFile)
         return PersistenceModelBuilder().build(
             schema = schema,
