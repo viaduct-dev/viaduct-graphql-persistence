@@ -12,8 +12,23 @@ internal object ViaductPersistenceExtensionDefaults {
                 "viaductPersistence",
                 ViaductPersistenceExtension::class.java,
             ).apply {
+                // Matches `com.airbnb.viaduct.application-gradle-plugin`'s
+                // `assembleViaductCentralSchema` output path when that task is present (today's
+                // monolithic single-project consumers). A Viaduct *module* project with no
+                // sibling application (e.g. a dedicated persistence tenant) never has that task,
+                // so this instead falls back to the module's own local schema source directory —
+                // fine because such a module owns its entire `@db` schema and needs no
+                // cross-module central assembly to generate its Hibernate model.
                 centralSchemaDirectory.convention(
-                    project.layout.buildDirectory.dir("viaduct/centralSchema"),
+                    project.provider {
+                        if (project.tasks.names.contains("assembleViaductCentralSchema")) {
+                            project.layout.buildDirectory
+                                .dir("viaduct/centralSchema")
+                                .get()
+                        } else {
+                            project.layout.projectDirectory.dir("src/main/viaduct/schema")
+                        }
+                    },
                 )
                 packageName.convention(
                     project.provider { "${project.group}.persistence.generated" },

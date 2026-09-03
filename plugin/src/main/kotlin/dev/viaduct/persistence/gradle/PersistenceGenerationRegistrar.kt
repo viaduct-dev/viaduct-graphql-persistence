@@ -18,7 +18,7 @@ internal class PersistenceGenerationRegistrar(
             ) {
                 it.group = "verification"
                 it.centralSchemaDirectory.set(extension.centralSchemaDirectory)
-                it.dependsOn("assembleViaductCentralSchema")
+                dependOnCentralSchemaAssemblyIfPresent(it)
             }
         val generate =
             project.tasks.register(
@@ -28,7 +28,7 @@ internal class PersistenceGenerationRegistrar(
                 it.group = "build"
                 it.description =
                     "Generate plain entities and JPA mappings from the assembled Viaduct schema."
-                it.dependsOn("assembleViaductCentralSchema")
+                dependOnCentralSchemaAssemblyIfPresent(it)
                 it.centralSchemaDirectory.set(extension.centralSchemaDirectory)
                 it.outputDirectory.set(layout.generatedRoot)
                 it.packageName.set(extension.packageName)
@@ -38,6 +38,20 @@ internal class PersistenceGenerationRegistrar(
                 it.relationshipConfigFile.from(extension.relationshipConfigFile)
             }
         wireGeneratedSources(validate, generate)
+    }
+
+    /**
+     * `assembleViaductCentralSchema` is registered by `com.airbnb.viaduct.application-gradle-plugin`
+     * and only exists on a Viaduct *application* project — a Viaduct *module* project (e.g. a
+     * dedicated persistence tenant with no sibling application in the same Gradle project) never
+     * has it. Depend on it when present (today's monolithic single-project consumers, unchanged);
+     * skip the dependency otherwise and rely on [ViaductPersistenceExtensionDefaults]'s
+     * `centralSchemaDirectory` convention falling back to the module's own local schema directory.
+     */
+    private fun dependOnCentralSchemaAssemblyIfPresent(task: org.gradle.api.Task) {
+        if (project.tasks.names.contains("assembleViaductCentralSchema")) {
+            task.dependsOn("assembleViaductCentralSchema")
+        }
     }
 
     private fun wireGeneratedSources(

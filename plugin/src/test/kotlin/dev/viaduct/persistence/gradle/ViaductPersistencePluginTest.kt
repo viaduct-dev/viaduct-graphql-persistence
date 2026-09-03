@@ -28,6 +28,29 @@ class ViaductPersistencePluginTest {
     }
 
     @Test
+    fun `works in a module-only consumer with no assembleViaductCentralSchema task`() {
+        val projectDirectory =
+            Files.createTempDirectory("viaduct-persistence-module-only-consumer").toFile()
+        try {
+            writeConsumerFiles(projectDirectory, "module-only-consumer", moduleOnlyBuildScript())
+            val moduleSchemaDir = projectDirectory.resolve("src/main/viaduct/schema")
+            moduleSchemaDir.ensureDirectory()
+            moduleSchemaDir.resolve("Model.graphqls").writeText(effectiveSchema())
+            runGradle(
+                projectDirectory,
+                "generateViaductPersistenceModel",
+            )
+            val mapping =
+                projectDirectory
+                    .resolve("build/generated/viaduct-persistence/resources/META-INF/orm.xml")
+                    .readText()
+            assertContains(mapping, "<table name=\"Group\"/>")
+        } finally {
+            projectDirectory.deleteRecursively()
+        }
+    }
+
+    @Test
     fun `generates association-backed edge fields in the effective model`() {
         val projectDirectory =
             Files.createTempDirectory("viaduct-persistence-edge-consumer").toFile()
@@ -157,6 +180,24 @@ class ViaductPersistencePluginTest {
 
         viaductPersistence {
             centralSchemaDirectory.set(file("schema"))
+            packageName.set("synthetic.generated")
+        }
+        """.trimIndent()
+
+    /**
+     * No `assembleViaductCentralSchema` task registered at all — simulates a Viaduct *module*
+     * project (e.g. a dedicated persistence tenant) with no sibling application in the same
+     * Gradle project. `centralSchemaDirectory` is left unset so it falls back to its
+     * `src/main/viaduct/schema` convention.
+     */
+    private fun moduleOnlyBuildScript(): String =
+        """
+        plugins {
+            kotlin("jvm") version "2.1.0"
+            id("dev.viaduct.graphql-persistence")
+        }
+
+        viaductPersistence {
             packageName.set("synthetic.generated")
         }
         """.trimIndent()
