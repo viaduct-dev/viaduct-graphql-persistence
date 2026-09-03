@@ -26,7 +26,7 @@ internal class DbBatchFetcher(
     private val nodeReferencePlanner: NodeReferencePlanner,
     private val nodeReferenceHydrator: NodeReferenceHydrator,
 ) {
-    suspend fun <T> fetchByUuids(
+    suspend fun <T> fetchByInternalIds(
         context: ResolverExecutionContext<out Query>,
         collectionField: String,
         ids: List<String>,

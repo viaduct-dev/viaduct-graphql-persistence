@@ -90,7 +90,7 @@ class DbClient(
             requestedSelections,
         )
 
-    suspend fun <T> fetchByUuid(
+    suspend fun <T> fetchByInternalId(
         ctx: ResolverExecutionContext<out Query>,
         collectionField: String,
         id: String,
@@ -117,14 +117,14 @@ class DbClient(
      * Fetches and hydrates several nodes with one pg_graphql request. The returned map uses the
      * provider UUID, so callers can put the objects back into the connection's original order.
      */
-    suspend fun <T> fetchByUuids(
+    suspend fun <T> fetchByInternalIds(
         ctx: ResolverExecutionContext<out Query>,
         collectionField: String,
         ids: List<String>,
         ownedSelections: SelectionSet<T>,
         requestedSelections: SelectionSet<T> = ownedSelections,
     ): Map<String, T> where T : CompositeOutput, T : NodeObject =
-        dbBatchFetcher.fetchByUuids(
+        dbBatchFetcher.fetchByInternalIds(
             ctx,
             collectionField,
             ids,
