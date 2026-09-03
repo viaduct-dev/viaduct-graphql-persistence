@@ -83,6 +83,7 @@ internal class ToOneAttributeStrategy : PersistenceAttributeStrategy {
                         name = context.field.name,
                         nullable = context.field.type.isNullable,
                         targetTypeName = relationship.targetName,
+                        idOfDirected = relationship.idOfDirected,
                     ),
                 )
             }

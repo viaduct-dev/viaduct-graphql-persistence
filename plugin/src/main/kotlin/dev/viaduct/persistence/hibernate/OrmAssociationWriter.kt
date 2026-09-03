@@ -13,7 +13,14 @@ internal class OrmAssociationWriter {
         attributes: Element,
         attribute: PersistenceToOneAttribute,
         packageName: String,
-    ) = writeToOne(attributes, attribute, packageName, logicalJoinColumnName(attribute.name))
+    ) = writeToOne(
+        attributes,
+        attribute,
+        packageName,
+        // A scalar `@idOf`-directed field is already named for its column (e.g. `groupId`); an
+        // object-typed relationship field (e.g. `owner`) needs the conventional `Id` suffix.
+        if (attribute.idOfDirected) attribute.name else logicalJoinColumnName(attribute.name),
+    )
 
     fun writeToOne(
         attributes: Element,

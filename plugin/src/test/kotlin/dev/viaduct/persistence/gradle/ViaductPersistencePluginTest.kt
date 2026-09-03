@@ -48,12 +48,36 @@ class ViaductPersistencePluginTest {
     }
 
     @Test
+    fun `an @idOf scalar field directs a foreign key without doubling the join column suffix`() {
+        val projectDirectory =
+            Files.createTempDirectory("viaduct-persistence-idof-consumer").toFile()
+        try {
+            writeConsumerFiles(projectDirectory, "idof-consumer", effectiveBuildScript())
+            writeSchema(projectDirectory, idOfSchema())
+            runGradle(
+                projectDirectory,
+                "buildViaductEffectiveModel",
+                "hibernateSchemaSnapshot",
+            )
+            val mapping =
+                projectDirectory
+                    .resolve("build/generated/viaduct-persistence/resources/META-INF/orm.xml")
+                    .readText()
+            assertContains(mapping, "<many-to-one fetch=\"LAZY\" name=\"groupId\"")
+            assertContains(mapping, "<join-column column-definition=\"uuid\" name=\"groupId\"")
+            assertFalse(mapping.contains("groupIdId"))
+        } finally {
+            projectDirectory.deleteRecursively()
+        }
+    }
+
+    @Test
     fun `generated resource source directories carry their task dependency`() {
         val projectDirectory =
             Files.createTempDirectory("viaduct-persistence-resources").toFile()
         try {
             writeConsumerFiles(projectDirectory, "resource-consumer", resourceBuildScript())
-            writeSchema(projectDirectory, "type Group { id: ID! }")
+            writeSchema(projectDirectory, "interface Node { id: ID! }\ntype Group implements Node { id: ID! }")
             val result = runGradle(projectDirectory, "inspectGeneratedResources")
             assertTrue(result.output.contains("> Task :generateViaductPersistenceModel"))
         } finally {
@@ -165,14 +189,18 @@ class ViaductPersistencePluginTest {
         directive @connection on OBJECT
         directive @edge on OBJECT
 
-        type Group {
+        interface Node {
+          id: ID!
+        }
+
+        type Group implements Node {
           id: ID!
           name: String!
           labels: [String!]!
           members: PersonPage!
         }
 
-        type Person {
+        type Person implements Node {
           id: ID!
         }
 
@@ -189,17 +217,43 @@ class ViaductPersistencePluginTest {
         }
         """.trimIndent()
 
+    private fun idOfSchema(): String =
+        """
+        directive @idOf(type: String!) on FIELD_DEFINITION
+
+        interface Node {
+          id: ID!
+        }
+
+        type Group implements Node {
+          id: ID!
+        }
+
+        type Person implements Node {
+          id: ID!
+          groupId: ID @idOf(type: "Group")
+        }
+
+        type Query {
+          nodes: [Person!]!
+        }
+        """.trimIndent()
+
     private fun edgeSchema(): String =
         """
         directive @connection on OBJECT
         directive @edge on OBJECT
 
-        type Group {
+        interface Node {
+          id: ID!
+        }
+
+        type Group implements Node {
           id: ID!
           members: PersonPage!
         }
 
-        type Person {
+        type Person implements Node {
           id: ID!
         }
 

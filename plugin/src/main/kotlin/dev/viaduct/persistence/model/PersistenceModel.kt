@@ -109,6 +109,8 @@ data class PersistenceToOneAttribute(
     override val name: String,
     override val nullable: Boolean,
     val targetTypeName: String,
+    /** True when this to-one relationship is directed by `@idOf` on a scalar `ID` field. */
+    val idOfDirected: Boolean = false,
 ) : PersistenceAttribute
 
 data class PersistenceToManyAttribute(

@@ -173,23 +173,23 @@ The Gradle plugin ID is `dev.viaduct.graphql-persistence`.
 
 ## GraphQL Conventions
 
-By default, every object type in an ordinary `*.graphqls` file that has an `id: ID` field is
-persistent.
+By default, every object type in an ordinary `*.graphqls` file that implements the
+framework-provided `Node` interface is persistent.
 
 ```graphql
-type Group {
+type Group implements Node {
   id: ID!
   name: String!
   members: [GroupMember!]!
 }
 
-type GroupMember {
+type GroupMember implements Node {
   id: ID!
   group: Group!
   person: Person!
 }
 
-type Person {
+type Person implements Node {
   id: ID!
   displayName: String
 }
@@ -198,8 +198,23 @@ type Person {
 This model produces three entity tables. `GroupMember.group` and `GroupMember.person` become
 foreign keys. `Group.members` uses the foreign key implied by `GroupMember.group`.
 
-Use object references for relationships. A scalar field such as `groupId` must not shadow a
-`group: Group` relationship.
+Relationships are usually declared as object references. A scalar field such as `groupId` must
+not shadow a `group: Group` relationship declared on the same type.
+
+A scalar `ID` field carrying `@idOf(type: "Group")` is itself a foreign key to `Group`, without an
+accompanying object reference:
+
+```graphql
+type Person implements Node {
+  id: ID!
+  groupId: ID @idOf(type: "Group")
+}
+```
+
+`Person.groupId` directs the same foreign key that an object-typed `group: Group` field would,
+and can serve as the target of `Group`'s own to-many collection field. It stays a plain scalar
+column and is not renamed in pg_graphql's generated schema, so it never collides with a
+synthesized relationship accessor.
 
 Relay-style connections use the same relationship rules as lists. A connection wrapper is not a
 persistent entity; the persistence model follows `edges.node` to identify the target collection:

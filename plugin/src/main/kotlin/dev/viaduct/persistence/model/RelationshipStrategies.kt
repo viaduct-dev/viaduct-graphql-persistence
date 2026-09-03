@@ -6,6 +6,8 @@ internal data class PersistenceRelationshipTarget(
     val targetName: String,
     val collection: Boolean,
     val edgeTypeName: String? = null,
+    /** True when this target was resolved from `@idOf` on a scalar `ID` field, not an object field. */
+    val idOfDirected: Boolean = false,
 )
 
 internal interface RelationshipTargetResolver {
@@ -21,6 +23,7 @@ internal class RelationshipTargetResolverChain(
             DirectRelationshipTargetResolver(),
             ConnectionRelationshipTargetResolver(),
             NodesCollectionRelationshipTargetResolver(),
+            IdOfRelationshipTargetResolver(),
         ),
 ) : RelationshipTargetResolver {
     override fun resolve(
@@ -92,6 +95,33 @@ private class NodesCollectionRelationshipTargetResolver : RelationshipTargetReso
             ?.takeIf { it.name in includedObjects }
             ?.let { PersistenceRelationshipTarget(it.name, collection = true) }
 }
+
+/**
+ * Resolves a scalar `ID` field carrying `@idOf(type: "Target")` as a to-one relationship to
+ * `Target`, letting `@idOf` direct a foreign key without an object-typed reference field.
+ */
+private class IdOfRelationshipTargetResolver : RelationshipTargetResolver {
+    override fun resolve(
+        field: ViaductSchema.Field,
+        includedObjects: Map<String, ViaductSchema.Object>,
+    ): PersistenceRelationshipTarget? {
+        if (field.type.isList) return null
+        val baseType = field.type.baseTypeDef
+        if (baseType !is ViaductSchema.Scalar || baseType.name != "ID") return null
+        val targetName = field.idOfTypeName() ?: return null
+        return includedObjects[targetName]?.let {
+            PersistenceRelationshipTarget(targetName = targetName, collection = false, idOfDirected = true)
+        }
+    }
+}
+
+private fun ViaductSchema.Field.idOfTypeName(): String? =
+    appliedDirectives
+        .firstOrNull { it.name == "idOf" }
+        ?.arguments
+        ?.get("type")
+        ?.let { it as? ViaductSchema.StringLiteral }
+        ?.value
 
 private fun isStructuralConnection(type: ViaductSchema.Object): Boolean =
     (

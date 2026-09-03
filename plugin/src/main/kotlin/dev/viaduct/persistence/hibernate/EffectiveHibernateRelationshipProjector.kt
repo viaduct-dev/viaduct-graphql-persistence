@@ -37,20 +37,7 @@ internal class EffectiveHibernateRelationshipProjector(
         computedRelationships: MutableList<EffectiveHibernateComputedRelationship>,
     ): EffectiveHibernateRelationship? =
         when (attribute) {
-            is PersistenceToOneAttribute -> {
-                val property = binding.requiredProperty(entity.graphqlName, attribute.name)
-                val targetBinding = context.bindingFor(attribute.targetTypeName)
-                EffectiveHibernateRelationship(
-                    ownerTypeName = entity.graphqlName,
-                    fieldName = attribute.name,
-                    schemaName = property.value.table.schema ?: "public",
-                    tableName = property.value.table.name,
-                    columnName = property.singleColumnName(),
-                    graphqlNameKind = GraphqlNameKind.FOREIGN,
-                    targetSchemaName = targetBinding.table.schema ?: "public",
-                    targetTableName = targetBinding.table.name,
-                )
-            }
+            is PersistenceToOneAttribute -> projectToOne(entity, attribute, binding)
             is PersistenceToManyAttribute ->
                 projectToMany(
                     entity,
@@ -60,6 +47,31 @@ internal class EffectiveHibernateRelationshipProjector(
                 )
             else -> null
         }
+
+    private fun projectToOne(
+        entity: PersistenceEntity,
+        attribute: PersistenceToOneAttribute,
+        binding: PersistentClass,
+    ): EffectiveHibernateRelationship? {
+        // A scalar `@idOf` field already has its own GraphQL-visible name (e.g. `groupId`),
+        // which pg_graphql also uses for the raw FK column itself. Naming the synthesized
+        // single-object accessor the same would collide with that raw column in the generated
+        // schema, so this relationship isn't given a `foreign_name` override; pg_graphql's
+        // unreferenced default name is unused.
+        if (attribute.idOfDirected) return null
+        val property = binding.requiredProperty(entity.graphqlName, attribute.name)
+        val targetBinding = context.bindingFor(attribute.targetTypeName)
+        return EffectiveHibernateRelationship(
+            ownerTypeName = entity.graphqlName,
+            fieldName = attribute.name,
+            schemaName = property.value.table.schemaOrPublic(),
+            tableName = property.value.table.name,
+            columnName = property.singleColumnName(),
+            graphqlNameKind = GraphqlNameKind.FOREIGN,
+            targetSchemaName = targetBinding.table.schemaOrPublic(),
+            targetTableName = targetBinding.table.name,
+        )
+    }
 
     private fun projectToMany(
         entity: PersistenceEntity,
@@ -72,7 +84,7 @@ internal class EffectiveHibernateRelationshipProjector(
             return EffectiveHibernateRelationship(
                 ownerTypeName = entity.graphqlName,
                 fieldName = attribute.name,
-                schemaName = collection.collectionTable.schema ?: "public",
+                schemaName = collection.collectionTable.schemaOrPublic(),
                 tableName = collection.collectionTable.name,
                 columnName =
                     collection.key.singleColumnName(
@@ -96,19 +108,19 @@ internal class EffectiveHibernateRelationshipProjector(
                 fieldName = attribute.name,
                 owner =
                     EffectiveHibernateTable(
-                        schemaName = binding.table.schema ?: "public",
+                        schemaName = binding.table.schemaOrPublic(),
                         tableName = binding.table.name,
                         idColumnName = binding.identifier.singleColumnName(ownerClassName),
                     ),
                 target =
                     EffectiveHibernateTable(
-                        schemaName = targetBinding.table.schema ?: "public",
+                        schemaName = targetBinding.table.schemaOrPublic(),
                         tableName = targetBinding.table.name,
                         idColumnName = targetBinding.identifier.singleColumnName(targetClassName),
                     ),
                 join =
                     EffectiveHibernateJoinTable(
-                        schemaName = collection.collectionTable.schema ?: "public",
+                        schemaName = collection.collectionTable.schemaOrPublic(),
                         tableName = collection.collectionTable.name,
                         ownerColumnName =
                             collection.key.singleColumnName(
@@ -154,7 +166,7 @@ internal class EffectiveHibernateRelationshipProjector(
                         columnName = column.name,
                         sqlType = column.getSqlType(context.metadata),
                         nullable = edgeAttribute.nullable,
-                        targetSchemaName = target.table.schema ?: "public",
+                        targetSchemaName = target.table.schemaOrPublic(),
                         targetTableName = target.table.name,
                         targetIdColumnName =
                             target.identifier.singleColumnName(
@@ -179,7 +191,7 @@ internal class EffectiveHibernateRelationshipProjector(
                 ?: error("Hibernate identifier for ${attribute.targetTypeName} must map to one column")
         val target =
             EffectiveHibernateTable(
-                schemaName = targetBinding.table.schema ?: "public",
+                schemaName = targetBinding.table.schemaOrPublic(),
                 tableName = targetBinding.table.name,
                 idColumnName = targetBinding.identifier.singleColumnName(targetClassName),
             )
@@ -224,7 +236,7 @@ internal class EffectiveHibernateRelationshipProjector(
                     ownerColumnName = ownerColumn,
                     join =
                         EffectiveHibernateJoinTable(
-                            schemaName = collection.collectionTable.schema ?: "public",
+                            schemaName = collection.collectionTable.schemaOrPublic(),
                             tableName = collection.collectionTable.name,
                             ownerColumnName = ownerColumn,
                             targetColumnName =
