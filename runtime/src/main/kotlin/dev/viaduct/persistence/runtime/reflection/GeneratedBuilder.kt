@@ -1,15 +1,7 @@
-@file:OptIn(
-    viaduct.apiannotations.ExperimentalApi::class,
-    viaduct.apiannotations.InternalApi::class,
-)
-
 package dev.viaduct.persistence.runtime.reflection
 
-import graphql.schema.GraphQLObjectType
 import viaduct.api.context.ExecutionContext
-import viaduct.api.internal.InternalContext
 import viaduct.api.reflect.Field
-import viaduct.engine.api.EngineObjectData
 
 /** Small adapter around the generated builders' reflective API. */
 internal class GeneratedBuilder private constructor(
@@ -58,8 +50,6 @@ internal class GeneratedBuilder private constructor(
         )
 
     companion object {
-        private const val CONNECTION_BUILDER_PARAMETER_COUNT = 3
-
         fun fromObject(value: Any): GeneratedBuilder =
             GeneratedBuilder(
                 value::class.java.getMethod("toBuilder").invoke(value),
@@ -73,29 +63,6 @@ internal class GeneratedBuilder private constructor(
                 builderClass
                     .getConstructor(ExecutionContext::class.java)
                     .newInstance(context),
-            )
-
-        fun fromConnection(
-            builderClass: Class<*>,
-            context: InternalContext,
-            graphQlType: GraphQLObjectType,
-            data: EngineObjectData,
-        ): GeneratedBuilder =
-            GeneratedBuilder(
-                builderClass.constructors
-                    .singleOrNull { constructor ->
-                        constructor.parameterCount == CONNECTION_BUILDER_PARAMETER_COUNT &&
-                            constructor.parameterTypes
-                                .zip(
-                                    arrayOf(context, graphQlType, data),
-                                ).all { (parameterType, argument) ->
-                                    parameterType.isAssignableFrom(argument::class.java)
-                                }
-                    }?.newInstance(context, graphQlType, data)
-                    ?: error(
-                        "Generated connection builder '${builderClass.name}' has no constructor " +
-                            "compatible with InternalContext, GraphQLObjectType, and EngineObjectData",
-                    ),
             )
     }
 }
