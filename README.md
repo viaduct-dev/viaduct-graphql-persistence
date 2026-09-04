@@ -87,7 +87,8 @@ type GroupMember implements Node {
 ```
 
 Put types backed by another service, or types that should not become database tables, in files
-ending with `.notable.graphqls`.
+ending with `.notable.graphqls`. This is possible, but not recommended: standard practice is a
+second, database-free Viaduct tenant module instead. See [Excluding Types](#excluding-types).
 
 ### 4. Generate the database model
 
@@ -122,12 +123,9 @@ request-specific authentication headers:
 ```kotlin
 val dbClient = DbClient(
     httpClient = httpClient,
-    endpoint = "$supabaseUrl/graphql/v1",
+    endpoint = "$postgresGraphqlEndpoint/graphql",
     requestHeaders = DbRequestHeaders { context ->
-        mapOf(
-            "Authorization" to "Bearer ${accessTokenFor(context)}",
-            "apikey" to supabaseAnonKey,
-        )
+        mapOf("Authorization" to "Bearer ${accessTokenFor(context)}")
     },
 )
 ```
@@ -191,7 +189,7 @@ type GroupMember implements Node {
 
 type Person implements Node {
   id: ID!
-  displayName: String
+  displayName: String!
 }
 ```
 
@@ -313,6 +311,13 @@ Definitions in notable files are excluded from persistence discovery. A notable 
 contain GraphQL extensions, and an ordinary file cannot redefine or extend a type defined in a
 notable file. These cases fail generation instead of producing a partial database model.
 
+`.notable.graphqls` works, but is not the recommended way to keep externally backed types out of
+the database. Standard practice is a second Viaduct tenant module that never applies this plugin
+and has no `@db` schema of its own, alongside the tenant that owns persistence. This keeps
+externally backed types on equal footing with database-backed ones — same module boundary,
+Kotlin dependency rules, and resolver ownership — rather than relying on a filename convention to
+exclude them from a database they were never going to belong to.
+
 To use an explicit allowlist instead of discovery:
 
 ```kotlin
@@ -371,19 +376,24 @@ build/generated/viaduct-effective-model/META-INF/pg-graphql-metadata.sql
 complete bundle as a repeatable production migration; review `postgresql-migration.sql` as
 migration input and use `pg-graphql-metadata.sql` for repeatable metadata.
 
-For Supabase, send GraphQL requests to:
+Send GraphQL requests to whatever endpoint fronts `pg_graphql` on the target Postgres instance —
+for Supabase, that's:
 
 ```text
 https://<project>.supabase.co/graphql/v1
 ```
 
-Requests normally include both the caller's JWT and the Supabase API key:
+Required headers depend on that fronting layer, not on `pg_graphql` itself. Supabase's PostgREST
+gateway expects both the caller's JWT and its own API key:
 
 ```http
 Authorization: Bearer <access-token>
 apikey: <publishable-or-anon-key>
 Content-Type: application/json
 ```
+
+A plain Postgres instance with `pg_graphql` behind a different gateway may need only an
+`Authorization` header, or a different scheme entirely.
 
 The overlay enables row-level security but does not invent authorization policies. Define and
 migrate the PostgreSQL RLS policies required by the application.
@@ -410,8 +420,9 @@ dependencies {
 }
 ```
 
-Configure the endpoint and provider-specific headers. Header resolution runs for every request, so
-credentials can come from the current execution context and are not frozen into CRaC checkpoints:
+Configure the endpoint and provider-specific headers. Header resolution runs for every request,
+so credentials come from the current execution context rather than being fixed at client
+construction:
 
 ```kotlin
 import dev.viaduct.persistence.runtime.db.DbClient
@@ -419,12 +430,9 @@ import dev.viaduct.persistence.runtime.db.DbRequestHeaders
 
 val dbClient = DbClient(
     httpClient = httpClient,
-    endpoint = "$supabaseUrl/graphql/v1",
+    endpoint = "$postgresGraphqlEndpoint/graphql",
     requestHeaders = DbRequestHeaders { context ->
-        mapOf(
-            "Authorization" to "Bearer ${accessTokenFor(context)}",
-            "apikey" to supabaseAnonKey,
-        )
+        mapOf("Authorization" to "Bearer ${accessTokenFor(context)}")
     },
 )
 ```
@@ -468,8 +476,9 @@ policy.
 
 Every `@db` type is validated during generation. A transitively reachable `@resolver` field
 is rejected because pg_graphql cannot resolve that field from the database. Types or fields
-backed by external services should remain outside that db, usually in a
-`.notable.graphqls` file.
+backed by external services should remain outside that db — standard practice is a second,
+database-free tenant module, with `.notable.graphqls` as the fallback (see
+[Excluding Types](#excluding-types)).
 
 ## Create or Update a Database
 

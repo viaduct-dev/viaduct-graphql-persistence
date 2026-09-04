@@ -13,12 +13,9 @@ dependencies {
 ```kotlin
 val client = DbClient(
     httpClient = httpClient,
-    endpoint = "$supabaseUrl/graphql/v1",
+    endpoint = "$postgresGraphqlEndpoint/graphql",
     requestHeaders = DbRequestHeaders { context ->
-        mapOf(
-            "Authorization" to "Bearer ${accessTokenFor(context)}",
-            "apikey" to supabaseAnonKey,
-        )
+        mapOf("Authorization" to "Bearer ${accessTokenFor(context)}")
     },
 )
 ```
@@ -27,7 +24,7 @@ val client = DbClient(
 
 - `fetch` for an explicit db root and owned selection set.
 - `fetchNode` for results that also need requested node references.
-- `fetchByUuid` for the common filtered-collection node lookup.
+- `fetchByInternalId`/`fetchByInternalIds` for the common filtered-collection node lookup.
 - `fetchUuidIds` for collection resolvers that return Viaduct node references.
 - `fetchUuidConnection` for caller-managed `first`/`after` or `last`/`before` pagination.
 - `fetchNestedUuidConnections` for one paginated child connection per parent in one request.
