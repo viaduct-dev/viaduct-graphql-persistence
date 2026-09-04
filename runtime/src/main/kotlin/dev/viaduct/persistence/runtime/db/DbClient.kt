@@ -71,11 +71,22 @@ class DbClient(
         )
     private val connectionFetcher = ConnectionFetcher(transport)
 
+    /** Fetches [selections] and converts the result to a GRT. Shortcut for [fetchJson] + [toGRT]. */
     suspend fun <T : CompositeOutput> fetch(
         ctx: ExecutionContext,
         dbRead: DbRead,
         selections: SelectionSet<T>,
     ): T = dbFetcher.fetch(ctx, dbRead, selections)
+
+    /**
+     * Fetches the raw pg_graphql JSON for [selections], without converting it to a GRT. Use
+     * [toGRT] to convert the result, or [fetch] for the common case of doing both in one call.
+     */
+    suspend fun <T : CompositeOutput> fetchJson(
+        ctx: ExecutionContext,
+        dbRead: DbRead,
+        selections: SelectionSet<T>,
+    ): JsonObject = dbFetcher.fetchJson(ctx, dbRead, selections)
 
     suspend fun <T> fetchNode(
         ctx: ResolverExecutionContext<out Query>,

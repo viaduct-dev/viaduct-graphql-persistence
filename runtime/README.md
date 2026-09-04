@@ -22,12 +22,25 @@ val client = DbClient(
 
 `DbClient` provides:
 
-- `fetch` for an explicit db root and owned selection set.
+- `fetch` for an explicit db root and owned selection set. Shortcut for `fetchJson` + `toGRT`.
+- `fetchJson` for the same read, returning the raw pg_graphql JSON without converting it to a GRT.
+- `toGRT` (an extension on the `JsonObject` result) to convert JSON — from `fetchJson`, a cache, or
+  any other source — into the generated Viaduct value for a typed selection set.
 - `fetchNode` for results that also need requested node references.
 - `fetchByInternalId`/`fetchByInternalIds` for the common filtered-collection node lookup.
 - `fetchUuidIds` for collection resolvers that return Viaduct node references.
 - `fetchUuidConnection` for caller-managed `first`/`after` or `last`/`before` pagination.
 - `fetchNestedUuidConnections` for one paginated child connection per parent in one request.
+
+Fetching and converting are separate, explicit steps rather than one fused operation: `fetch` is
+built from `fetchJson` and `toGRT`, not the other way around. Reach for the two parts directly when
+you need the JSON on its own — inspecting a response before conversion, or converting JSON obtained
+some other way:
+
+```kotlin
+val json = client.fetchJson(ctx, dbRead, selections)
+val value = json.toGRT(ctx, selections)
+```
 
 The application owns the HTTP client lifecycle, endpoint, and header policy. The runtime owns
 query translation, transport execution, GraphQL error propagation, response restoration, GRT
