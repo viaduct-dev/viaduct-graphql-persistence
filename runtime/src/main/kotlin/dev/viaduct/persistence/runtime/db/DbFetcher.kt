@@ -6,7 +6,7 @@ import dev.viaduct.persistence.runtime.graphql.PgGraphqlTransport
 import dev.viaduct.persistence.runtime.node.NodeReferenceHydrator
 import dev.viaduct.persistence.runtime.node.NodeReferencePlanner
 import dev.viaduct.persistence.runtime.reflection.GeneratedTypeReflection
-import dev.viaduct.persistence.runtime.reflection.toGRT
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
@@ -29,13 +29,18 @@ internal class DbFetcher(
         context: ExecutionContext,
         dbRead: DbRead,
         selections: SelectionSet<T>,
-    ): T {
+    ): T = fetchJson(context, dbRead, selections).toGRT(context, selections)
+
+    /** Fetches the raw pg_graphql JSON for [selections], without converting it to a GRT. */
+    suspend fun <T : CompositeOutput> fetchJson(
+        context: ExecutionContext,
+        dbRead: DbRead,
+        selections: SelectionSet<T>,
+    ): JsonObject {
         if (selections.isEmpty()) {
             return buildJsonObject { put("__typename", selections.type.name) }
-                .toGRT(context, selections)
         }
-        val response = fetchJson(context, dbRead.root, selections)
-        return response.toGRT(context, selections)
+        return fetchJsonForRoot(context, dbRead.root, selections)
     }
 
     suspend fun <T> fetchNode(
@@ -48,7 +53,7 @@ internal class DbFetcher(
         if (references.isEmpty()) return fetch(context, dbRead, ownedSelections)
 
         val response =
-            fetchJson(
+            fetchJsonForRoot(
                 context = context,
                 root = dbRead.root,
                 selections = ownedSelections,
@@ -62,12 +67,12 @@ internal class DbFetcher(
         )
     }
 
-    private suspend fun <T : CompositeOutput> fetchJson(
+    private suspend fun <T : CompositeOutput> fetchJsonForRoot(
         context: ExecutionContext,
         root: DbRoot,
         selections: SelectionSet<T>,
         referenceSelections: List<String> = emptyList(),
-    ): kotlinx.serialization.json.JsonObject {
+    ): JsonObject {
         val query = queryPlanner.plan(root, selections, referenceSelections)
         val data =
             PgGraphqlTranslation
