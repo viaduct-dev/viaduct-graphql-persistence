@@ -1,15 +1,49 @@
 plugins {
     kotlin("jvm") version "2.1.0" apply false
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.2" apply false
+    id("com.github.spotbugs") version "6.5.11" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
 }
 
 val releaseVersion = providers.gradleProperty("releaseVersion").orElse("0.1.0-SNAPSHOT")
 
 allprojects {
-    group = "dev.viaduct"
+    group = "dev.viaduct.persistence"
     version = releaseVersion.get()
 }
 
 subprojects {
+    apply(plugin = "org.jlleitschuh.gradle.ktlint")
+    apply(plugin = "com.github.spotbugs")
+    apply(plugin = "io.gitlab.arturbosch.detekt")
+
+    configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+        version.set("1.5.0")
+    }
+
+    configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
+        buildUponDefaultConfig = true
+    }
+
+    configure<com.github.spotbugs.snom.SpotBugsExtension> {
+        ignoreFailures.set(false)
+        excludeFilter.set(
+            rootProject.layout.projectDirectory.file("config/spotbugs/exclude.xml"),
+        )
+    }
+
+    tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
+        reports.create("xml") {
+            required.set(true)
+        }
+    }
+
+    plugins.withId("base") {
+        tasks.named("check") {
+            dependsOn("ktlintCheck", "detekt", "spotbugsMain", "spotbugsTest")
+        }
+    }
+
     plugins.withId("maven-publish") {
         pluginManager.apply("signing")
 

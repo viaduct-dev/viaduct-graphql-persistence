@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Kotlin collection operators compile through Collection-to-List bridges. -->
+    <Match>
+        <Bug pattern="BC_BAD_CAST_TO_ABSTRACT_COLLECTION"/>
+        <Class name="~dev\.viaduct\.persistence\..*"/>
+    </Match>
+
+    <!-- Suspend functions expose a nullable Continuation state-machine ABI to Java bytecode. -->
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Method name="~.*" signature="~.*Lkotlin/coroutines/Continuation;.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="NP_NONNULL_PARAM_VIOLATION"/>
+        <Class name="~dev\.viaduct\.persistence\..*\$.*"/>
+        <Method name="invokeSuspend"/>
+    </Match>
+    <Match>
+        <Bug pattern="SE_BAD_FIELD,SE_BAD_FIELD_STORE"/>
+        <Class name="~dev\.viaduct\.persistence\..*\$.*"/>
+    </Match>
+
+    <!--
+        These objects are read-only Kotlin descriptors or lifecycle collaborators. Kotlin exposes
+        its read-only List/Map interfaces as java.util collections, so SpotBugs cannot distinguish
+        them from mutable collections or from intentionally retained Gradle/Hibernate handles.
+    -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class
+            name="~dev\.viaduct\.persistence\.(gradle\.(EffectiveModelRegistrar|HibernateDiffTaskRegistrar|HibernateSnapshotTaskRegistrar|KotlinPersistenceProjectConfigurator|PersistenceBuildLayout|PersistenceGenerationRegistrar|PersistenceRelationshipConfig|GenerateHibernateSchemaModelTask\$.*)|hibernate\.(HibernateMetadataHandle|OrmAttributeWriter|OrmEntityWriter|RelationshipProjection)|liquibase\.LiquibaseDatabaseSession|model\.(CollectionMappingContext|CollectionMappingResolver|PersistenceModelContext|RelationshipTargetResolverChain))"
+        />
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class
+            name="~dev\.viaduct\.persistence\.runtime\.(connection\.(ConnectionShape|EdgeShape|PageInfoShape)|node\.NodeReferenceSelection|db\.(DbBatchFetcher|DbFetcher))"
+        />
+    </Match>
+
+    <!--
+        The Statement/ResultSet here are both closed via Kotlin's use{}, which compiles to a
+        standard try/finally; SpotBugs's experimental obligation tracker cannot follow the
+        capture-into-an-outer-val pattern used to return a value out of that block.
+    -->
+    <Match>
+        <Bug pattern="OBL_UNSATISFIED_OBLIGATION"/>
+        <Class name="dev.viaduct.persistence.liquibase.pggraphql.PgGraphqlCommentSnapshotGenerator"/>
+        <Method name="queryConstraintComment"/>
+    </Match>
+</FindBugsFilter>

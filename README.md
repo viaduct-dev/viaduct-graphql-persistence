@@ -59,7 +59,7 @@ plugins {
 }
 
 dependencies {
-    implementation("dev.viaduct:runtime:0.1.0-SNAPSHOT")
+    implementation("dev.viaduct.persistence:runtime:0.1.0-SNAPSHOT")
 }
 
 viaductPersistence {
@@ -69,17 +69,17 @@ viaductPersistence {
 
 ### 3. Define the data model
 
-Write ordinary Viaduct GraphQL types. An object with an `id: ID` field is persistent by default,
-and object references describe relationships:
+Write ordinary Viaduct GraphQL types. An object that implements the framework-provided `Node`
+interface is persistent by default, and object references describe relationships:
 
 ```graphql
-type Group {
+type Group implements Node {
   id: ID!
   name: String!
   members: [GroupMember!]!
 }
 
-type GroupMember {
+type GroupMember implements Node {
   id: ID!
   group: Group!
   displayName: String!
@@ -116,14 +116,14 @@ The plugin never applies these changes automatically.
 
 ### 6. Configure the runtime
 
-Create a `SubtreeClient` with the application's HTTP client, `pg_graphql` endpoint, and
+Create a `DbClient` with the application's HTTP client, `pg_graphql` endpoint, and
 request-specific authentication headers:
 
 ```kotlin
-val subtreeClient = SubtreeClient(
+val dbClient = DbClient(
     httpClient = httpClient,
     endpoint = "$supabaseUrl/graphql/v1",
-    requestHeaders = SubtreeRequestHeaders { context ->
+    requestHeaders = DbRequestHeaders { context ->
         mapOf(
             "Authorization" to "Bearer ${accessTokenFor(context)}",
             "apikey" to supabaseAnonKey,
@@ -133,7 +133,7 @@ val subtreeClient = SubtreeClient(
 ```
 
 Inject this client into Viaduct resolvers that load persistent types. See
-[Use pg_graphql as a Subtree Backend](#use-pg_graphql-as-a-subtree-backend) for resolver examples
+[Use pg_graphql as a Db Backend](#use-pg_graphql-as-a-db-backend) for resolver examples
 and [Create or Update a Database](#create-or-update-a-database) for the complete migration
 workflow.
 
@@ -147,41 +147,49 @@ workflow.
 
 The current artifact version is `0.1.0-SNAPSHOT`.
 
+## Development Checks
+
+Both published modules apply KtLint, Detekt, and SpotBugs through the standard Gradle `check`
+lifecycle. Run the complete verification suite with:
+
+```bash
+./gradlew check
+```
+
+The checked-in baselines record existing findings so that new lint, best-practice, or SpotBugs
+findings fail the build without requiring an unrelated cleanup. Regenerate a module's baseline
+only when deliberately accepting its current findings.
+
 ## Published Artifacts
 
-All libraries use the `dev.viaduct` Maven group:
+The two public libraries use the `dev.viaduct.persistence` Maven group:
 
 | Coordinate | Purpose |
 | --- | --- |
-| `dev.viaduct:runtime` | Viaduct subtree runtime and pg_graphql client |
-| `dev.viaduct:pg-graphql-translation` | Transport-neutral selection translation |
-| `dev.viaduct:schema-model-core` | Provider-neutral persistence model |
-| `dev.viaduct:hibernate-codegen` | Hibernate entity and mapping generation |
-| `dev.viaduct:postgresql-overlay` | PostgreSQL persistence overlay |
-| `dev.viaduct:pg-graphql-overlay` | pg_graphql naming and relationship overlay |
-| `dev.viaduct:liquibase-hibernate-integration` | Liquibase reference database |
+| `dev.viaduct.persistence:runtime` | Viaduct db runtime, pg_graphql translation, and client |
+| `dev.viaduct.persistence:plugin` | Gradle plugin, persistence model generation, overlays, and Liquibase integration |
 
 The Gradle plugin ID is `dev.viaduct.graphql-persistence`.
 
 ## GraphQL Conventions
 
-By default, every object type in an ordinary `*.graphqls` file that has an `id: ID` field is
-persistent.
+By default, every object type in an ordinary `*.graphqls` file that implements the
+framework-provided `Node` interface is persistent.
 
 ```graphql
-type Group {
+type Group implements Node {
   id: ID!
   name: String!
   members: [GroupMember!]!
 }
 
-type GroupMember {
+type GroupMember implements Node {
   id: ID!
   group: Group!
   person: Person!
 }
 
-type Person {
+type Person implements Node {
   id: ID!
   displayName: String
 }
@@ -190,34 +198,80 @@ type Person {
 This model produces three entity tables. `GroupMember.group` and `GroupMember.person` become
 foreign keys. `Group.members` uses the foreign key implied by `GroupMember.group`.
 
-Use object references for relationships. A scalar field such as `groupId` must not shadow a
-`group: Group` relationship.
+Relationships are usually declared as object references. A scalar field such as `groupId` must
+not shadow a `group: Group` relationship declared on the same type.
+
+A scalar `ID` field carrying `@idOf(type: "Group")` is itself a foreign key to `Group`, without an
+accompanying object reference:
+
+```graphql
+type Person implements Node {
+  id: ID!
+  groupId: ID @idOf(type: "Group")
+}
+```
+
+`Person.groupId` directs the same foreign key that an object-typed `group: Group` field would,
+and can serve as the target of `Group`'s own to-many collection field. It stays a plain scalar
+column and is not renamed in pg_graphql's generated schema, so it never collides with a
+synthesized relationship accessor.
+
+Relay-style connections use the same relationship rules as lists. A connection wrapper is not a
+persistent entity; the persistence model follows `edges.node` to identify the target collection:
+
+```graphql
+type Group implements Node {
+  id: ID!
+  members: PersonConnection!
+}
+
+type Person implements Node {
+  id: ID!
+}
+
+type PersonConnection @connection {
+  edges: [PersonEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PersonEdge @edge {
+  node: Person!
+}
+```
+
+`Group.members` is therefore modeled as a to-many relationship to `Person`; the connection and
+edge types do not produce separate entity tables. `pageInfo`, cursors, and connection arguments
+are API fields and do not change the persistence mapping. Scalar and object fields on an edge are
+persisted on the association row when the relationship uses a join table.
+
+For every join-table-backed connection, including an edge containing only `node` and `cursor`, the
+pg_graphql adapter reads the real `membersAssociations` connection, applies pagination to those
+association rows, selects the row's `node` relationship, and unwraps each row into the authored
+Viaduct edge. A single unidirectional connection uses the target table directly and is passed
+through without this association-row translation. No view or SQL function is generated.
 
 Relationships do not need to be bidirectional. The generated mappings preserve the authored
 relationship names used by Viaduct:
 
 - An object reference becomes a foreign key.
-- A list with a matching back-reference on the target uses the target foreign key.
+- A list or connection with a matching back-reference on the target uses the target foreign key.
+- A single unidirectional list or connection to a target uses the target foreign key; no join table
+  is created.
 - A mutual list relationship uses one deterministic join table.
-- A unidirectional list without a matching back-reference uses its own join table.
-- Multiple unidirectional lists to the same target use separate join tables.
-- Join-table relationships are exposed through generated pg_graphql computed functions.
+- Multiple unidirectional lists or connections to the same target use separate join tables.
+- Association-backed relationships are exposed through pg_graphql's ordinary foreign-key
+  relationship from the owner to the real association table. The generated relationship name is
+  `<fieldName>Associations` (for example, `membersAssociations`).
 
-Join tables are created in the non-exposed `viaduct_internal` schema by default. Self-referential
-relationships use distinct owner and target columns. Override the internal schema when needed:
+Join tables are created in the `viaduct_internal` schema by default. Because pg_graphql must read
+association rows directly, that schema must be included in the provider's exposed schemas and its
+tables must have suitable `SELECT` and RLS policies. The persistence plugin does not silently hide
+the schema or manufacture a view/function to bypass that requirement. Self-referential
+relationships use distinct owner and target columns. Override the schema when needed:
 
 ```kotlin
 viaductPersistence {
     associationSchemaName.set("application_internal")
-}
-```
-
-If an existing database intentionally stores a unidirectional collection as a foreign key on the
-target table, configure that storage detail without changing GraphQL:
-
-```kotlin
-viaductPersistence {
-    unidirectionalTargetForeignKeyFields.add("Group.members")
 }
 ```
 
@@ -236,13 +290,16 @@ Supported scalar mappings are:
 | `Time` | `LocalTime` |
 | `Boolean` | `Boolean` |
 | `Byte`, `Short`, `Int`, `Long` | Matching integer type |
-| `Float`, `Double` | `Double` |
+| `Float` | `Double` |
+| `BigDecimal` | `java.math.BigDecimal` |
+| `BigInteger` | `java.math.BigInteger` |
+| `JSON` | `String`, stored as `jsonb` |
 | GraphQL enum | Generated Kotlin enum |
 | One-dimensional scalar list | PostgreSQL array |
 
 Resolver-backed fields that do not form relationships between included persistent types are not
-persisted. A type reachable from a `@subtree` root cannot contain a transitively reachable
-`@resolver` field because pg_graphql must resolve the complete subtree.
+persisted. A type reachable from a `@db` root cannot contain a transitively reachable
+`@resolver` field because pg_graphql must resolve the complete db.
 
 ### Excluding Types
 
@@ -268,8 +325,8 @@ viaductPersistence {
 
 | Task | Purpose |
 | --- | --- |
-| `validateViaductPersistenceSchema` | Validate subtree and persistence constraints |
-| `generateViaductPersistenceModel` | Generate plain entities, `orm.xml`, and semantic metadata |
+| `validateViaductPersistenceSchema` | Validate db and persistence constraints |
+| `generateViaductPersistenceModel` | Generate plain entities and `orm.xml` from the assembled schema |
 | `buildViaductEffectiveModel` | Compile the model through Hibernate and generate database overlays |
 | `hibernateSchemaSnapshot` | Write a reviewable Liquibase JSON snapshot |
 | `hibernateSchemaDiff` | Compare the generated model with a PostgreSQL database |
@@ -287,24 +344,21 @@ build/generated/viaduct-persistence/
   kotlin/...
   resources/META-INF/orm.xml
   resources/META-INF/persistence.xml
-  resources/META-INF/viaduct-persistence-model.tsv
 
 build/generated/viaduct-effective-model/META-INF/
-  hibernate-metadata-fingerprint.tsv
-  persistent-tables.txt
   pg-graphql.sql
   pg-graphql-metadata.sql
   pg-graphql-overlay.sql
   postgresql-migration.sql
   postgresql-prerequisites.sql
   postgresql-repeatable.sql
-  viaduct-effective-model.tsv
-  viaduct-hibernate-reference.tsv
 ```
 
-The effective-model directory is packaged into the application JAR.
+The effective SQL directory is packaged into the application JAR. The effective model and
+Liquibase reference metadata are rebuilt from the assembled schema, generated mapping, classpath,
+and naming configuration; no metadata descriptor is packaged or passed between tasks.
 
-## Use pg_graphql as a Subtree Backend
+## Use pg_graphql as a Db Backend
 
 `buildViaductEffectiveModel` produces repeatable SQL that maps the generated PostgreSQL schema to
 the authored GraphQL names. Apply this file after the relational tables and constraints exist:
@@ -334,7 +388,7 @@ Content-Type: application/json
 The overlay enables row-level security but does not invent authorization policies. Define and
 migrate the PostgreSQL RLS policies required by the application.
 
-Viaduct subtree selections and pg_graphql use different collection shapes:
+Viaduct db selections and pg_graphql use different collection shapes:
 
 ```graphql
 # Viaduct
@@ -352,7 +406,7 @@ Add the runtime library:
 
 ```kotlin
 dependencies {
-    implementation("dev.viaduct:runtime:0.1.0-SNAPSHOT")
+    implementation("dev.viaduct.persistence:runtime:0.1.0-SNAPSHOT")
 }
 ```
 
@@ -360,13 +414,13 @@ Configure the endpoint and provider-specific headers. Header resolution runs for
 credentials can come from the current execution context and are not frozen into CRaC checkpoints:
 
 ```kotlin
-import dev.viaduct.persistence.runtime.SubtreeClient
-import dev.viaduct.persistence.runtime.SubtreeRequestHeaders
+import dev.viaduct.persistence.runtime.db.DbClient
+import dev.viaduct.persistence.runtime.db.DbRequestHeaders
 
-val subtreeClient = SubtreeClient(
+val dbClient = DbClient(
     httpClient = httpClient,
     endpoint = "$supabaseUrl/graphql/v1",
-    requestHeaders = SubtreeRequestHeaders { context ->
+    requestHeaders = DbRequestHeaders { context ->
         mapOf(
             "Authorization" to "Bearer ${accessTokenFor(context)}",
             "apikey" to supabaseAnonKey,
@@ -378,7 +432,7 @@ val subtreeClient = SubtreeClient(
 Node resolvers can then hydrate their owned selections from a filtered pg_graphql collection:
 
 ```kotlin
-return subtreeClient.fetchByUuid(
+return dbClient.fetchByInternalId(
     ctx = ctx,
     collectionField = "groupCollection",
     id = ctx.id.internalID,
@@ -387,23 +441,34 @@ return subtreeClient.fetchByUuid(
 )
 ```
 
-The runtime also exposes `fetch` for an explicit `Subtree`, `fetchNode` when requested node
+The runtime also exposes `fetch` for an explicit `DbRead`, `fetchNode` when requested node
 references must be attached, and `fetchUuidIds` for collection resolvers that return node
-references.
+references. For connection-backed collection resolvers, `fetchUuidConnection` accepts Viaduct's
+standard `first`/`after` and `last`/`before` arguments and returns UUID references together with
+the provider's cursors and `pageInfo`; pass the returned cursor to the next call so pagination
+remains caller-managed and database-backed.
 
-The plugin packages `META-INF/pg-graphql-translation-schema.tsv`, which the runtime loads from the
-application classpath. Translation rewrites only actual Viaduct collection fields and marks
-generated edge selections with an internal alias. Nested collections are restored recursively
-without changing domain fields named `nodes` or `edges`.
+The runtime does not require a translation metadata resource. It derives the type and field map
+from generated Viaduct reflection and recognizes a collection structurally: a generated
+`ConnectionBuilder` with a compatibility `nodes` field, or a connection whose `edges` object has a
+`node` field. A Viaduct collection or connection may expose `nodes`; pg_graphql exposes the same
+records through `edges { node }`. Translation rewrites recognized `nodes` selections to that shape
+and marks the generated edge selections with an internal alias. The response restorer changes the
+alias back to `nodes` recursively, including for nested collections, while ordinary domain fields
+named `nodes` or `edges` pass through unchanged. When reflection finds custom fields on a
+connection edge, translation uses the real `<fieldName>Associations` relationship, moves edge
+fields into the association row, and restores the row to the authored edge shape. This convention
+also applies recursively to nested connections; no generated descriptor, view, or SQL function is
+needed.
 
-The lower-level `pg-graphql-translation` artifact remains available to consumers that need custom
-transport. The runtime owns GraphQL request construction, upstream error handling, response-shape
-restoration, Viaduct GRT mapping, and node-reference hydration. The application still owns the
-`HttpClient` lifecycle, endpoint, and authentication policy.
+Translation is included in the runtime library. The runtime owns GraphQL request construction,
+upstream error handling, response-shape restoration, Viaduct GRT mapping, and node-reference
+hydration. The application still owns the `HttpClient` lifecycle, endpoint, and authentication
+policy.
 
-Every `@subtree` type is validated during generation. A transitively reachable `@resolver` field
+Every `@db` type is validated during generation. A transitively reachable `@resolver` field
 is rejected because pg_graphql cannot resolve that field from the database. Types or fields
-backed by external services should remain outside that subtree, usually in a
+backed by external services should remain outside that db, usually in a
 `.notable.graphqls` file.
 
 ## Create or Update a Database
@@ -458,11 +523,11 @@ and database-owned constraints remain explicit manual migration work.
 
 The combined `pg-graphql.sql` overlay:
 
-- Creates self-contained generated global ID columns for supported Viaduct `Node` subtree types.
+- Creates self-contained generated global ID columns for supported Viaduct `Node` db types.
 - Enables row-level security on generated entity tables.
 - Preserves authored GraphQL type and relationship names with pg_graphql comments.
 - Enforces non-null scalar-array elements.
-- Creates computed relationship functions for join tables.
+- Names the ordinary foreign-key relationships used to read real association tables.
 
 ## Customize Hibernate
 
@@ -518,85 +583,81 @@ replacement is supported but is not the recommended default.
 
 ## Liquibase Database Driver
 
-The `liquibase-hibernate-integration` module registers a Liquibase reference database with this
-URL form:
+The plugin library registers a Liquibase reference database with an opaque, in-process URL:
 
 ```text
-hibernate:viaduct:/absolute/path/to/viaduct-hibernate-reference.tsv
+hibernate:viaduct:<opaque-token>
 ```
 
-The driver reads the generated manifest, creates an isolated classloader from its recorded
-classpath, applies the configured Hibernate naming strategies and metadata customizers, and
-returns the same metadata used by `buildViaductEffectiveModel`.
+The token points to an in-memory `HibernateMetadataConfiguration` registered by the current JVM.
+The driver creates an isolated classloader from that configuration, applies the configured
+Hibernate naming strategies and metadata customizers, and returns the same metadata used by
+`buildViaductEffectiveModel`. No descriptor file or serialization is involved. The Gradle tasks
+register and release the configuration automatically.
 
 Add the driver when using it outside the plugin tasks:
 
 ```kotlin
 dependencies {
     implementation(
-        "dev.viaduct:liquibase-hibernate-integration:0.1.0-SNAPSHOT"
+        "dev.viaduct.persistence:plugin:0.1.0-SNAPSHOT"
     )
     implementation("org.liquibase:liquibase-core:5.0.3")
     implementation("org.liquibase.ext:liquibase-hibernate7:5.0.3")
 }
 ```
 
-Programmatic usage:
+Programmatic usage in the same JVM:
 
 ```kotlin
 import java.io.File
 import liquibase.database.DatabaseFactory
 import liquibase.resource.ClassLoaderResourceAccessor
+import dev.viaduct.persistence.hibernate.HibernateMetadataConfiguration
 import dev.viaduct.persistence.liquibase.ViaductHibernateDatabase
 
-val manifest = File(
-    "build/generated/viaduct-effective-model/" +
-        "META-INF/viaduct-hibernate-reference.tsv"
+val configuration = HibernateMetadataConfiguration(
+    mappingFile = File("build/generated/viaduct-persistence/resources/META-INF/orm.xml"),
+    classpath = listOf(File("build/classes/kotlin/main")),
+    managedClassNames = listOf("example.generated.Group"),
+    implicitNamingStrategyClassName = "dev.viaduct.persistence.hibernate.ViaductImplicitNamingStrategy",
+    physicalNamingStrategyClassName = "dev.viaduct.persistence.hibernate.ViaductPhysicalNamingStrategy",
+    metadataCustomizerClassNames = emptyList(),
+    dialectClassName = HibernateMetadataConfiguration.DEFAULT_DIALECT,
+    hibernateSettings = HibernateMetadataConfiguration.defaultSettings(),
 )
 val accessor = ClassLoaderResourceAccessor(
     ViaductHibernateDatabase::class.java.classLoader
 )
-val database = DatabaseFactory.getInstance().openDatabase(
-    ViaductHibernateDatabase.referenceUrl(manifest),
-    null,
-    null,
-    null,
-    accessor,
-)
-
-try {
-    // Use as a Liquibase snapshot or diff reference database.
-} finally {
-    database.close()
-    accessor.close()
+ViaductHibernateDatabase.reference(configuration).use { reference ->
+    val database = DatabaseFactory.getInstance().openDatabase(
+        reference.url,
+        null,
+        null,
+        null,
+        accessor,
+    )
+    try {
+        // Use as a Liquibase snapshot or diff reference database.
+    } finally {
+        database.close()
+    }
 }
+accessor.close()
 ```
 
-Equivalent Liquibase CLI arguments are:
-
-```bash
-liquibase \
-  --reference-url=hibernate:viaduct:/absolute/path/to/viaduct-hibernate-reference.tsv \
-  --url=jdbc:postgresql://127.0.0.1:5432/application \
-  --username=postgres \
-  --password=postgres \
-  diff-changelog \
-  --changelog-file=build/schema-diff/review.sql
-```
-
-The CLI classpath must contain `liquibase-hibernate-integration` and its transitive dependencies.
-The manifest paths are absolute and build-specific; regenerate the effective model after moving
-or rebuilding the application.
+Because the token is held in memory, a standalone Liquibase CLI process cannot use this URL. Use
+the Gradle tasks or register the configuration from a program in the same JVM.
 
 This driver is a Liquibase reference database, not a JDBC driver and not an application runtime
 ORM. Applications using pg_graphql do not need Hibernate in their production runtime. Tests or
-tools that explicitly boot the generated persistence unit should add `hibernate-codegen` and a
+tools that explicitly boot the generated persistence unit should add the plugin library and a
 PostgreSQL JDBC driver to their own test/tool configuration.
 
 ```kotlin
 dependencies {
     testImplementation(
-        "dev.viaduct:hibernate-codegen:0.1.0-SNAPSHOT"
+        "dev.viaduct.persistence:plugin:0.1.0-SNAPSHOT"
     )
     testImplementation("org.postgresql:postgresql:42.7.5")
 }
@@ -604,13 +665,13 @@ dependencies {
 
 ## Local Development
 
-Build and test all modules:
+Build and test both published projects:
 
 ```bash
 ./gradlew build
 ```
 
-Publish every artifact to an isolated local Maven repository:
+Publish both libraries to an isolated local Maven repository:
 
 ```bash
 ./gradlew publish \
@@ -660,15 +721,8 @@ artifacts are not release artifacts and do not require PGP signing.
 
 | Module | Responsibility |
 | --- | --- |
-| `schema-model-core` | Provider-neutral GraphQL persistence model and inclusion policy |
-| `hibernate-codegen` | Plain entity/JPA XML generation and effective Hibernate metadata |
-| `postgresql-overlay` | PostgreSQL generated-column, RLS, and array-integrity SQL |
-| `pg-graphql-overlay` | pg_graphql naming comments and relationship functions |
-| `pg-graphql-translation` | Transport-neutral operation and response-shape translation |
-| `runtime` | Subtree transport, Viaduct GRT mapping, and node-reference hydration |
-| `liquibase-hibernate-integration` | `hibernate:viaduct:` Liquibase reference database |
-| `gradle-plugin` | Generation, compilation, overlay, snapshot, and diff orchestration |
-| `test-fixtures` | Small synthetic fixtures used only by this repository |
+| `runtime` | Db transport, Viaduct GRT mapping, and node-reference hydration |
+| `plugin` | Persistence model generation, overlays, Liquibase integration, and Gradle orchestration |
 
 Application schemas remain external compatibility consumers and are not copied into this
 repository.
